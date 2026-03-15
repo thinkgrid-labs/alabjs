@@ -142,7 +142,7 @@ export function useSignalSetter<T>(sig: Signal<T>): (value: T | ((prev: T) => T)
  * // fullName.get() === "Ada Lovelace"
  * ```
  */
-export function computed<Sources extends Signal<unknown>[], T>(
+export function computed<Sources extends Signal<any>[], T>(
   sources: [...Sources],
   derive: (values: { [K in keyof Sources]: Sources[K] extends Signal<infer V> ? V : never }) => T,
 ): Omit<Signal<T>, "set"> {

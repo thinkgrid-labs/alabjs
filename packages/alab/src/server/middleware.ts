@@ -51,12 +51,14 @@ export interface MiddlewareModule {
 export function matcherToRegex(pattern: string): RegExp {
   // Escape regex special chars except the ones we handle manually
   const escaped = pattern
-    .replace(/[.+^${}()|[\]\\]/g, "\\$&")
-    // :param* → zero-or-more segments
-    .replace(/:[a-zA-Z_][a-zA-Z0-9_]*\*/g, "(?:/.*)?")
+    .replace(/[.+*^${}()|[\]\\]/g, "\\$&")
+    // :param* → zero-or-more segments (greedy, optional slash)
+    .replace(/\/:[a-zA-Z_][a-zA-Z0-9_]*\\\*/g, "(?:/.*)?")
+    .replace(/:[a-zA-Z_][a-zA-Z0-9_]*\\\*/g, "(?:/.*)?")
     // :param  → single segment
     .replace(/:[a-zA-Z_][a-zA-Z0-9_]*/g, "[^/]+")
-    // ** → zero-or-more segments
+    // ** → zero-or-more segments (greedy, optional slash)
+    .replace(/\/\*\*\\\*/g, "(?:/.*)?")
     .replace(/\\\*\\\*/g, ".*")
     // * → single segment
     .replace(/\\\*/g, "[^/]+");
