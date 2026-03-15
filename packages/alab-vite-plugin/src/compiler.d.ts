@@ -9,4 +9,6 @@ declare module "@alab/compiler" {
     height?: number | null,
     format?: string | null,
   ): Promise<Buffer>;
+  export function extractServerFns(source: string, filename: string): string;
+  export function serverFnStub(name: string, endpoint: string): string;
 }

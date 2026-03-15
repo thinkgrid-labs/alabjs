@@ -5,6 +5,8 @@ use napi_derive::napi;
 use alab_compiler::{
     compile, check_server_boundary, CompileOptions,
     optimize_buffer, OptimizeOptions, OutputFormat,
+    extract_server_fns as alab_extract_server_fns,
+    server_fn_client_stub as alab_server_fn_client_stub,
 };
 use alab_router::scan_routes;
 
@@ -84,4 +86,32 @@ pub async fn optimize_image(
         Ok((bytes, _mime)) => Ok(bytes.into()),
         Err(e)             => Err(napi::Error::from_reason(e.to_string())),
     }
+}
+
+/// Scan a `.server.ts` source file for `export const NAME = defineServerFn(handler)`
+/// declarations and return them as JSON.
+///
+/// Returns a JSON array of `{ name: string, endpoint: string }` objects.
+/// The caller (Vite plugin) uses the endpoint list to:
+///   1. Register `POST /_alab/fn/<name>` handlers in the production server.
+///   2. Replace handler bodies with thin fetch stubs in client bundles.
+#[napi]
+pub fn extract_server_fns(source: String, filename: String) -> napi::Result<String> {
+    let fns = alab_extract_server_fns(&source, &filename);
+    serde_json::to_string(&fns)
+        .map_err(|e| napi::Error::from_reason(e.to_string()))
+}
+
+/// Generate a client-side stub for a single server function.
+///
+/// Used by the Vite plugin during client builds to replace the real handler
+/// (which may contain DB calls and secrets) with a `fetch("/_alab/fn/<name>")`
+/// stub that works identically from the browser's perspective.
+///
+/// @param name     - The exported binding name (e.g. `"getUser"`)
+/// @param endpoint - The HTTP endpoint (e.g. `"/_alab/fn/getUser"`)
+/// @returns ES module snippet ready to be injected into the client bundle
+#[napi]
+pub fn server_fn_stub(name: String, endpoint: String) -> String {
+    alab_server_fn_client_stub(&name, &endpoint)
 }

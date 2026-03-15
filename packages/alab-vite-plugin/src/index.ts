@@ -78,28 +78,55 @@ if (routeFile) {
 `.trimStart();
     },
 
-    async transform(code, id): Promise<{ code: string; map: string | null } | null> {
+    async transform(
+      code,
+      id,
+      transformOptions,
+    ): Promise<{ code: string; map: string | null } | null> {
       if (!napi) return null;
       if (!/\.(ts|tsx)$/.test(id)) return null;
       if (id.includes("node_modules")) return null;
 
-      // Check server-boundary violations
-      const violationsJson = napi.checkBoundary(code, id);
-      const violations = JSON.parse(violationsJson) as Array<{
-        import: string;
-        source: string;
-        line: number;
-      }>;
+      const isServerFile = /\.server\.(ts|tsx)$/.test(id);
+      const isClientBuild = !(transformOptions as { ssr?: boolean } | undefined)?.ssr;
 
-      for (const v of violations) {
-        this.error(
-          `Server boundary violation in ${v.source}:\n` +
-            `  Cannot import server module "${v.import}" in a client context.\n` +
-            `  Use \`import type\` for type-only references, or move logic to a .server.ts file.`,
-        );
+      // Server files in a CLIENT build context: extract defineServerFn declarations
+      // and replace the entire module with fetch stubs so server code never ships
+      // to the browser (DB calls, secrets, heavy deps, etc.).
+      if (isServerFile && isClientBuild) {
+        const serverFnsJson = napi.extractServerFns(code, id);
+        const serverFns = JSON.parse(serverFnsJson) as Array<{
+          name: string;
+          endpoint: string;
+        }>;
+        if (serverFns.length > 0) {
+          const stubs = serverFns
+            .map((fn) => napi!.serverFnStub(fn.name, fn.endpoint))
+            .join("\n");
+          return { code: stubs, map: null };
+        }
+        // No defineServerFn exports found — emit an empty module so imports don't break.
+        return { code: "// alab: server module stripped from client bundle\n", map: null };
       }
 
-      // Compile TypeScript/TSX with the Rust compiler
+      // Check server-boundary violations in non-server files.
+      if (!isServerFile) {
+        const violationsJson = napi.checkBoundary(code, id);
+        const violations = JSON.parse(violationsJson) as Array<{
+          import: string;
+          source: string;
+          line: number;
+        }>;
+        for (const v of violations) {
+          this.error(
+            `Server boundary violation in ${v.source}:\n` +
+              `  Cannot import server module "${v.import}" in a client context.\n` +
+              `  Use \`import type\` for type-only references, or move logic to a .server.ts file.`,
+          );
+        }
+      }
+
+      // Compile TypeScript/TSX with the Rust compiler.
       const minify = options.mode === "build";
       const outputJson = napi.compileSource(code, id, minify);
       const output = JSON.parse(outputJson) as { code: string; map: string | null };

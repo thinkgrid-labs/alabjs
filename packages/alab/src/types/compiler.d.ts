@@ -18,4 +18,8 @@ declare module "@alab/compiler" {
     height?: number | null,
     format?: string | null,
   ): Promise<Buffer>;
+  /** Scan a `.server.ts` source for `defineServerFn` exports. Returns JSON `Array<{ name, endpoint }>`. */
+  export function extractServerFns(source: string, filename: string): string;
+  /** Return an ES module fetch-stub for a server function (used in client bundles). */
+  export function serverFnStub(name: string, endpoint: string): string;
 }

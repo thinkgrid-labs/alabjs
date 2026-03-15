@@ -51,3 +51,25 @@ export declare function optimizeImage(
   height?: number | null,
   format?: string | null,
 ): Promise<Buffer>
+
+/**
+ * Scan a `.server.ts` source file for `export const NAME = defineServerFn(handler)`
+ * declarations.
+ *
+ * @param source   - Raw TypeScript source code
+ * @param filename - File path (`.server.ts` / `.server.tsx`)
+ * @returns JSON string `Array<{ name: string; endpoint: string }>`
+ */
+export declare function extractServerFns(source: string, filename: string): string
+
+/**
+ * Generate a client-side fetch stub for a server function.
+ *
+ * Used by the Vite plugin to replace the real handler in client bundles,
+ * ensuring server code never ships to the browser.
+ *
+ * @param name     - Exported binding name (e.g. `"getUser"`)
+ * @param endpoint - HTTP endpoint (e.g. `"/_alab/fn/getUser"`)
+ * @returns ES module snippet `export const <name> = async (input) => { ... }`
+ */
+export declare function serverFnStub(name: string, endpoint: string): string
