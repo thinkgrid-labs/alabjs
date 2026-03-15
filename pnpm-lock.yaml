@@ -99,7 +99,7 @@ importers:
     dependencies:
       alabjs-vite-plugin:
         specifier: workspace:*
-        version: link:../alab-vite-plugin
+        version: link:../alabjs-vite-plugin
       h3:
         specifier: ^1.15.0
         version: 1.15.6
@@ -135,7 +135,7 @@ importers:
         specifier: ^3.0.0
         version: 3.2.4(@types/debug@4.1.12)(@types/node@22.19.15)(jsdom@26.1.0)(lightningcss@1.32.0)
     optionalDependencies:
-      '@alab/compiler':
+      '@alabjs/compiler':
         specifier: workspace:*
         version: link:../../crates/alab-napi
 
@@ -171,7 +171,7 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
     optionalDependencies:
-      '@alab/compiler':
+      '@alabjs/compiler':
         specifier: workspace:*
         version: link:../../crates/alab-napi
 
