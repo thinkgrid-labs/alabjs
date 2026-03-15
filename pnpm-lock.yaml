@@ -21,7 +21,7 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
-  crates/@alabjs/compiler:
+  crates/alab-napi:
     devDependencies:
       '@napi-rs/cli':
         specifier: ^3.0.0
