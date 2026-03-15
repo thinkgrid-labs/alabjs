@@ -1,5 +1,6 @@
 import type { Plugin } from "vite";
 import type { AlabNapi } from "./napi.js";
+import { parseErrorLocation, formatBoundaryError } from "./overlay.js";
 
 interface AlabPluginOptions {
   /** "dev" (default) or "build" */
@@ -115,21 +116,26 @@ if (routeFile) {
         const violations = JSON.parse(violationsJson) as Array<{
           import: string;
           source: string;
-          line: number;
+          offset: number;
         }>;
         for (const v of violations) {
-          this.error(
-            `Server boundary violation in ${v.source}:\n` +
-              `  Cannot import server module "${v.import}" in a client context.\n` +
-              `  Use \`import type\` for type-only references, or move logic to a .server.ts file.`,
-          );
+          this.error(formatBoundaryError(v));
         }
       }
 
       // Compile TypeScript/TSX with the Rust compiler.
+      // Catch errors and attach source location so Vite's overlay shows
+      // the exact line/column instead of a raw stack trace.
       const minify = options.mode === "build";
-      const outputJson = napi.compileSource(code, id, minify);
-      const output = JSON.parse(outputJson) as { code: string; map: string | null };
+      let outputJson: string;
+      try {
+        outputJson = napi.compileSource(code, id, minify);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        const loc = parseErrorLocation(message, id);
+        this.error(message, loc ?? undefined);
+      }
+      const output = JSON.parse(outputJson!) as { code: string; map: string | null };
 
       return { code: output.code, map: output.map ?? null };
     },
