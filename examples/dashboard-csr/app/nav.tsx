@@ -1,3 +1,5 @@
+import { Link } from "alab/components";
+
 export function Sidebar() {
   return (
     <aside className="w-56 min-h-screen bg-zinc-900 flex flex-col flex-shrink-0">
@@ -12,21 +14,22 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* Nav */}
+      {/* Nav — uses <Link> for client-side navigation */}
       <nav className="flex-1 px-3 py-4 space-y-0.5">
         <p className="px-2 mb-2 text-[10px] font-semibold text-zinc-500 uppercase tracking-widest">Menu</p>
         {[
           { href: "/", icon: "▦", label: "Overview" },
           { href: "/users", icon: "◎", label: "Users" },
+          { href: "/activity", icon: "◈", label: "Activity" },
         ].map(({ href, icon, label }) => (
-          <a
+          <Link
             key={href}
             href={href}
             className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-zinc-400 hover:bg-zinc-800 hover:text-white transition-colors"
           >
             <span className="text-base leading-none">{icon}</span>
             {label}
-          </a>
+          </Link>
         ))}
       </nav>
 

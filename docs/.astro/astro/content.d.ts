@@ -152,9 +152,37 @@ declare module 'astro:content' {
 
 	type ContentEntryMap = {
 		"docs": {
+"data-fetching.md": {
+	id: "data-fetching.md";
+  slug: "data-fetching";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"deployment/cloudflare.md": {
+	id: "deployment/cloudflare.md";
+  slug: "deployment/cloudflare";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
 "deployment/node.md": {
 	id: "deployment/node.md";
   slug: "deployment/node";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"guides/fullstack-seo.md": {
+	id: "guides/fullstack-seo.md";
+  slug: "guides/fullstack-seo";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"guides/spa.md": {
+	id: "guides/spa.md";
+  slug: "guides/spa";
   body: string;
   collection: "docs";
   data: InferEntrySchema<"docs">
@@ -180,6 +208,20 @@ declare module 'astro:content' {
   collection: "docs";
   data: InferEntrySchema<"docs">
 } & { render(): Render[".md"] };
+"link.md": {
+	id: "link.md";
+  slug: "link";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"mutations.md": {
+	id: "mutations.md";
+  slug: "mutations";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
 "project-structure.md": {
 	id: "project-structure.md";
   slug: "project-structure";
@@ -187,9 +229,65 @@ declare module 'astro:content' {
   collection: "docs";
   data: InferEntrySchema<"docs">
 } & { render(): Render[".md"] };
+"reference/cache.md": {
+	id: "reference/cache.md";
+  slug: "reference/cache";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"reference/cli.md": {
+	id: "reference/cli.md";
+  slug: "reference/cli";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"reference/i18n.md": {
+	id: "reference/i18n.md";
+  slug: "reference/i18n";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"reference/offline.md": {
+	id: "reference/offline.md";
+  slug: "reference/offline";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"reference/signals.md": {
+	id: "reference/signals.md";
+  slug: "reference/signals";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"reference/sse.md": {
+	id: "reference/sse.md";
+  slug: "reference/sse";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"reference/testing.md": {
+	id: "reference/testing.md";
+  slug: "reference/testing";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
 "routing.md": {
 	id: "routing.md";
   slug: "routing";
+  body: string;
+  collection: "docs";
+  data: InferEntrySchema<"docs">
+} & { render(): Render[".md"] };
+"script.md": {
+	id: "script.md";
+  slug: "script";
   body: string;
   collection: "docs";
   data: InferEntrySchema<"docs">

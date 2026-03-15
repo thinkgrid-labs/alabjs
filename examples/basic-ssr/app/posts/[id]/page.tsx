@@ -1,50 +1,82 @@
 import { useServerData } from "alab/client";
+import { Link } from "alab/components";
 import type { getPost } from "./page.server";
 import { Nav } from "../../nav";
-import type { PageMetadata } from "alab";
+import type { GenerateMetadata, PageMetadata } from "alab";
 
 export const ssr = true;
 
-export async function generateMetadata(params: Record<string, string>): Promise<PageMetadata> {
-  // Re-use the server function data for metadata — runs only on the server.
-  const { getPost: getPostFn } = await import("./page.server.js");
-  const post = await getPostFn({ params, query: {}, headers: {}, method: "GET", url: "" }, undefined);
-  return {
-    title: `${post.title} — Alab`,
-    description: post.body.slice(0, 155),
-    og: {
-      title: post.title,
-      description: post.body.slice(0, 155),
-      type: "article",
-      siteName: "Alab",
-    },
-    twitter: {
-      card: "summary",
-      title: post.title,
-      description: post.body.slice(0, 155),
-    },
+// Dynamic per-post OG metadata — runs on the server before the render
+export const generateMetadata: GenerateMetadata = async ({ params }) => {
+  const titles: Record<string, string> = {
+    "1": "Why Rust + React is the future",
+    "2": "Alab: build with intensity",
+    "3": "Server boundaries without magic",
   };
-}
+  const title = titles[params.id] ?? "Post";
+  const meta: PageMetadata = {
+    title: `${title} — Alab`,
+    description: "Read this post on the Alab blog.",
+    og: { title, description: "Read on Alab.", type: "article", siteName: "Alab" },
+    twitter: { card: "summary_large_image", title },
+  };
+  return meta;
+};
 
 export default function PostPage({ params }: { params: { id: string } }) {
-  const post = useServerData<typeof getPost>("getPost", params);
+  const post = useServerData<typeof getPost>("getPost", { id: params.id });
 
   return (
     <div className="min-h-screen bg-zinc-50">
       <Nav />
       <main className="max-w-3xl mx-auto px-6 py-14">
-        <a
-          href="/posts"
-          className="inline-flex items-center gap-1.5 text-sm text-zinc-400 hover:text-zinc-700 transition-colors mb-10"
-        >
-          ← Back to posts
-        </a>
-        <article>
-          <div className="mb-2 text-xs font-mono text-orange-500 uppercase tracking-widest">Post #{post.id}</div>
-          <h1 className="text-4xl font-extrabold tracking-tight text-zinc-900 mb-6 leading-tight">{post.title}</h1>
-          <div className="h-px bg-zinc-200 mb-8" />
-          <p className="text-lg text-zinc-600 leading-relaxed">{post.body}</p>
+        {/* Breadcrumb */}
+        <nav className="flex items-center gap-2 text-xs text-zinc-400 mb-8">
+          <Link href="/" className="hover:text-zinc-600 transition-colors">Home</Link>
+          <span>/</span>
+          <Link href="/posts" className="hover:text-zinc-600 transition-colors">Posts</Link>
+          <span>/</span>
+          <span className="text-zinc-600 truncate max-w-xs">{post.title}</span>
+        </nav>
+
+        {/* Header */}
+        <header className="mb-10">
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-xs font-medium bg-orange-50 text-orange-600 border border-orange-200 rounded-full px-3 py-1">
+              {post.readingTime} min read
+            </span>
+            <span className="text-xs text-zinc-400">{post.publishedAt}</span>
+          </div>
+          <h1 className="text-4xl font-extrabold tracking-tight text-zinc-900 leading-tight mb-4">
+            {post.title}
+          </h1>
+          <p className="text-lg text-zinc-500 leading-relaxed">{post.excerpt}</p>
+          <div className="mt-4 flex items-center gap-2 text-sm text-zinc-400">
+            <div className="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-white text-xs font-bold">
+              A
+            </div>
+            <span>{post.author}</span>
+          </div>
+        </header>
+
+        {/* Body */}
+        <article className="prose prose-zinc max-w-none">
+          {post.body.split("\n\n").map((paragraph, i) => (
+            <p key={i} className="text-zinc-700 leading-relaxed mb-5">
+              {paragraph}
+            </p>
+          ))}
         </article>
+
+        {/* Back */}
+        <div className="mt-14 pt-8 border-t border-zinc-200">
+          <Link
+            href="/posts"
+            className="inline-flex items-center gap-2 text-sm font-medium text-zinc-500 hover:text-orange-500 transition-colors"
+          >
+            ← Back to posts
+          </Link>
+        </div>
       </main>
     </div>
   );

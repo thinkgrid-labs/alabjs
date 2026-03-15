@@ -1,4 +1,6 @@
 import { AlabProvider, useServerData } from "alab/client";
+import { Link } from "alab/components";
+import { useSignal, useSignalValue } from "alab/signals";
 import type { getUsers } from "./page.server";
 import { Sidebar } from "../nav";
 import type { PageMetadata } from "alab";
@@ -21,46 +23,78 @@ const AVATAR_COLORS = [
 function UserTable() {
   const users = useServerData<typeof getUsers>("getUsers");
 
+  // useSignal — fine-grained reactive state without useState re-rendering the whole tree
+  const query = useSignal("");
+  const queryValue = useSignalValue(query);
+
+  const filtered = queryValue
+    ? users.filter(
+        (u) =>
+          u.name.toLowerCase().includes(queryValue.toLowerCase()) ||
+          u.email.toLowerCase().includes(queryValue.toLowerCase()),
+      )
+    : users;
+
   return (
-    <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
-      <table className="w-full text-sm">
-        <thead>
-          <tr className="bg-zinc-50 border-b border-zinc-200">
-            <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider">User</th>
-            <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Role</th>
-            <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          {users.map((u, i) => (
-            <tr key={u.id} className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50 transition-colors">
-              <td className="px-5 py-3.5">
-                <a href={`/users/${u.id}`} className="flex items-center gap-3 group">
-                  <div className={`w-8 h-8 rounded-full ${AVATAR_COLORS[i % AVATAR_COLORS.length]} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
-                    {initials(u.name)}
-                  </div>
-                  <div>
-                    <p className="font-medium text-zinc-900 group-hover:text-orange-500 transition-colors">{u.name}</p>
-                    <p className="text-xs text-zinc-400">{u.email}</p>
-                  </div>
-                </a>
-              </td>
-              <td className="px-5 py-3.5">
-                <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${u.role === "admin" ? "bg-violet-50 text-violet-700 border border-violet-200" : "bg-zinc-100 text-zinc-600 border border-zinc-200"}`}>
-                  {u.role}
-                </span>
-              </td>
-              <td className="px-5 py-3.5">
-                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${u.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full ${u.status === "active" ? "bg-emerald-500" : "bg-amber-400"}`} />
-                  {u.status}
-                </span>
-              </td>
+    <>
+      {/* Search — updates a signal, only this component re-renders */}
+      <div className="mb-4">
+        <input
+          type="search"
+          value={queryValue}
+          onChange={(e) => query.set(e.target.value)}
+          placeholder="Search users…"
+          className="w-full max-w-xs rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-400"
+        />
+      </div>
+
+      <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-zinc-50 border-b border-zinc-200">
+              <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider">User</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Role</th>
+              <th className="text-left px-5 py-3 text-xs font-semibold text-zinc-400 uppercase tracking-wider">Status</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {filtered.length === 0 && (
+              <tr>
+                <td colSpan={3} className="px-5 py-8 text-center text-sm text-zinc-400">
+                  No users match "{queryValue}"
+                </td>
+              </tr>
+            )}
+            {filtered.map((u, i) => (
+              <tr key={u.id} className="border-b border-zinc-100 last:border-0 hover:bg-zinc-50 transition-colors">
+                <td className="px-5 py-3.5">
+                  <Link href={`/users/${u.id}`} className="flex items-center gap-3 group">
+                    <div className={`w-8 h-8 rounded-full ${AVATAR_COLORS[i % AVATAR_COLORS.length]} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
+                      {initials(u.name)}
+                    </div>
+                    <div>
+                      <p className="font-medium text-zinc-900 group-hover:text-orange-500 transition-colors">{u.name}</p>
+                      <p className="text-xs text-zinc-400">{u.email}</p>
+                    </div>
+                  </Link>
+                </td>
+                <td className="px-5 py-3.5">
+                  <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${u.role === "admin" ? "bg-violet-50 text-violet-700 border border-violet-200" : "bg-zinc-100 text-zinc-600 border border-zinc-200"}`}>
+                    {u.role}
+                  </span>
+                </td>
+                <td className="px-5 py-3.5">
+                  <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold ${u.status === "active" ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"}`}>
+                    <span className={`w-1.5 h-1.5 rounded-full ${u.status === "active" ? "bg-emerald-500" : "bg-amber-400"}`} />
+                    {u.status}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
   );
 }
 

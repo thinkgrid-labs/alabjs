@@ -1,21 +1,21 @@
 ---
 title: Introduction
-description: What Alab JS is, why it exists, and when to use it.
+description: What AlabJS is, why it exists, and when to use it.
 sidebar:
   order: 1
 ---
 
 # Introduction
 
-**Alab JS** is an open-source, full-stack React framework designed around one idea: the right defaults should be the easy defaults.
+**AlabJS** is an open-source, full-stack React framework designed around one idea: the right defaults should be the easy defaults.
 
-Every Alab JS app starts at 95+ Lighthouse, has security headers set, streams real HTML from the server, and compiles with a Rust-powered compiler — without writing a single line of configuration.
+Every AlabJS app starts at 95+ Lighthouse, has security headers set, streams real HTML from the server, and compiles with a Rust-powered compiler — without writing a single line of configuration.
 
 ## The Core Idea
 
 Most React frameworks give you tools and leave configuration up to you. You choose when to SSR, which caching strategy to use, how to set security headers, and how to optimize images. Get any of it wrong and your app is slow, insecure, or penalized by search engines.
 
-Alab inverts this. The framework makes the correct choice by default. You opt out of behaviors you don't need — not opt in to the ones you do.
+AlabJS inverts this. The framework makes the correct choice by default. You opt out of behaviors you don't need — not opt in to the ones you do.
 
 | Default behavior | What it means |
 |---|---|
@@ -29,7 +29,7 @@ Alab inverts this. The framework makes the correct choice by default. You opt ou
 
 ## When to Use Alab
 
-Alab is a great fit for:
+AlabJS is a great fit for:
 
 - **Full-stack React apps** that need server-rendered pages, API routes, and a database
 - **Content sites and blogs** that need SEO, fast loads, and a great Lighthouse score
@@ -39,7 +39,7 @@ Alab is a great fit for:
 
 ## TypeScript Only
 
-Alab does not support plain JavaScript. Every file in an Alab project is TypeScript.
+AlabJS does not support plain JavaScript. Every file in an AlabJS project is TypeScript.
 
 This is a deliberate design choice, not a limitation. Server function return types flow directly into client components through `import type`. The Rust compiler uses TypeScript's syntax to enforce server/client boundaries and perform dead-code elimination. Without TypeScript, neither works.
 

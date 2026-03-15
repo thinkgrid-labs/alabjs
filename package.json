@@ -2,7 +2,7 @@
   "name": "alab-monorepo",
   "private": true,
   "version": "0.1.0",
-  "description": "Alab — full-stack React framework powered by a Rust compiler core",
+  "description": "AlabJS — full-stack React framework powered by a Rust compiler core",
   "scripts": {
     "dev": "turbo dev",
     "build": "turbo build",
@@ -23,5 +23,10 @@
     "node": ">=22",
     "pnpm": ">=10"
   },
-  "packageManager": "pnpm@10.23.0"
+  "packageManager": "pnpm@10.23.0",
+  "pnpm": {
+    "overrides": {
+      "@astrojs/sitemap": "3.5.1"
+    }
+  }
 }

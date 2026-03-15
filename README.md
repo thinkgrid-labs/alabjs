@@ -1,12 +1,12 @@
-# Alab JS
+# AlabJS
 
 > *Filipino: alab — blaze, flame, burning passion*
 
 > [!WARNING]
-> **Alab JS is under active development and not yet production-ready.**
+> **AlabJS is under active development and not yet production-ready.**
 > APIs may change before v1.0. Feel free to explore, contribute, or star the repo.
 
-**Alab JS** is an open-source, full-stack React framework built for developers who want great results without wrestling their tools. It ships production-grade defaults — a Rust compiler, streaming SSR, security headers, image optimization, and Tailwind CSS — so you spend your time building features, not configuring pipelines.
+**AlabJS** is an open-source, full-stack React framework built for developers who want great results without wrestling their tools. It ships production-grade defaults — a Rust compiler, streaming SSR, security headers, image optimization, and Tailwind CSS — so you spend your time building features, not configuring pipelines.
 
 ---
 
@@ -22,7 +22,7 @@ Modern React development has a hidden tax. The tools that promise to make things
 
 At the same time, the performance bar keeps rising. Users expect instant page loads, perfect Lighthouse scores, and offline capability. Developers are expected to know when to SSR, when to CSR, how to split bundles, when to cache, and how to stay secure — and to get all of it right, every time.
 
-Alab exists because **the right defaults should be the easy defaults**. You should not have to be an expert in bundling, SSR, caching, and security to ship a fast, safe, well-optimized app. That knowledge should live in the framework.
+AlabJS exists because **the right defaults should be the easy defaults**. You should not have to be an expert in bundling, SSR, caching, and security to ship a fast, safe, well-optimized app. That knowledge should live in the framework.
 
 ---
 
