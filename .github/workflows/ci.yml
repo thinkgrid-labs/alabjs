@@ -112,4 +112,5 @@ jobs:
       - run: cargo build --release -p alab-napi
       - run: bash scripts/copy-napi-binary.sh
       - run: pnpm run build:packages
+      - run: pnpm install --frozen-lockfile
       - run: pnpm build

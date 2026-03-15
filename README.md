@@ -26,6 +26,32 @@ AlabJS exists because **the right defaults should be the easy defaults**. You sh
 
 ---
 
+## Philosophy
+
+AlabJS doesn't aim to compete with established frameworks on feature count alone. Instead, it competes on **philosophy**.
+
+### 1. Explicit over Magic
+In Alab, clarity is a feature. We avoid "invisible magic" that makes debugging a nightmare.
+- **Opt-in Features**: SSR, caching, and ISR are explicit choices per route, not assumed defaults that you have to fight to disable.
+- **Clear Boundaries**: Server-only code lives in `.server.ts` files. This isn't just a convention; the Rust compiler enforces this boundary at build time, preventing accidental leaks of server logic to the client.
+
+### 2. Standarized & Runtime Agnostic
+Alab is built on web standards. The core server is a standard H3 handler that works with `Request` and `Response` objects.
+- **Deploy Anywhere**: Whether it's Node.js, Cloudflare Workers, Deno, or Bun—if it speaks HTTP, Alab runs on it.
+- **No Lock-in**: We don't build features that require proprietary infrastructure. You own your server.
+
+### 3. Performance as a Baseline
+Most frameworks give you the tools to be fast; Alab makes fast the only option.
+- **Rust-Powered**: Our compiler is built on **oxc**, making it 50-100x faster than legacy tools.
+- **Production-Grade Defaults**: Streaming SSR, image optimization, and security headers are active from the first byte.
+
+### 4. Developer Joy through Correctness
+We believe that a "great DX" isn't just about hot-reloading (though we're fast at that too). It's about a framework that catches your mistakes before they reach the user.
+- **End-to-End Type Safety**: Types flow from your `defineServerFn` directly into your React components without manual sync.
+- **Compiler-Enforced Safety**: The Rust compiler validates your architecture as you build, turning runtime "surprises" into build-time "to-dos".
+
+---
+
 ## What Problem It Solves
 
 **Configuration sprawl.** Most React setups require a bundler config, a TypeScript config, a PostCSS config, a Tailwind config, and deployment configuration on top. Alab has zero required config files. One command creates a working app.
