@@ -110,7 +110,7 @@ export function defineServerFn(...args: any[]): ServerFn<any, any> {
       if (!result.success) {
         // Throw a structured validation error that the dev/prod server will
         // serialise as { zodError: ... } with HTTP 422.
-        const err = new Error("[alab] Validation failed") as Error & { zodError: unknown };
+        const err = new Error("[alabjs] Validation failed") as Error & { zodError: unknown };
         err.zodError = result.error;
         throw err;
       }

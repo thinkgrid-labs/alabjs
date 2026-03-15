@@ -82,7 +82,7 @@ describe("defineServerFn", () => {
       await fn(ctx, {});
       expect.fail("Should have thrown");
     } catch (err) {
-      expect((err as Error).message).toBe("[alab] Validation failed");
+      expect((err as Error).message).toBe("[alabjs] Validation failed");
       expect((err as Error & { zodError: unknown }).zodError).toBeDefined();
     }
   });

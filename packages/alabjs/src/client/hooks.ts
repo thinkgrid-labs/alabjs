@@ -53,7 +53,7 @@ export function useServerData<T extends ServerFn<any, any, any>>(
   let promise = _promiseCache.get(url) as Promise<InferServerOutput<T>> | undefined;
   if (!promise) {
     promise = fetch(url).then((r): Promise<InferServerOutput<T>> => {
-      if (!r.ok) throw new Error(`[alab] server data fetch failed: ${r.status} ${r.statusText} — ${url}`);
+      if (!r.ok) throw new Error(`[alabjs] server data fetch failed: ${r.status} ${r.statusText} — ${url}`);
       return r.json() as Promise<InferServerOutput<T>>;
     });
     _promiseCache.set(url, promise);
@@ -179,7 +179,7 @@ export function useMutation<T extends ServerFn<any, any, any>>(
             return;
           }
 
-          if (!r.ok) throw new Error(`[alab] mutation failed: ${r.status} ${r.statusText}`);
+          if (!r.ok) throw new Error(`[alabjs] mutation failed: ${r.status} ${r.statusText}`);
 
           const data = await r.json() as Output;
           setOptimisticData(undefined);

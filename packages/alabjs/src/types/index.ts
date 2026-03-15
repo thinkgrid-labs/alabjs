@@ -137,3 +137,11 @@ export interface PageMetadata {
   /** Additional arbitrary <meta> tags. */
   readonly extra?: ReadonlyArray<Readonly<Record<string, string>>>;
 }
+
+/**
+ * Functional metadata for dynamic pages.
+ */
+export type GenerateMetadata<Path extends string = string> = (props: {
+  readonly params: RouteParams<Path>;
+  readonly searchParams: Readonly<Record<string, string | readonly string[]>>;
+}) => Promise<PageMetadata> | PageMetadata;

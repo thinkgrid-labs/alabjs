@@ -31,14 +31,14 @@ export async function handleImageRequest(
 
   if (!src || !wParam) {
     res.statusCode = 400;
-    res.end("[alab] Missing src or w parameter");
+    res.end("[alabjs] Missing src or w parameter");
     return;
   }
 
   const width = parseInt(wParam, 10);
   if (!Number.isFinite(width) || width < 1 || width > 4096) {
     res.statusCode = 400;
-    res.end("[alab] Invalid width — must be 1–4096");
+    res.end("[alabjs] Invalid width — must be 1–4096");
     return;
   }
 
@@ -47,7 +47,7 @@ export async function handleImageRequest(
   const filePath = resolve(publicDir, safeSrc);
   if (!filePath.startsWith(publicDir)) {
     res.statusCode = 403;
-    res.end("[alab] Forbidden");
+    res.end("[alabjs] Forbidden");
     return;
   }
 
@@ -55,7 +55,7 @@ export async function handleImageRequest(
     await access(filePath);
   } catch {
     res.statusCode = 404;
-    res.end("[alab] Image not found");
+    res.end("[alabjs] Image not found");
     return;
   }
 
@@ -104,8 +104,8 @@ export async function handleImageRequest(
     res.setHeader("content-length", optimised.length);
     res.end(optimised);
   } catch (err) {
-    console.error("[alab] image optimisation error:", err);
+    console.error("[alabjs] image optimisation error:", err);
     res.statusCode = 500;
-    res.end("[alab] Image optimisation failed");
+    res.end("[alabjs] Image optimisation failed");
   }
 }

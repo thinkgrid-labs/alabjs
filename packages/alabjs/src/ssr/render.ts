@@ -111,14 +111,14 @@ export function renderToResponse(res: ServerResponse, opts: RenderOptions): void
           headersSent = true;
           res.statusCode = 500;
           res.setHeader("content-type", "text/plain; charset=utf-8");
-          res.end(`[alab] SSR shell error: ${String(err)}`);
+          res.end(`[alabjs] SSR shell error: ${String(err)}`);
         }
-        console.error("[alab] SSR shell error:", err);
+        console.error("[alabjs] SSR shell error:", err);
       },
 
       onError(err) {
         didError = true;
-        console.error("[alab] SSR error:", err);
+        console.error("[alabjs] SSR error:", err);
       },
     },
   );

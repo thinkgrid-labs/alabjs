@@ -4,6 +4,7 @@ export type {
   ServerFnContext,
   AlabPage,
   PageMetadata,
+  GenerateMetadata,
   RouteParams,
 } from "./types/index.js";
 export { createApp } from "./server/app.js";

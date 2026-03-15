@@ -27,7 +27,7 @@ function runTypecheck(cwd: string): Promise<void> {
     const child = spawn(bin, ["--noEmit"], { cwd, stdio: "inherit", shell: true });
     child.on("close", (code) => {
       if (code === 0) ok();
-      else fail(new Error(`[alab] TypeScript type errors found (tsc --noEmit exited ${code})`));
+      else fail(new Error(`[alabjs] TypeScript type errors found (tsc --noEmit exited ${code})`));
     });
     child.on("error", fail);
   });
@@ -169,7 +169,7 @@ export async function build({ cwd, skipTypecheck = false, mode = "ssr", analyze 
 /** Compile the offline service worker to a standalone iife bundle. */
 async function buildOfflineSw(cwd: string): Promise<void> {
   const swEntry = new URL("../client/offline-sw.js", import.meta.url).pathname;
-  const outDir = resolve(cwd, ".alabjs/dist/client/_alab");
+  const outDir = resolve(cwd, ".alabjs/dist/client/_alabjs");
   try {
     await viteBuild({
       root: cwd,

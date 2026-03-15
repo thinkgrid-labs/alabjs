@@ -5,18 +5,18 @@ import type { PageMetadata } from "alabjs";
 export const ssr = true;
 
 export const metadata: PageMetadata = {
-  title: "Alab — Build with intensity",
+  title: "AlabJS — Build with intensity",
   description: "Full-stack React framework powered by a Rust compiler. Explicit server boundaries, opt-in SSR, zero magic.",
   og: {
-    title: "Alab — Build with intensity",
+    title: "AlabJS — Build with intensity",
     description: "Full-stack React framework powered by a Rust compiler. Explicit server boundaries, opt-in SSR, zero magic.",
     image: "/hero.jpg",
     type: "website",
-    siteName: "Alab",
+    siteName: "AlabJS",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Alab — Build with intensity",
+    title: "AlabJS — Build with intensity",
     description: "Full-stack React framework powered by a Rust compiler.",
     image: "/hero.jpg",
   },
@@ -52,7 +52,7 @@ export default function HomePage() {
             Browse posts →
           </a>
           <a
-            href="https://github.com/alab-framework/alab"
+            href="https://github.com/thinkgrid-labs/alabjs"
             className="inline-flex items-center gap-2 rounded-lg border border-zinc-300 bg-white px-5 py-2.5 text-sm font-semibold text-zinc-700 hover:bg-zinc-50 transition-colors"
           >
             GitHub ↗
@@ -63,7 +63,7 @@ export default function HomePage() {
         <div className="rounded-2xl overflow-hidden shadow-lg border border-zinc-200">
           <Image
             src="/hero.jpg"
-            alt="Alab — build with intensity"
+            alt="AlabJS — build with intensity"
             width={1200}
             height={600}
             sizes="(max-width: 768px) 100vw, 720px"

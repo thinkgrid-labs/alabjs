@@ -217,7 +217,7 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
         const Page = mod.default;
         if (typeof Page !== "function") {
           res.statusCode = 500;
-          res.end(`[alab] Page has no default export: ${route.file}`);
+          res.end(`[alabjs] Page has no default export: ${route.file}`);
           return;
         }
 
@@ -277,9 +277,9 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
               }
             } catch { /* fall through to plain error */ }
           }
-          console.error("[alab] render error:", err);
+          console.error("[alabjs] render error:", err);
           res.statusCode = 500;
-          res.end(`[alab] Render error: ${String(err)}`);
+          res.end(`[alabjs] Render error: ${String(err)}`);
         }
       }),
     );

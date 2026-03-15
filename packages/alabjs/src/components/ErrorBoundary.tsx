@@ -39,7 +39,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 
   override componentDidCatch(error: Error, info: ErrorInfo): void {
-    console.error("[alab] Unhandled render error:", error, info.componentStack);
+    console.error("[alabjs] Unhandled render error:", error, info.componentStack);
   }
 
   reset(): void {

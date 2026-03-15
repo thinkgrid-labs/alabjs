@@ -86,7 +86,7 @@ export function createFetchHandler(
       if (pathname.startsWith("/_alabjs/image")) {
         const src = url.searchParams.get("src") ?? "";
         if (src) return Response.redirect(new URL(src, url.origin).href, 302);
-        return new Response("[alab] Image src missing", { status: 400, headers: secHeaders });
+        return new Response("[alabjs] Image src missing", { status: 400, headers: secHeaders });
       }
 
       // ── API routes ────────────────────────────────────────────────────────
@@ -94,7 +94,7 @@ export function createFetchHandler(
       if (matchedApi) {
         const apiMod = apiModules[matchedApi.route.file];
         if (!apiMod) {
-          return new Response(`[alab] API module not found: ${matchedApi.route.file}`, {
+          return new Response(`[alabjs] API module not found: ${matchedApi.route.file}`, {
             status: 500, headers: secHeaders,
           });
         }
@@ -125,7 +125,7 @@ export function createFetchHandler(
           type NfProps = { params: Record<string, string>; searchParams: Record<string, string> };
           const nfStream = await renderToReadableStream(
             createElement(nfMod.default as React.ComponentType<NfProps>, { params: {}, searchParams: {} }),
-            { onError(err) { console.error("[alab] not-found SSR error:", err); } },
+            { onError(err) { console.error("[alabjs] not-found SSR error:", err); } },
           );
           await nfStream.allReady;
           const readable = new ReadableStream({
@@ -145,7 +145,7 @@ export function createFetchHandler(
       const { route, params } = matched;
       const mod = pageModules[route.file];
       if (!mod?.default) {
-        return new Response(`[alab] Page module not found: ${route.file}`, {
+        return new Response(`[alabjs] Page module not found: ${route.file}`, {
           status: 500,
           headers: secHeaders,
         });
@@ -182,7 +182,7 @@ export function createFetchHandler(
           {
             onError(err) {
               didError = true;
-              console.error("[alab] SSR error:", err);
+              console.error("[alabjs] SSR error:", err);
             },
           },
         );

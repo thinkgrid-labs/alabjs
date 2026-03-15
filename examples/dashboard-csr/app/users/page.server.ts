@@ -16,4 +16,4 @@ const USERS: User[] = [
   { id: "5", name: "Lea Garcia",    email: "lea@example.com",    role: "admin",  status: "active"   },
 ];
 
-export const getUsers = defineServerFn(async () => USERS);
+export const getUsers = defineServerFn(async (_ctx) => USERS);

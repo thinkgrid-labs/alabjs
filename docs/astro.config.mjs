@@ -12,7 +12,7 @@ export default defineConfig({
       customCss: ["./src/styles/custom.css"],
       description: "The blazing-fast React framework with a Rust core.",
       social: {
-        github: "https://github.com/alab-framework/alab",
+        github: "https://github.com/thinkgrid-labs/alabjs",
       },
       sidebar: [
         {

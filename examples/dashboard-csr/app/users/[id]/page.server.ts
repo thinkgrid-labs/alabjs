@@ -10,13 +10,13 @@ const USERS: Record<string, User> = {
   "5": { id: "5", name: "Lea Garcia",      email: "lea@example.com",    role: "admin",  status: "active"   },
 };
 
-export const getUser = defineServerFn(async ({ id }: { id: string }) => {
+export const getUser = defineServerFn(async (_ctx, { id }: { id: string }) => {
   const user = USERS[id];
   if (!user) throw new Error(`User not found: ${id}`);
   return user;
 });
 
-export const toggleUserStatus = defineServerFn(async ({ id }: { id: string }) => {
+export const toggleUserStatus = defineServerFn(async (_ctx, { id }: { id: string }) => {
   const user = USERS[id];
   if (!user) throw new Error(`User not found: ${id}`);
   USERS[id] = { ...user, status: user.status === "active" ? "inactive" : "active" };

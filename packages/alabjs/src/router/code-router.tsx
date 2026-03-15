@@ -191,7 +191,7 @@ const RouterCtx = createContext<RouterContextValue | null>(null);
 
 function useRouterCtx(): RouterContextValue {
   const ctx = useContext(RouterCtx);
-  if (!ctx) throw new Error("[alab] useParams / useSearch / navigate must be used inside <RouterProvider>");
+  if (!ctx) throw new Error("[alabjs] useParams / useSearch / navigate must be used inside <RouterProvider>");
   return ctx;
 }
 
@@ -295,8 +295,8 @@ export function RouterProvider({ router, children }: RouterProviderProps) {
   }, [buildState]);
 
   const navigate = useCallback((href: string) => {
-    if (typeof window !== "undefined" && "__alab_navigate" in window) {
-      (window as { __alab_navigate: (h: string) => void }).__alab_navigate(href);
+    if (typeof window !== "undefined" && "__alabjs_navigate" in window) {
+      (window as { __alabjs_navigate: (h: string) => void }).__alabjs_navigate(href);
     } else {
       window.location.href = href;
     }

@@ -10,17 +10,17 @@ export const ssr = true;
 export const revalidate = 60;
 
 export const metadata: PageMetadata = {
-  title: "Posts — Alab",
+  title: "Posts — AlabJS",
   description: "Thoughts on Rust, React, and building fast web applications.",
   og: {
-    title: "Posts — Alab",
+    title: "Posts — AlabJS",
     description: "Thoughts on Rust, React, and building fast web applications.",
     type: "website",
-    siteName: "Alab",
+    siteName: "AlabJS",
   },
   twitter: {
     card: "summary",
-    title: "Posts — Alab",
+    title: "Posts — AlabJS",
     description: "Thoughts on Rust, React, and building fast web applications.",
   },
 };

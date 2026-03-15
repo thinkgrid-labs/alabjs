@@ -47,7 +47,7 @@ The result: the same isolation as RSC, with TypeScript errors instead of runtime
   },
 };
 
-export const getPost = defineServerFn(async ({ id }: { id: string }) => {
+export const getPost = defineServerFn(async (_ctx, { id }: { id: string }) => {
   const post = POSTS[id];
   if (!post) throw new Error(`Post not found: ${id}`);
   return post;

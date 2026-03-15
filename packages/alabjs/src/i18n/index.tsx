@@ -212,8 +212,8 @@ export function LocaleLink({ href, locale, children, onClick, ...rest }: LocaleL
     if (e.defaultPrevented) return;
     if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     e.preventDefault();
-    if (typeof window !== "undefined" && "__alab_navigate" in window) {
-      (window as { __alab_navigate: (h: string) => void }).__alab_navigate(resolvedHref);
+    if (typeof window !== "undefined" && "__alabjs_navigate" in window) {
+      (window as { __alabjs_navigate: (h: string) => void }).__alabjs_navigate(resolvedHref);
     } else {
       window.location.href = resolvedHref;
     }

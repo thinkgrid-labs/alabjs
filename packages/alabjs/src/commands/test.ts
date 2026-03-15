@@ -95,7 +95,7 @@ export async function test({ cwd, watch = false, ui = false, files = [] }: TestO
     const child = spawn(bin, args, { cwd, stdio: "inherit", shell: true });
     child.on("close", (code) => {
       if (code === 0 || watch) ok();
-      else fail(new Error(`[alab] Tests failed (vitest exited ${code})`));
+      else fail(new Error(`[alabjs] Tests failed (vitest exited ${code})`));
     });
     child.on("error", fail);
   });

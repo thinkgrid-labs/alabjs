@@ -7,17 +7,17 @@ import type { GenerateMetadata, PageMetadata } from "alabjs";
 export const ssr = true;
 
 // Dynamic per-post OG metadata — runs on the server before the render
-export const generateMetadata: GenerateMetadata = async ({ params }) => {
+export const generateMetadata: GenerateMetadata<"/posts/[id]"> = async ({ params }) => {
   const titles: Record<string, string> = {
     "1": "Why Rust + React is the future",
-    "2": "Alab: build with intensity",
+    "2": "AlabJS: build with intensity",
     "3": "Server boundaries without magic",
   };
   const title = titles[params.id] ?? "Post";
   const meta: PageMetadata = {
-    title: `${title} — Alab`,
-    description: "Read this post on the Alab blog.",
-    og: { title, description: "Read on Alab.", type: "article", siteName: "Alab" },
+    title: `${title} — AlabJS`,
+    description: "Read this post on the AlabJS blog.",
+    og: { title, description: "Read on AlabJS.", type: "article", siteName: "AlabJS" },
     twitter: { card: "summary_large_image", title },
   };
   return meta;

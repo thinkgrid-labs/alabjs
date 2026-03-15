@@ -93,7 +93,7 @@ pub async fn optimize_image(
 ///
 /// Returns a JSON array of `{ name: string, endpoint: string }` objects.
 /// The caller (Vite plugin) uses the endpoint list to:
-///   1. Register `POST /_alab/fn/<name>` handlers in the production server.
+///   1. Register `POST /_alabjs/fn/<name>` handlers in the production server.
 ///   2. Replace handler bodies with thin fetch stubs in client bundles.
 #[napi]
 pub fn extract_server_fns(source: String, filename: String) -> napi::Result<String> {

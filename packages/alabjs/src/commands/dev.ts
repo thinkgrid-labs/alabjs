@@ -158,7 +158,7 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
         if (!found) {
           res.statusCode = 404;
           res.setHeader("content-type", "application/json");
-          res.end(JSON.stringify({ error: `[alab] server function not found: ${fnName}` }));
+          res.end(JSON.stringify({ error: `[alabjs] server function not found: ${fnName}` }));
         }
         return;
       }
@@ -276,7 +276,7 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
 
       const Page = mod.default;
       if (typeof Page !== "function") {
-        vite.ssrFixStacktrace(new Error(`[alab] Page module has no default export: ${route.file}`));
+        vite.ssrFixStacktrace(new Error(`[alabjs] Page module has no default export: ${route.file}`));
         return next();
       }
 
@@ -373,7 +373,7 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
           if (!ssrContent) {
             res.statusCode = 500;
             res.setHeader("content-type", "text/plain; charset=utf-8");
-            res.end(`[alab] SSR error: ${String(ssrErr)}`);
+            res.end(`[alabjs] SSR error: ${String(ssrErr)}`);
             return;
           }
         }
