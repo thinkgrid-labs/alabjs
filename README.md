@@ -432,36 +432,6 @@ alab info     # Print route manifest — path, kind, SSR status
 
 ---
 
-## Architecture
-
-Alab is a Rust + TypeScript monorepo. Rust handles everything CPU-bound. TypeScript handles everything network and runtime.
-
-```
-crates/
-  alab-compiler/   ← oxc: parse TS/TSX, transform JSX, strip types, enforce boundaries
-  alab-router/     ← scan app/ directory → route manifest JSON
-  alab-napi/       ← napi-rs bridge: exposes Rust to Node.js as a native .node addon
-
-packages/
-  alab/            ← CLI, H3 HTTP server, ServerFn types, SEO helpers, security middleware
-  alab-vite-plugin/← Vite plugin: Rust transform replaces esbuild in dev and build
-  create-alab/     ← npx create-alab@latest scaffolder
-```
-
-### The Rust ↔ Node.js bridge
-
-[napi-rs](https://napi.rs/) compiles the Rust crates into a platform-native `.node` binary. To Node.js it's a regular `require()` — but it runs at machine speed with zero IPC overhead.
-
-```ts
-// Inside alab-vite-plugin — Node.js calling Rust
-import napi from "alab-napi";
-
-const { code } = JSON.parse(napi.compileSource(tsxSource, "page.tsx", false));
-// ~0.3ms vs ~30ms with esbuild
-```
-
----
-
 ## Lighthouse Score
 
 A default Alab app scores 95–100 across all Lighthouse categories because every optimization is on by default:
