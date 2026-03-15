@@ -1,9 +1,31 @@
+# dependencies
 node_modules/
+.pnpm-store/
+
+# build outputs
 dist/
-.turbo/
-target/
+.alab/
 *.node
-.DS_Store
+*.tsbuildinfo
+
+# rust
+target/
+Cargo.lock.bak
+
+# turbo
+.turbo/
+
+# env
 .env
 .env.local
-*.tsbuildinfo
+.env.*.local
+
+# editor
+.DS_Store
+.vscode/settings.json
+.idea/
+*.swp
+*.swo
+
+# os
+Thumbs.db
