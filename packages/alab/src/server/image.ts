@@ -71,8 +71,8 @@ export async function handleImageRequest(
 
   try {
     const input = await readFile(filePath);
-    // Pass raw bytes to Rust — decode + resize + encode happens entirely in Rust.
-    const optimised = napi.optimizeImage(input, quality, width, undefined, fmt);
+    // Pass raw bytes to Rust — decode + resize + encode on a blocking thread pool.
+    const optimised = await napi.optimizeImage(input, quality, width, undefined, fmt);
 
     const mime =
       fmt === "jpeg" || fmt === "jpg" ? "image/jpeg"

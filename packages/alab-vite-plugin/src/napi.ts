@@ -9,5 +9,5 @@ export interface AlabNapi {
     width?: number | null,
     height?: number | null,
     format?: string | null,
-  ): Buffer;
+  ): Promise<Buffer>;
 }

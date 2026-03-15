@@ -10,8 +10,9 @@ crate-type = ["cdylib"]
 [dependencies]
 alab-compiler = { path = "../alab-compiler" }
 alab-router = { path = "../alab-router" }
-napi.workspace = true
+napi = { version = "2", features = ["napi8", "async"] }
 napi-derive.workspace = true
+tokio = { version = "1", features = ["rt"] }
 serde_json.workspace = true
 
 [build-dependencies]

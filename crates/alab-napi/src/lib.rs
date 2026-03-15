@@ -43,6 +43,9 @@ pub fn build_routes(app_dir: String) -> napi::Result<String> {
 
 /// Optimise a single image buffer — same interface as snapbolt-cli.
 ///
+/// Runs on a Tokio blocking thread so it never blocks the Node.js event loop,
+/// keeping the server at full throughput even during heavy image processing.
+///
 /// - `input`   — raw image bytes (JPEG, PNG, GIF, or WebP)
 /// - `quality` — 1.0–100.0, defaults to 80
 /// - `width`   — target width in pixels; omit to keep original width
@@ -51,9 +54,9 @@ pub fn build_routes(app_dir: String) -> napi::Result<String> {
 ///
 /// WebP encoding uses libwebp-sys when the crate is compiled with
 /// `--features native`; otherwise falls back to the pure-Rust encoder.
-/// Returns the encoded bytes as a Node.js `Buffer`.
+/// Returns a Promise that resolves to the encoded bytes as a Node.js `Buffer`.
 #[napi]
-pub fn optimize_image(
+pub async fn optimize_image(
     input: Buffer,
     quality: Option<f64>,
     width: Option<u32>,
@@ -71,8 +74,14 @@ pub fn optimize_image(
         height,
         format: fmt,
     };
-    match optimize_buffer(&input, &options) {
-        Ok((data, _mime)) => Ok(data.into()),
-        Err(e)            => Err(napi::Error::from_reason(e.to_string())),
+    // Move CPU-intensive work off the event loop thread.
+    let data: Vec<u8> = input.to_vec();
+    let result = tokio::task::spawn_blocking(move || optimize_buffer(&data, &options))
+        .await
+        .map_err(|e| napi::Error::from_reason(e.to_string()))?;
+
+    match result {
+        Ok((bytes, _mime)) => Ok(bytes.into()),
+        Err(e)             => Err(napi::Error::from_reason(e.to_string())),
     }
 }

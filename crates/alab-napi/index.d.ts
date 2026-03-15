@@ -50,4 +50,4 @@ export declare function optimizeImage(
   width?: number | null,
   height?: number | null,
   format?: string | null,
-): Buffer
+): Promise<Buffer>

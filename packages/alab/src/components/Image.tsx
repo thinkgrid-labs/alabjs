@@ -127,7 +127,7 @@ export async function generateBlurPlaceholder(
 
   const input = await readFile(filePath);
 
-  let napi: { optimizeImage: (b: Buffer, q: number | null, w: number | null, h: null, fmt: string) => Buffer };
+  let napi: { optimizeImage: (b: Buffer, q: number | null, w: number | null, h: null, fmt: string) => Promise<Buffer> };
   try {
     napi = (await import("@alab/compiler")) as typeof napi;
   } catch {
@@ -135,7 +135,7 @@ export async function generateBlurPlaceholder(
     return "";
   }
 
-  const tiny = napi.optimizeImage(input, 40, 8, null, "webp");
+  const tiny = await napi.optimizeImage(input, 40, 8, null, "webp");
   const b64 = Buffer.from(tiny).toString("base64");
   return `data:image/webp;base64,${b64}`;
 }
