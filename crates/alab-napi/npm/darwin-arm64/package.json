@@ -1,5 +1,5 @@
 {
-  "name": " @alabjs/compiler-darwin-arm64",
+  "name": "@alabjs/compiler-darwin-arm64",
   "version": "0.1.0",
   "description": "AlabJS compiler binary for darwin-arm64",
   "license": "MIT",

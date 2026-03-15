@@ -1,5 +1,5 @@
 {
-  "name": " @alabjs/compiler-win32-x64-msvc",
+  "name": "@alabjs/compiler-win32-x64-msvc",
   "version": "0.1.0",
   "description": "AlabJS compiler binary for win32-x64-msvc",
   "license": "MIT",

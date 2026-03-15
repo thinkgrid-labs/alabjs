@@ -100,7 +100,7 @@ jobs:
         run: |
           VERSION=${GITHUB_REF_NAME#v}
           cd crates/alab-napi/npm/${{ matrix.pkg }}
-          npm version $VERSION --no-git-tag-version
+          npm version $VERSION --no-git-tag-version --allow-same-version
 
       - name: Publish @alabjs/compiler-${{ matrix.pkg }}
         if: ${{ !inputs.dry_run }}
@@ -133,9 +133,9 @@ jobs:
       - name: Set versions
         run: |
           VERSION=${GITHUB_REF_NAME#v}
-          pnpm -r exec npm version $VERSION --no-git-tag-version
+          pnpm -r exec npm version $VERSION --no-git-tag-version --allow-same-version
           cd crates/alab-napi
-          npm version $VERSION --no-git-tag-version
+          npm version $VERSION --no-git-tag-version --allow-same-version
 
       - name: Build TypeScript packages
         run: pnpm build
