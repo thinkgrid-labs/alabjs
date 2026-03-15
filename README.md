@@ -520,7 +520,7 @@ pnpm dev
 
 ## Roadmap
 
-**Phase 1 — Core (current)**
+**Phase 1 — Core** ✅
 - [x] Rust compiler core (oxc 0.119 — parse, transform, boundary detection)
 - [x] File-system router (route manifest builder)
 - [x] napi-rs bindings
@@ -528,19 +528,22 @@ pnpm dev
 - [x] TypeScript types (ServerFn, ClientPage boundaries)
 - [x] basic-ssr example
 
-**Phase 2 — Make it run**
-- [ ] napi binary packaging (`@alab/compiler-*` platform npm packages)
-- [ ] Vite plugin integration test (end-to-end compile + HMR)
-- [ ] Complete SSR render pipeline (`renderToPipeableStream`)
-- [ ] Tailwind CSS v4 integration (zero-config)
+**Phase 2 — Make it run** ✅
+- [x] napi binary packaging (`@alab/compiler-*` platform npm packages, platform loader, copy script)
+- [x] Vite plugin — virtual `/@alab/client` module, boundary enforcement at transform time
+- [x] SSR render pipeline (`renderToPipeableStream` + HTML shell + metadata `<head>` injection)
+- [x] SSR dev server (Vite `appType:"custom"` + `ssrLoadModule` + HMR)
+- [x] Client hydration (`hydrateRoot` for SSR routes, `createRoot` for CSR routes)
+- [x] Tailwind CSS v4 zero-config (auto-wired via `@tailwindcss/vite`)
+- [x] Security headers by default (`x-content-type-options`, `x-frame-options`, `referrer-policy`)
+- [x] Node ≥ 22 enforced across all packages
 
 **Phase 3 — Defaults**
-- [ ] Security headers middleware
-- [ ] CSRF protection
-- [ ] `metadata` export → automatic `<head>` injection
+- [ ] CSRF protection middleware
 - [ ] Auto `/sitemap.xml` from route manifest
 - [ ] `<Image>` component with WebP conversion and `srcset`
 - [ ] Critical CSS inlining
+- [ ] `defineServerFn` extractor — strip server implementations from client bundle at build time
 
 **Phase 4 — DX**
 - [ ] Error overlay (Rust errors mapped to source lines)
