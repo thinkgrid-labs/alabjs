@@ -545,11 +545,11 @@ pnpm dev
 - [ ] Critical CSS inlining
 - [x] `defineServerFn` extractor — strip server implementations from client bundle at build time
 
-**Phase 4 — DX**
-- [ ] Error overlay (Rust errors mapped to source lines)
-- [ ] `alab info` — show per-file compile output
-- [ ] `create-alab` templates (basic, dashboard, blog)
-- [ ] Docs site (Starlight)
+**Phase 4 — DX** ✅
+- [x] Error overlay (Rust errors mapped to source lines)
+- [x] `alab info` — show per-file compile output + server function registry
+- [x] `create-alab` templates (basic, dashboard, blog)
+- [x] Docs site (Starlight)
 
 **Phase 5 — Platforms**
 - [ ] Cloudflare Workers adapter
