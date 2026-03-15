@@ -521,10 +521,10 @@ pnpm dev
 - [x] `create-alab` templates (basic, dashboard, blog)
 - [x] Docs site (Starlight)
 
-**Phase 5 — Platforms**
-- [ ] Cloudflare Workers adapter
-- [ ] Static site generation (SSG)
-- [ ] Deno Deploy adapter
+**Phase 5 — Platforms** ✅
+- [x] Cloudflare Workers adapter
+- [x] Static site generation (SSG)
+- [x] Deno Deploy adapter
 
 ---
 

@@ -9,7 +9,6 @@
  */
 
 import { parseArgs } from "node:util";
-import { resolve } from "node:path";
 
 const { positionals } = parseArgs({
   allowPositionals: true,
@@ -35,8 +34,11 @@ switch (command) {
   case "info":
     await import("./commands/info.js").then((m) => m.info({ cwd }));
     break;
+  case "ssg":
+    await import("./commands/ssg.js").then((m) => m.ssg({ cwd }));
+    break;
   default:
     console.error(`Unknown command: ${command}`);
-    console.error("Usage: alab <dev|build|start|info>");
+    console.error("Usage: alab <dev|build|start|info|ssg>");
     process.exit(1);
 }

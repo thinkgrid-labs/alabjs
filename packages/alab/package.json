@@ -24,6 +24,18 @@
     "./components": {
       "import": "./dist/components/index.js",
       "types": "./dist/components/index.d.ts"
+    },
+    "./adapters/cloudflare": {
+      "import": "./dist/adapters/cloudflare.js",
+      "types": "./dist/adapters/cloudflare.d.ts"
+    },
+    "./adapters/deno": {
+      "import": "./dist/adapters/deno.js",
+      "types": "./dist/adapters/deno.d.ts"
+    },
+    "./adapters/web": {
+      "import": "./dist/adapters/web.js",
+      "types": "./dist/adapters/web.d.ts"
     }
   },
   "bin": {

@@ -1,0 +1,174 @@
+name: Release
+
+# Triggered manually or when a version tag is pushed (e.g. v0.1.0).
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (build binaries but do not publish)"
+        type: boolean
+        default: false
+
+env:
+  RUST_BACKTRACE: 1
+
+jobs:
+  # ─── 1. Build platform-native napi binaries ───────────────────────────────
+  build-napi:
+    name: Build napi binary (${{ matrix.settings.target }})
+    runs-on: ${{ matrix.settings.host }}
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            pkg: linux-x64-gnu
+            binary: libalab_napi.so
+          - host: macos-latest
+            target: aarch64-apple-darwin
+            pkg: darwin-arm64
+            binary: libalab_napi.dylib
+          - host: macos-13
+            target: x86_64-apple-darwin
+            pkg: darwin-x64
+            binary: libalab_napi.dylib
+          - host: windows-latest
+            target: x86_64-pc-windows-msvc
+            pkg: win32-x64-msvc
+            binary: alab_napi.dll
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.settings.target }}
+
+      - name: Cache Rust deps
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.settings.target }}
+
+      - name: Build napi binary
+        run: |
+          cargo build --release --target ${{ matrix.settings.target }} -p alab-napi
+
+      - name: Copy binary to npm package
+        shell: bash
+        run: |
+          mkdir -p crates/alab-napi/npm/${{ matrix.settings.pkg }}
+          cp target/${{ matrix.settings.target }}/release/${{ matrix.settings.binary }} \
+             crates/alab-napi/npm/${{ matrix.settings.pkg }}/alab_napi.node
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: napi-${{ matrix.settings.pkg }}
+          path: crates/alab-napi/npm/${{ matrix.settings.pkg }}/alab_napi.node
+
+  # ─── 2. Publish platform packages to npm ─────────────────────────────────
+  publish-napi-platforms:
+    name: Publish @alab/compiler-${{ matrix.pkg }}
+    needs: build-napi
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pkg: [linux-x64-gnu, darwin-arm64, darwin-x64, win32-x64-msvc]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Download binary
+        uses: actions/download-artifact@v4
+        with:
+          name: napi-${{ matrix.pkg }}
+          path: crates/alab-napi/npm/${{ matrix.pkg }}/
+
+      - name: Publish @alab/compiler-${{ matrix.pkg }}
+        if: ${{ !inputs.dry_run }}
+        working-directory: crates/alab-napi/npm/${{ matrix.pkg }}
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # ─── 3. Publish @alab/compiler (JS wrapper) and npm packages ─────────────
+  publish-packages:
+    name: Publish npm packages
+    needs: publish-napi-platforms
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: "https://registry.npmjs.org"
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build TypeScript packages
+        run: pnpm build
+
+      - name: Publish @alab/compiler
+        if: ${{ !inputs.dry_run }}
+        working-directory: crates/alab-napi
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish alab
+        if: ${{ !inputs.dry_run }}
+        working-directory: packages/alab
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish alab-vite-plugin
+        if: ${{ !inputs.dry_run }}
+        working-directory: packages/alab-vite-plugin
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish create-alab
+        if: ${{ !inputs.dry_run }}
+        working-directory: packages/create-alab
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+  # ─── 4. Create GitHub Release ─────────────────────────────────────────────
+  github-release:
+    name: Create GitHub Release
+    needs: publish-packages
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#v}" >> "$GITHUB_OUTPUT"
+
+      - name: Create release
+        if: ${{ !inputs.dry_run }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "Alab v${{ steps.version.outputs.version }}"
+          generate_release_notes: true
