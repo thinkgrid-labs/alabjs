@@ -3,17 +3,38 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "lib": ["ES2022"],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+
+    // ─── Strictness ────────────────────────────────────────────────
     "strict": true,
     "exactOptionalPropertyTypes": true,
     "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noPropertyAccessFromIndexSignature": true,
+    "noFallthroughCasesInSwitch": true,
+
+    // ─── Module hygiene ────────────────────────────────────────────
+    // Required for oxc's per-file compilation — each file must be
+    // independently transformable without needing type information
+    // from other files.
+    "isolatedModules": true,
+    // Enforces `import type` for type-only imports, ensuring they are
+    // always erasable by the Rust compiler without type-checking.
+    "verbatimModuleSyntax": true,
+
+    // ─── Emit ──────────────────────────────────────────────────────
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
     "composite": true,
+
+    // ─── Interop ───────────────────────────────────────────────────
     "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
+
     "outDir": "dist"
   },
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "target"]
 }

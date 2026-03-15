@@ -1,5 +1,5 @@
 use oxc_allocator::Allocator;
-use oxc_ast::ast::Statement;
+use oxc_ast::ast::{ImportOrExportKind, Statement};
 use oxc_parser::Parser;
 use oxc_span::SourceType;
 use serde::{Deserialize, Serialize};
@@ -41,6 +41,13 @@ pub fn check_server_boundary(
 
     for stmt in parser_ret.program.body.iter() {
         if let Statement::ImportDeclaration(decl) = stmt {
+            // `import type { Foo } from "./foo.server"` is safe — erased at
+            // compile time by oxc, never included in the browser bundle.
+            // Only runtime imports (`import { Foo }`) cross the boundary.
+            if decl.import_kind == ImportOrExportKind::Type {
+                continue;
+            }
+
             let specifier = decl.source.value.as_str();
             if is_server_module(specifier) {
                 violations.push(BoundaryViolation {
@@ -90,5 +97,21 @@ mod tests {
         let source = r#"import React from "react"; import { useState } from "react";"#;
         let violations = check_server_boundary(source, "page.tsx");
         assert!(violations.is_empty());
+    }
+
+    #[test]
+    fn allows_type_only_import_from_server_module() {
+        // `import type` is erased at compile time — safe to cross the boundary.
+        // This is how clients get full type inference from server functions.
+        let source = r#"import type { getUser } from "./user.server";"#;
+        let violations = check_server_boundary(source, "user.page.tsx");
+        assert!(violations.is_empty(), "import type should be allowed: {violations:?}");
+    }
+
+    #[test]
+    fn blocks_runtime_import_from_server_module() {
+        let source = r#"import { getUser } from "./user.server";"#;
+        let violations = check_server_boundary(source, "user.page.tsx");
+        assert_eq!(violations.len(), 1);
     }
 }

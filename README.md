@@ -112,6 +112,45 @@ Turbopack is fast but it's a closed black box. Alab uses **oxc** — the open-so
 
 ---
 
+## TypeScript Only
+
+Alab does not support plain JavaScript. TypeScript is the only language.
+
+This is not a limitation — it is a deliberate design decision.
+
+**Why TypeScript only?**
+
+- **The Rust compiler needs it.** oxc compiles each file independently without cross-file type information (`isolatedModules`). TypeScript's type annotations give the compiler everything it needs to do dead-code elimination, server/client splitting, and tree-shaking correctly. Plain JS provides none of that.
+
+- **End-to-end type safety is a core feature.** Alab's server functions carry their input and output types from the server all the way to the client via `import type`. This only works if every file in the graph is typed.
+
+- **`verbatimModuleSyntax` is enforced.** All type-only imports must be written as `import type`. This guarantees that the Rust compiler can safely erase them without running the TypeScript type checker — keeping builds fast.
+
+- **One language, one toolchain.** No configuration split between `.js` and `.ts` files, no ambiguous `allowJs` settings, no mixed-mode edge cases. Every file in an Alab project is TypeScript. Full stop.
+
+**What this means for you:**
+
+```ts
+// ✅ Allowed — runtime import of a value
+import { AlabProvider } from "alab/client";
+
+// ✅ Allowed — type-only import across the server boundary (erased at compile time)
+import type { getPost } from "./page.server";
+
+// ✅ Allowed — explicit type import in the same package
+import type { PageMetadata } from "alab";
+
+// ❌ Error — plain JS file not recognized by router or compiler
+// app/page.js  →  use app/page.tsx instead
+
+// ❌ Error — missing `type` keyword on a type-only import
+import { ServerFn } from "alab";  // should be `import type { ServerFn }`
+```
+
+If you are migrating an existing JavaScript project, rename files to `.ts` / `.tsx`. The Alab compiler handles the rest.
+
+---
+
 ## Getting Started
 
 ### Requirements
