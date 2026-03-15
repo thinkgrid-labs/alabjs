@@ -8,7 +8,8 @@ export default defineConfig({
   base: "/alabjs",
   integrations: [
     starlight({
-      title: "Alab",
+      title: "🔥 AlabJS",
+      customCss: ["./src/styles/custom.css"],
       description: "The blazing-fast React framework with a Rust core.",
       social: {
         github: "https://github.com/alab-framework/alab",

@@ -1,0 +1,5 @@
+:root {
+  --sl-color-accent-low: #331100;
+  --sl-color-accent: #f97316; /* Tailwind orange-500 */
+  --sl-color-accent-high: #ff9966;
+}

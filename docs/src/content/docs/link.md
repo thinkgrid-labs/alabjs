@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-The `<Link>` component enables SPA-style navigation between Alab pages. Clicking a link fetches the next page HTML and swaps the content in place — no full browser navigation, no white flash, no layout re-mount.
+The `<Link>` component enables SPA-style navigation between AlabJS pages. Clicking a link fetches the next page HTML and swaps the content in place — no full browser navigation, no white flash, no layout re-mount.
 
 ## Basic usage
 

@@ -5,7 +5,7 @@ sidebar:
   order: 1
 ---
 
-Alab ships a tiny, framework-agnostic signal primitive built on `useSyncExternalStore`. Signals give you **cell-level reactivity** — only the component that reads a signal re-renders when it changes. No context, no prop drilling, no global store boilerplate.
+AlabJS ships a tiny, framework-agnostic signal primitive built on `useSyncExternalStore`. Signals give you **cell-level reactivity** — only the component that reads a signal re-renders when it changes. No context, no prop drilling, no global store boilerplate.
 
 ## Creating a signal
 

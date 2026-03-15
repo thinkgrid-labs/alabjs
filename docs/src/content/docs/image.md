@@ -3,7 +3,7 @@ title: Image Component
 description: Optimised images with Rust-powered WebP conversion.
 ---
 
-The `<Image>` component automatically converts images to WebP, generates a responsive `srcset`, and supports blur-up placeholders — all powered by the Alab Rust core (no `sharp` dependency).
+The `<Image>` component automatically converts images to WebP, generates a responsive `srcset`, and supports blur-up placeholders — all powered by the AlabJS Rust core (no `sharp` dependency).
 
 ## Basic usage
 

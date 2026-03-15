@@ -7,7 +7,7 @@ sidebar:
 
 # Building a Full-Stack App with SEO
 
-This guide walks through building a full-stack Alab application with server-side rendering, SEO metadata, API routes, a Node.js production server, and deployment to a VPS or Fly.io.
+This guide walks through building a full-stack AlabJS application with server-side rendering, SEO metadata, API routes, a Node.js production server, and deployment to a VPS or Fly.io.
 
 ## When to Use This Setup
 
@@ -202,7 +202,7 @@ export async function POST(req: Request): Promise<Response> {
 
 ## Auto Sitemap
 
-Alab generates `/sitemap.xml` automatically from the route manifest. No configuration needed.
+AlabJS generates `/sitemap.xml` automatically from the route manifest. No configuration needed.
 
 For static routes, every `page.tsx` is included. For dynamic routes, implement `generateStaticParams`:
 
@@ -229,7 +229,7 @@ import { Image } from "alab/components";
 />
 ```
 
-Alab converts images to WebP at request time, generates `srcset`, and serves them through the built-in `/_alab/image` endpoint. No external CDN or service required.
+AlabJS converts images to WebP at request time, generates `srcset`, and serves them through the built-in `/_alab/image` endpoint. No external CDN or service required.
 
 ## Production Build
 

@@ -1,11 +1,11 @@
 ---
 title: Cloudflare Workers
-description: Deploy Alab to Cloudflare Workers for global edge rendering.
+description: Deploy AlabJS to Cloudflare Workers for global edge rendering.
 sidebar:
   order: 2
 ---
 
-Alab can be deployed to Cloudflare Workers for globally distributed edge rendering — your pages render in the data centre closest to each user with no cold starts.
+AlabJS can be deployed to Cloudflare Workers for globally distributed edge rendering — your pages render in the data centre closest to each user with no cold starts.
 
 ## Prerequisites
 
@@ -97,4 +97,4 @@ After deploying, add a custom domain in the Cloudflare dashboard under Workers �
 
 ## Pages vs Workers
 
-Alab targets **Workers** (not Pages) for full server-side rendering flexibility. If you only need to serve static assets, use `alab build --mode spa` and deploy the `spa/` output to Cloudflare Pages directly.
+AlabJS targets **Workers** (not Pages) for full server-side rendering flexibility. If you only need to serve static assets, use `alab build --mode spa` and deploy the `spa/` output to Cloudflare Pages directly.

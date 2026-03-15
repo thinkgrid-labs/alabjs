@@ -1,6 +1,6 @@
 ---
 title: Installation
-description: Create a new Alab project and understand the project structure.
+description: Create a new AlabJS project and understand the project structure.
 sidebar:
   order: 2
 ---

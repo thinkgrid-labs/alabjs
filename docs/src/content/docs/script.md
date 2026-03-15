@@ -107,7 +107,7 @@ Pass children instead of `src` for inline scripts:
 
 ## Preventing duplicates
 
-If the same script is rendered multiple times (e.g. in a component used on many pages), set an `id` prop. Alab deduplicates scripts with the same `id` so the script is injected only once:
+If the same script is rendered multiple times (e.g. in a component used on many pages), set an `id` prop. AlabJS deduplicates scripts with the same `id` so the script is injected only once:
 
 ```tsx
 <Script id="my-analytics" src="..." strategy="afterInteractive" />

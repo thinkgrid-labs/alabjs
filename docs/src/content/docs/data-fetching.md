@@ -5,7 +5,7 @@ sidebar:
   order: 1
 ---
 
-Alab fetches data through server functions — typed TypeScript functions that run on the server and are automatically called from the client via a type-safe RPC layer. There is no `fetch`, no REST endpoints to define, and no `useEffect` data fetching.
+AlabJS fetches data through server functions — typed TypeScript functions that run on the server and are automatically called from the client via a type-safe RPC layer. There is no `fetch`, no REST endpoints to define, and no `useEffect` data fetching.
 
 ## Defining a server function for data
 

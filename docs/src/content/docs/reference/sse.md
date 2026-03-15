@@ -5,7 +5,7 @@ sidebar:
   order: 3
 ---
 
-Alab has first-class support for Server-Sent Events (SSE) — a lightweight, HTTP-native protocol for pushing data from the server to the browser. Unlike WebSockets, SSE works over a standard HTTP connection, passes through any proxy, and reconnects automatically.
+AlabJS has first-class support for Server-Sent Events (SSE) — a lightweight, HTTP-native protocol for pushing data from the server to the browser. Unlike WebSockets, SSE works over a standard HTTP connection, passes through any proxy, and reconnects automatically.
 
 ## Defining an SSE handler
 
@@ -44,7 +44,7 @@ interface SSEEvent<T> {
 }
 ```
 
-Alab handles all the encoding, headers (`content-type: text/event-stream`, `cache-control: no-cache`), and connection cleanup automatically.
+AlabJS handles all the encoding, headers (`content-type: text/event-stream`, `cache-control: no-cache`), and connection cleanup automatically.
 
 ## Consuming SSE in a component
 

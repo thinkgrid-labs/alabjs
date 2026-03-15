@@ -7,7 +7,7 @@ sidebar:
 
 # SSR & CSR
 
-Alab renders pages on the client by default. Add `export const ssr = true` to a page to switch it to server-side rendering.
+AlabJS renders pages on the client by default. Add `export const ssr = true` to a page to switch it to server-side rendering.
 
 ## CSR (Default)
 

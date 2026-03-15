@@ -5,7 +5,7 @@ sidebar:
   order: 4
 ---
 
-Alab includes an offline-first layer that intercepts failed server function calls, stores them in IndexedDB, and replays them when the network returns. No configuration required.
+AlabJS includes an offline-first layer that intercepts failed server function calls, stores them in IndexedDB, and replays them when the network returns. No configuration required.
 
 ## How it works
 
@@ -73,7 +73,7 @@ export function CreatePostButton() {
 The service worker registers a Background Sync tag (`alab-mutation-replay`) when it queues a mutation. The browser automatically triggers replay when the connection is restored — even if the tab is closed.
 
 :::note
-Background Sync is currently supported in Chrome and Edge. In Firefox and Safari, Alab falls back to replaying when the `online` event fires while the tab is open.
+Background Sync is currently supported in Chrome and Edge. In Firefox and Safari, AlabJS falls back to replaying when the `online` event fires while the tab is open.
 :::
 
 ## Manual replay

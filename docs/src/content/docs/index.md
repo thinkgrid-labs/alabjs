@@ -27,7 +27,7 @@ AlabJS inverts this. The framework makes the correct choice by default. You opt 
 | Image optimization | `<Image>` converts to WebP, generates `srcset`, lazy-loads by default. |
 | Auto sitemap | `/sitemap.xml` is generated from the route manifest. No plugin needed. |
 
-## When to Use Alab
+## When to Use AlabJS
 
 AlabJS is a great fit for:
 

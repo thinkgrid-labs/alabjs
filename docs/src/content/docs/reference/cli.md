@@ -115,7 +115,7 @@ Prints environment and dependency information for bug reports.
 alab info
 ```
 
-Output includes: OS, Node.js version, pnpm version, Alab version, Vite version, Rust toolchain.
+Output includes: OS, Node.js version, pnpm version, AlabJS version, Vite version, Rust toolchain.
 
 ---
 

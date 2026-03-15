@@ -7,7 +7,7 @@ sidebar:
 
 # Server Functions
 
-Server functions are the primary way to run code on the server in Alab. They are defined in `.server.ts` files, enforced by the Rust compiler at build time — they never ship to the browser.
+Server functions are the primary way to run code on the server in AlabJS. They are defined in `.server.ts` files, enforced by the Rust compiler at build time — they never ship to the browser.
 
 ## Defining a Server Function
 

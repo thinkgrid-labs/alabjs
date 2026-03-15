@@ -1,13 +1,13 @@
 ---
 title: "Guide: Building a SPA"
-description: Build a client-rendered single-page application with Alab — no server required.
+description: Build a client-rendered single-page application with AlabJS — no server required.
 sidebar:
   order: 1
 ---
 
-# Building a SPA with Alab
+# Building a SPA with AlabJS
 
-This guide covers building a client-side single-page application (SPA) with Alab. A SPA renders entirely in the browser — no server-side rendering, no Node.js process in production. The output is a folder of static files you can host on any CDN.
+This guide covers building a client-side single-page application (SPA) with AlabJS. A SPA renders entirely in the browser — no server-side rendering, no Node.js process in production. The output is a folder of static files you can host on any CDN.
 
 ## When to Use SPA Mode
 
@@ -28,7 +28,7 @@ cd my-spa
 pnpm dev
 ```
 
-By default, all pages in Alab are client-rendered. A new project is already a SPA.
+By default, all pages in AlabJS are client-rendered. A new project is already a SPA.
 
 ## Project Structure
 
@@ -213,7 +213,7 @@ The output is in `.alab/dist/spa/`. Deploy the contents of that folder to:
 
 ### Routing on a Static Host
 
-All routes in Alab are client-side, so you need to configure the host to serve `index.html` for any path.
+All routes in AlabJS are client-side, so you need to configure the host to serve `index.html` for any path.
 
 **Netlify** — create `public/_redirects`:
 ```

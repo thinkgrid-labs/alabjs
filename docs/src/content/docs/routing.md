@@ -7,7 +7,7 @@ sidebar:
 
 # Routing
 
-Alab uses a file-system router. Every `page.tsx` in the `app/` directory becomes a route. No config, no manual registration.
+AlabJS uses a file-system router. Every `page.tsx` in the `app/` directory becomes a route. No config, no manual registration.
 
 ## Basic Routes
 
@@ -22,7 +22,7 @@ Alab uses a file-system router. Every `page.tsx` in the `app/` directory becomes
 
 ## Layouts
 
-Place a `layout.tsx` in any directory. Alab automatically wraps child pages with the nearest parent layouts, outermost first.
+Place a `layout.tsx` in any directory. AlabJS automatically wraps child pages with the nearest parent layouts, outermost first.
 
 ```tsx
 // app/layout.tsx — wraps every page

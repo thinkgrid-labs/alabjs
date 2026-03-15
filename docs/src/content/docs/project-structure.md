@@ -1,6 +1,6 @@
 ---
 title: Project Structure
-description: How an Alab project is organized.
+description: How an AlabJS project is organized.
 ---
 
 ```

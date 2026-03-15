@@ -1,9 +1,9 @@
 ---
 title: Self-hosted Node.js
-description: Deploy Alab on any Node.js server.
+description: Deploy AlabJS on any Node.js server.
 ---
 
-Alab runs on any Node.js ≥ 22 server with no cloud-specific dependencies.
+AlabJS runs on any Node.js ≥ 22 server with no cloud-specific dependencies.
 
 ## Build
 

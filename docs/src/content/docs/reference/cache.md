@@ -5,7 +5,7 @@ sidebar:
   order: 5
 ---
 
-Alab supports Incremental Static Regeneration (ISR) — a page-level HTML cache that serves stale content instantly while regenerating in the background. Pages that do not change often can be cached for seconds, minutes, or hours without a full CDN setup.
+AlabJS supports Incremental Static Regeneration (ISR) — a page-level HTML cache that serves stale content instantly while regenerating in the background. Pages that do not change often can be cached for seconds, minutes, or hours without a full CDN setup.
 
 ## Enabling ISR on a page
 
@@ -22,7 +22,7 @@ export default function BlogPage() {
 }
 ```
 
-On the first request, Alab renders the page and stores the HTML in memory. For the next 60 seconds, all requests get the cached HTML immediately. After 60 seconds, the next request still gets the stale HTML but triggers a background re-render. The fresh HTML replaces the stale cache as soon as it's ready — zero downtime, zero waiting.
+On the first request, AlabJS renders the page and stores the HTML in memory. For the next 60 seconds, all requests get the cached HTML immediately. After 60 seconds, the next request still gets the stale HTML but triggers a background re-render. The fresh HTML replaces the stale cache as soon as it's ready — zero downtime, zero waiting.
 
 ## Cache-status header
 
@@ -74,7 +74,7 @@ revalidateAll();
 
 ## Stale-while-revalidate semantics
 
-Alab's ISR implementation follows RFC 5861 stale-while-revalidate semantics:
+AlabJS's ISR implementation follows RFC 5861 stale-while-revalidate semantics:
 
 1. **Miss** — No cache entry: render synchronously, store result, respond.
 2. **Fresh hit** — Cache entry within TTL: respond immediately from cache.
@@ -96,7 +96,7 @@ Use SSG when content is fully known at build time. Use ISR for frequently-changi
 
 ## Production caching
 
-In production, Alab sets `Cache-Control: s-maxage=N, stale-while-revalidate` on ISR responses, where `N` is your `revalidate` value. This allows CDNs (Cloudflare, Fastly, Varnish) to cache at the edge and serve from there instead of hitting your Node.js server.
+In production, AlabJS sets `Cache-Control: s-maxage=N, stale-while-revalidate` on ISR responses, where `N` is your `revalidate` value. This allows CDNs (Cloudflare, Fastly, Varnish) to cache at the edge and serve from there instead of hitting your Node.js server.
 
 ## API Reference
 
