@@ -28,14 +28,31 @@
 }
 
 /* ── Dev warning banner ───────────────────────────────────────────────────── */
+/*
+ * --vp-layout-top-height tells VitePress's fixed VPNav to shift down by this
+ * amount, so the banner sits above the nav without any overlap.
+ */
+:root {
+  --vp-layout-top-height: 38px;
+}
+
 .alab-dev-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 31; /* above VPNav (z-index: 30) */
+  height: var(--vp-layout-top-height);
   background-color: #fef3c7;
   border-bottom: 1px solid #fcd34d;
   color: #92400e;
   font-size: 13px;
-  line-height: 1.5;
-  padding: 8px 24px;
+  line-height: var(--vp-layout-top-height);
+  padding: 0 24px;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .alab-dev-banner a {
   color: #b45309;
