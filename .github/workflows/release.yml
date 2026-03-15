@@ -105,7 +105,14 @@ jobs:
       - name: Publish @alabjs/compiler-${{ matrix.pkg }}
         if: ${{ !inputs.dry_run }}
         working-directory: crates/alab-napi/npm/${{ matrix.pkg }}
-        run: npm publish --access public --provenance
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          PKG=$(node -e "process.stdout.write(require('./package.json').name)")
+          if npm view "${PKG}@${VERSION}" version 2>/dev/null | grep -qF "${VERSION}"; then
+            echo "Already published ${PKG}@${VERSION} — skipping."
+          else
+            npm publish --access public --provenance
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
