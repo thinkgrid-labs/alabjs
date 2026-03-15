@@ -1,7 +1,11 @@
 #![deny(clippy::all)]
 
+use napi::bindgen_prelude::Buffer;
 use napi_derive::napi;
-use alab_compiler::{compile, check_server_boundary, CompileOptions};
+use alab_compiler::{
+    compile, check_server_boundary, CompileOptions,
+    optimize_buffer, OptimizeOptions, OutputFormat,
+};
 use alab_router::scan_routes;
 
 /// Compile a TypeScript / TSX source string to JavaScript.
@@ -35,4 +39,40 @@ pub fn build_routes(app_dir: String) -> napi::Result<String> {
     let manifest = scan_routes(&app_dir);
     serde_json::to_string(&manifest)
         .map_err(|e| napi::Error::from_reason(e.to_string()))
+}
+
+/// Optimise a single image buffer — same interface as snapbolt-cli.
+///
+/// - `input`   — raw image bytes (JPEG, PNG, GIF, or WebP)
+/// - `quality` — 1.0–100.0, defaults to 80
+/// - `width`   — target width in pixels; omit to keep original width
+/// - `height`  — target height in pixels; omit to keep original height
+/// - `format`  — `"webp"` (default), `"jpeg"`, or `"png"`
+///
+/// WebP encoding uses libwebp-sys when the crate is compiled with
+/// `--features native`; otherwise falls back to the pure-Rust encoder.
+/// Returns the encoded bytes as a Node.js `Buffer`.
+#[napi]
+pub fn optimize_image(
+    input: Buffer,
+    quality: Option<f64>,
+    width: Option<u32>,
+    height: Option<u32>,
+    format: Option<String>,
+) -> napi::Result<Buffer> {
+    let fmt = match format.as_deref() {
+        Some("jpeg") | Some("jpg") => OutputFormat::Jpeg,
+        Some("png")                => OutputFormat::Png,
+        _                          => OutputFormat::WebP,
+    };
+    let options = OptimizeOptions {
+        quality: quality.unwrap_or(80.0) as f32,
+        width,
+        height,
+        format: fmt,
+    };
+    match optimize_buffer(&input, &options) {
+        Ok((data, _mime)) => Ok(data.into()),
+        Err(e)            => Err(napi::Error::from_reason(e.to_string())),
+    }
 }

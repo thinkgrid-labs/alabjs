@@ -2,7 +2,10 @@ import { createServer } from "vite";
 import { resolve } from "node:path";
 import { scanDevRoutes, matchDevRoute } from "../ssr/router-dev.js";
 import { htmlShellBefore, htmlShellAfter } from "../ssr/html.js";
+import { generateSitemap } from "../server/sitemap.js";
+import { handleImageRequest } from "../server/image.js";
 import type { PageMetadata } from "../types/index.js";
+import type { Route } from "../router/manifest.js";
 
 interface DevOptions {
   cwd: string;
@@ -17,23 +20,19 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
 
   const vite = await createServer({
     root: cwd,
-    // "custom" disables Vite's built-in HTML serving so our middleware takes over.
     appType: "custom",
     server: { port, host },
     plugins: [
-      // Alab Rust compiler + boundary checker + virtual client entry
       (await import("alab-vite-plugin")).alabPlugin(),
     ],
-    // Tailwind v4 is registered by alab-vite-plugin — no manual CSS import needed.
   });
 
-  // ─── Alab SSR middleware ─────────────────────────────────────────────────────
+  // ─── Alab SSR + built-in route middleware ────────────────────────────────────
   vite.middlewares.use(async (req, res, next) => {
     const rawUrl = req.url ?? "/";
-    // Strip query string for route matching
     const pathname = rawUrl.split("?")[0] ?? "/";
 
-    // Let Vite handle its own internal requests
+    // Pass Vite-internal requests through
     if (
       pathname.startsWith("/@") ||
       pathname.startsWith("/__vite") ||
@@ -44,18 +43,40 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
     }
 
     try {
-      // Scan app/ on every request in dev (instant, no caching needed)
+      // ── /_alab/image — Rust-powered image optimisation ───────────────────────
+      if (pathname === "/_alab/image") {
+        const publicDir = resolve(cwd, "public");
+        await handleImageRequest(req, res, publicDir);
+        return;
+      }
+
+      // ── /sitemap.xml ────────────────────────────────────────────────────────
+      if (pathname === "/sitemap.xml") {
+        const devRoutes = scanDevRoutes(appDir);
+        const manifestRoutes: Route[] = devRoutes.map((r) => ({
+          path: r.file
+            .replace(appDir, "")
+            .replace(/\/page\.(tsx|ts)$/, "") || "/",
+          file: r.file.replace(cwd + "/", ""),
+          kind: "page" as const,
+          ssr: r.ssr,
+          params: r.paramNames,
+        }));
+        const xml = generateSitemap(manifestRoutes, `http://${host}:${port}`);
+        res.statusCode = 200;
+        res.setHeader("content-type", "application/xml; charset=utf-8");
+        res.end(xml);
+        return;
+      }
+
+      // ── Page routes ──────────────────────────────────────────────────────────
       const routes = scanDevRoutes(appDir);
       const matched = matchDevRoute(routes, pathname);
 
-      if (!matched) {
-        // No page matches — let Vite serve static assets or return 404
-        return next();
-      }
+      if (!matched) return next();
 
       const { route, params } = matched;
 
-      // Load the page module through Vite's SSR module graph (enables HMR)
       const mod = await vite.ssrLoadModule(route.file) as {
         default?: unknown;
         metadata?: PageMetadata;
@@ -69,13 +90,12 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
       }
 
       const metadata: PageMetadata = mod.metadata ?? {};
-      const ssrEnabled = mod.ssr !== false; // default: SSR on
+      const ssrEnabled = mod.ssr !== false;
 
       const searchParams = Object.fromEntries(
         new URLSearchParams(rawUrl.includes("?") ? rawUrl.split("?")[1] : "").entries(),
       );
 
-      // Render the page component to an HTML string via React
       const { renderToString: reactRenderToString } = await vite.ssrLoadModule("react-dom/server") as {
         renderToString: (el: unknown) => string;
       };
@@ -87,8 +107,6 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
         ? reactRenderToString(createElement(Page, { params, searchParams }))
         : "";
 
-      // Build the HTML shell. Vite's `transformIndexHtml` will inject the HMR
-      // client and any other plugin-injected tags (including Tailwind in dev).
       const routeFile = route.file.replace(cwd, "").replace(/^\//, "");
       const shellBefore = htmlShellBefore({
         metadata,
@@ -100,13 +118,10 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
       const shellAfter = htmlShellAfter({});
 
       const rawHtml = `${shellBefore}${ssrContent}${shellAfter}`;
-
-      // Let Vite plugins transform the HTML (injects HMR client, Tailwind, etc.)
       const html = await vite.transformIndexHtml(pathname, rawHtml);
 
       res.statusCode = 200;
       res.setHeader("content-type", "text/html; charset=utf-8");
-      // Security headers by default
       res.setHeader("x-content-type-options", "nosniff");
       res.setHeader("x-frame-options", "SAMEORIGIN");
       res.setHeader("referrer-policy", "strict-origin-when-cross-origin");

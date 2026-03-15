@@ -10,4 +10,12 @@ declare module "@alab/compiler" {
   export function checkBoundary(source: string, filename: string): string;
   /** Scan an app/ directory and build the route manifest. Returns JSON `{ routes }`. */
   export function buildRoutes(appDir: string): string;
+  /** Optimise an image buffer — decode, resize, and encode to WebP/JPEG/PNG. */
+  export function optimizeImage(
+    input: Buffer,
+    quality?: number | null,
+    width?: number | null,
+    height?: number | null,
+    format?: string | null,
+  ): Buffer;
 }

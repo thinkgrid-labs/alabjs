@@ -15,3 +15,12 @@ oxc_semantic.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
+image.workspace = true
+# native WebP via libwebp-sys — same pattern as snapbolt-core (not in workspace because optional)
+webp = { version = "0.3", optional = true }
+
+[features]
+default = []
+# Enable high-quality lossy WebP via libwebp-sys (native targets only).
+# Without this, WebP output falls back to the image crate's pure-Rust encoder.
+native = ["webp"]
