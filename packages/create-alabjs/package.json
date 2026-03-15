@@ -23,5 +23,13 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/thinkgrid-labs/alabjs.git"
-  }
+  },
+  "keywords": [
+    "alabjs",
+    "react",
+    "framework",
+    "create",
+    "scaffold",
+    "starter"
+  ]
 }
