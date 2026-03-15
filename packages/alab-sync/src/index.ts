@@ -58,7 +58,8 @@ export interface SyncQueryResult<T> {
 
 /** Generic mutation handle returned by all adapters. */
 export interface SyncMutationHandle {
-  mutate: (...params: unknown[]) => Promise<void>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  mutate: (...args: any[]) => Promise<void>;
   isPending: boolean;
   error: Error | null;
 }

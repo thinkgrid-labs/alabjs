@@ -1,15 +1,15 @@
 ---
 title: Introduction
-description: What Alab is, why it exists, and when to use it.
+description: What Alab JS is, why it exists, and when to use it.
 sidebar:
   order: 1
 ---
 
 # Introduction
 
-**Alab** is an open-source, full-stack React framework designed around one idea: the right defaults should be the easy defaults.
+**Alab JS** is an open-source, full-stack React framework designed around one idea: the right defaults should be the easy defaults.
 
-Every Alab app starts at 95+ Lighthouse, has security headers set, streams real HTML from the server, and compiles with a Rust-powered compiler — without writing a single line of configuration.
+Every Alab JS app starts at 95+ Lighthouse, has security headers set, streams real HTML from the server, and compiles with a Rust-powered compiler — without writing a single line of configuration.
 
 ## The Core Idea
 
