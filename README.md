@@ -2,6 +2,11 @@
 
 > *Filipino: alab — blaze, flame, burning passion*
 
+> [!WARNING]
+> **Alab is under active development and not ready for production.**
+> APIs will change, features are incomplete, and there is no stable release yet.
+> Feel free to explore, contribute, or star the repo — but don't ship it to users yet.
+
 **Alab** is an open-source, full-stack React framework that does the right thing by default.
 
 Out of the box, every Alab app is:
