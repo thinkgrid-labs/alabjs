@@ -17,6 +17,34 @@ Alab is a React meta-framework — like Next.js — but built differently from t
 
 ---
 
+## Why Developers Choose Alab
+
+### 1. You're tired of debugging "use client" at 2am
+
+Next.js RSC boundaries are powerful but opaque. You add `"use client"`, `"use server"`, and trust that the framework figures it out. When it doesn't, the error messages are cryptic and the stack traces point nowhere useful. In Alab, the boundary is a **file name**. The Rust compiler reads it. If you cross it, you get a clear error before the code ever runs — at build time, not in your user's browser.
+
+### 2. You're paying a Vercel tax you didn't agree to
+
+Next.js works anywhere in theory. In practice, features like ISR, Edge Middleware, and Image Optimization are tied to Vercel infrastructure. Alab has zero deployment opinions. It's an H3 HTTP server — it runs on a DigitalOcean droplet, a Fly.io machine, a Cloudflare Worker, or your own bare metal. No adapter required.
+
+### 3. Your builds are slow and you don't know why
+
+Turbopack is fast but it's a black box you can't extend or inspect. Most teams still use Webpack because Turbopack isn't stable outside Next.js. Alab uses **oxc** — the same Rust parser that powers Vite 8's Rolldown. It's open source, modular, and 50–100× faster than Webpack. You can run the compiler yourself, inspect the output, write custom transforms. It's an SDK, not a sealed runtime.
+
+### 4. You want SSR when you need it, not as a default tax
+
+Next.js makes SSR the default and CSR the exception. For most apps — dashboards, admin panels, SaaS tools — SSR adds complexity with marginal SEO benefit. Alab flips this: **CSR by default, SSR as a single export per route.** You pay the SSR cost only where it matters.
+
+### 5. You want to actually understand your framework
+
+The best frameworks are the ones you can read and reason about. Alab's Rust compiler is ~3,000 lines. The Node.js runtime is plain TypeScript. There are no Webpack plugins hidden inside plugins inside loaders. If something breaks, you can find it.
+
+### 6. You want to build something that matters
+
+Alab is open source, MIT licensed, and built to last. No VC funding, no platform agenda. If the community builds it, the community owns it.
+
+---
+
 ## The Problem with Existing Frameworks
 
 | Problem | Next.js | Remix | Astro | **Alab** |
