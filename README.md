@@ -219,6 +219,89 @@ If you accidentally import `page.server.ts` in a client context, **the Rust comp
 
 ---
 
+## Data Fetching
+
+Alab has a clear opinion on where the line is drawn.
+
+### Built-in: `useServerData` (SSR + Suspense)
+
+For server-rendered data — data that should be fetched on the server before the page is sent to the browser — Alab ships `useServerData`. It uses React 19's `use()` hook and suspends automatically. No loading state boilerplate.
+
+```tsx
+import { useServerData } from "alab/client";
+
+export default function PostPage({ params }: { params: { id: string } }) {
+  const post = useServerData<Post>("getPost", params); // suspends until ready
+  return <h1>{post.title}</h1>;
+}
+```
+
+This covers **the majority of data fetching** in most apps: page-level data, SSR content, and API responses that need to be in the initial HTML.
+
+### Bring your own: client-side cache
+
+For **client-side interactions** — background refetch, pagination, infinite scroll, optimistic updates, and mutations — Alab does not ship a built-in query client. These problems are already solved by excellent libraries, and bundling one would add weight to every app that doesn't need it.
+
+Alab server functions are plain async functions. They work directly with any data fetching library:
+
+**With TanStack Query:**
+
+```tsx
+import { useQuery, useMutation } from "@tanstack/react-query";
+
+// Call a server function as a query
+const { data: posts } = useQuery({
+  queryKey: ["posts"],
+  queryFn: () => fetch("/_alab/fn/getPosts").then(r => r.json()),
+});
+
+// Mutate with optimistic updates, retry, etc.
+const { mutate: createPost } = useMutation({
+  mutationFn: (data) => fetch("/_alab/fn/createPost", {
+    method: "POST",
+    body: JSON.stringify(data),
+  }),
+  onSuccess: () => queryClient.invalidateQueries({ queryKey: ["posts"] }),
+});
+```
+
+**With SWR:**
+
+```tsx
+import useSWR from "swr";
+
+const { data, isLoading } = useSWR("/api/posts", (url) =>
+  fetch(url).then(r => r.json())
+);
+```
+
+Both work out of the box. No adapter, no plugin, no configuration.
+
+### Optional: `@alab/query`
+
+For teams that want a tighter integration — typed server function calls, automatic query key generation, and mutation helpers — Alab offers an optional companion package:
+
+```bash
+pnpm add @alab/query @tanstack/react-query
+```
+
+```tsx
+import { createServerQuery } from "@alab/query";
+import { getPost } from "./page.server";
+
+// Fully typed — return type inferred from the server function
+const usePost = createServerQuery(getPost);
+
+export default function PostPage({ params }: { params: { id: string } }) {
+  const { data: post } = usePost(params); // TanStack Query under the hood
+  return <h1>{post.title}</h1>;
+}
+```
+
+`@alab/query` is a thin wrapper around TanStack Query. It is **not bundled with Alab** — zero weight if you don't use it.
+
+---
+
 ## Metadata & SEO
 
 Export `metadata` from any page to control `<head>`:
