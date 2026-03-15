@@ -24,12 +24,12 @@ my-app/
 - `page.tsx` — React page component
 - `page.server.ts` — Server functions (`defineServerFn`) for the route
 - `[param]` folders — Dynamic route segments
-- `globals.css` — Imported on every page via the virtual `/@alab/client` module
+- `globals.css` — Imported on every page via the virtual `/@alabjs/client` module
 
 ## Build output
 
 ```
-.alab/
+.alabjs/
 ├── dist/
 │   ├── client/     ← Vite-bundled client assets
 │   └── server/     ← Compiled server code

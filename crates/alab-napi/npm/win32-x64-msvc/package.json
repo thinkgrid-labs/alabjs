@@ -1,7 +1,7 @@
 {
-  "name": "@alab/compiler-win32-x64-msvc",
+  "name": " @alabjs/compiler-win32-x64-msvc",
   "version": "0.1.0",
-  "description": "Alab compiler binary for win32-x64-msvc",
+  "description": "AlabJS compiler binary for win32-x64-msvc",
   "license": "MIT",
   "main": "alab-napi.win32-x64-msvc.node",
   "files": [

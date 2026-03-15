@@ -15,7 +15,7 @@ AlabJS can be deployed to Cloudflare Workers for globally distributed edge rende
 ## Build for Cloudflare
 
 ```bash
-alab build --adapter cloudflare
+alabjs build --adapter cloudflare
 ```
 
 This produces:
@@ -26,14 +26,14 @@ This produces:
 
 ```toml
 # wrangler.toml
-name = "my-alab-app"
+name = "my-alabjs-app"
 compatibility_date = "2025-09-01"
 compatibility_flags = ["nodejs_compat"]
 
 main = "_worker.js"
 
 [assets]
-directory = ".alab/dist/client"
+directory = ".alabjs/dist/client"
 ```
 
 The `nodejs_compat` flag enables Node.js built-ins (`crypto`, `Buffer`, etc.) in the Workers runtime.
@@ -61,7 +61,7 @@ Cloudflare bindings (KV, D1, R2, Durable Objects) are available in server functi
 
 ```ts
 // app/posts/page.server.ts
-import { defineServerFn } from "alab/server";
+import { defineServerFn } from "alabjs/server";
 
 export const getPosts = defineServerFn(async (_, { env }) => {
   // env is the Cloudflare Workers env object
@@ -86,7 +86,7 @@ export const getPosts = defineServerFn(async (_, { env }) => {
 Test your Cloudflare build locally with Wrangler's dev mode:
 
 ```bash
-pnpm wrangler dev _worker.js --assets .alab/dist/client
+pnpm wrangler dev _worker.js --assets .alabjsjs/dist/client
 ```
 
 This runs the exact same Workers runtime locally, including bindings. Use `--remote` to connect to your actual Cloudflare KV/D1 data.
@@ -97,4 +97,4 @@ After deploying, add a custom domain in the Cloudflare dashboard under Workers â
 
 ## Pages vs Workers
 
-AlabJS targets **Workers** (not Pages) for full server-side rendering flexibility. If you only need to serve static assets, use `alab build --mode spa` and deploy the `spa/` output to Cloudflare Pages directly.
+AlabJS targets **Workers** (not Pages) for full server-side rendering flexibility. If you only need to serve static assets, use `alabjs build --mode spa` and deploy the `spa/` output to Cloudflare Pages directly.

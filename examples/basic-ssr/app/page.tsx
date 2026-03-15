@@ -1,6 +1,6 @@
-import { Image } from "alab/components";
+import { Image } from "alabjs/components";
 import { Nav } from "./nav";
-import type { PageMetadata } from "alab";
+import type { PageMetadata } from "alabjs";
 
 export const ssr = true;
 
@@ -34,10 +34,10 @@ export default function HomePage() {
           <span>🔥</span> Full-stack React
         </div>
         <h1 className="text-5xl font-extrabold tracking-tight text-zinc-900 mb-4 leading-tight">
-          Build with <span className="text-orange-500">alab</span>.
+          Build with <span className="text-orange-500">alabjs</span>.
         </h1>
         <p className="text-lg text-zinc-500 mb-3 max-w-xl">
-          <em className="not-italic font-semibold text-zinc-700">Alab</em> — Filipino for{" "}
+          <em className="not-italic font-semibold text-zinc-700">AlabJS</em> — Filipino for{" "}
           <em className="not-italic font-semibold text-orange-500">blaze</em>. A full-stack React
           framework powered by a Rust compiler.
         </p>

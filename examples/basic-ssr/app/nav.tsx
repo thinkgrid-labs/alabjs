@@ -1,4 +1,4 @@
-import { Link } from "alab/components";
+import { Link } from "alabjs/components";
 
 export function Nav() {
   return (

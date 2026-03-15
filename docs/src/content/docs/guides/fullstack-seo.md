@@ -21,7 +21,7 @@ This is the right approach when:
 ## Project Setup
 
 ```bash
-npx create-alab@latest my-app --template blog
+npx create-alabjs@latest my-app --template blog
 cd my-app
 pnpm install
 pnpm dev
@@ -56,7 +56,7 @@ The root layout provides the HTML shell for every page.
 
 ```tsx
 // app/layout.tsx
-import { Font } from "alab/components";
+import { Font } from "alabjs/components";
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -81,7 +81,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 ```tsx
 // app/page.tsx
 import type { getHomepageData } from "./page.server";
-import { useServerData } from "alab/client";
+import { useServerData } from "alabjs/client";
 
 export const ssr = true;
 
@@ -115,7 +115,7 @@ export default function HomePage() {
 ```tsx
 // app/blog/[slug]/page.tsx
 import type { getPost } from "./page.server";
-import { useServerData } from "alab/client";
+import { useServerData } from "alabjs/client";
 
 export const ssr = true;
 
@@ -153,7 +153,7 @@ export default function PostPage({ params }: { params: { slug: string } }) {
 
 ```ts
 // app/blog/[slug]/page.server.ts
-import { defineServerFn } from "alab/server";
+import { defineServerFn } from "alabjs/server";
 
 export const getPost = defineServerFn(async ({ params }) => {
   const post = await db.posts.findBySlug(params.slug);
@@ -217,7 +217,7 @@ export async function generateStaticParams() {
 ## Image Optimization
 
 ```tsx
-import { Image } from "alab/components";
+import { Image } from "alabjs/components";
 
 <Image
   src={post.coverImage}
@@ -229,16 +229,16 @@ import { Image } from "alab/components";
 />
 ```
 
-AlabJS converts images to WebP at request time, generates `srcset`, and serves them through the built-in `/_alab/image` endpoint. No external CDN or service required.
+AlabJS converts images to WebP at request time, generates `srcset`, and serves them through the built-in `/_alabjs/image` endpoint. No external CDN or service required.
 
 ## Production Build
 
 ```bash
-alab build     # compiles TypeScript, bundles with Vite 8 + Rolldown
-alab start     # starts the H3 production server
+alabjs build     # compiles TypeScript, bundles with Vite 8 + Rolldown
+alabjs start     # starts the H3 production server
 ```
 
-By default, `alab start` listens on port 3000. Set `PORT` to override.
+By default, `alabjs start` listens on port 3000. Set `PORT` to override.
 
 ## Deployment: Node.js VPS / Docker
 
@@ -264,13 +264,13 @@ fly deploy
 ## Deployment: Cloudflare Workers
 
 ```ts
-// alab.config.ts (planned)
-import { defineConfig } from "alab";
+// alabjs.config.ts (planned)
+import { defineConfig } from "alabjs";
 export default defineConfig({ adapter: "cloudflare" });
 ```
 
 ```bash
-alab build --adapter cloudflare
+alabjs build --adapter cloudflare
 wrangler deploy
 ```
 

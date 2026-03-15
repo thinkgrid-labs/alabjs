@@ -1,4 +1,4 @@
-import { defineServerFn } from "alab/server";
+import { defineServerFn } from "alabjs/server";
 import type { User } from "../page.server";
 
 // In-memory store for demo — replace with DB

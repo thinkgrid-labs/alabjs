@@ -1,10 +1,10 @@
-import { AlabProvider } from "alab/client";
-import { useSSE } from "alab/client";
-import { useSignal, useSignalValue } from "alab/signals";
-import { useOfflineMutations } from "alab/client";
+import { AlabProvider } from "alabjs/client";
+import { useSSE } from "alabjs/client";
+import { useSignal, useSignalValue } from "alabjs/signals";
+import { useOfflineMutations } from "alabjs/client";
 import { Sidebar } from "../nav";
 import type { ActivityEvent } from "./route";
-import type { PageMetadata } from "alab";
+import type { PageMetadata } from "alabjs";
 
 export const metadata: PageMetadata = {
   title: "Activity — Alab Dashboard",

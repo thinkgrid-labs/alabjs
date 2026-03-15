@@ -1,9 +1,9 @@
-import { AlabProvider, useServerData } from "alab/client";
-import { Link } from "alab/components";
-import { useSignal, useSignalValue } from "alab/signals";
+import { AlabProvider, useServerData } from "alabjs/client";
+import { Link } from "alabjs/components";
+import { useSignal, useSignalValue } from "alabjs/signals";
 import type { getUsers } from "./page.server";
 import { Sidebar } from "../nav";
-import type { PageMetadata } from "alab";
+import type { PageMetadata } from "alabjs";
 
 export const metadata: PageMetadata = {
   title: "Users — Alab Dashboard",

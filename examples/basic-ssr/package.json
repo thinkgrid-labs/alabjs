@@ -13,8 +13,8 @@
     "@types/react-dom": "^19.1.0"
   },
   "dependencies": {
-    "alab": "workspace:*",
-    "alab-vite-plugin": "workspace:*",
+    "alabjs": "workspace:*",
+    "alabjs-vite-plugin": "workspace:*",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "tailwindcss": "^4.1.0",

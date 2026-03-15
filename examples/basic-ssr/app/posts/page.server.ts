@@ -1,4 +1,4 @@
-import { defineServerFn } from "alab/server";
+import { defineServerFn } from "alabjs/server";
 
 export type Post = {
   id: string;

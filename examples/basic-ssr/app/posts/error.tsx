@@ -1,4 +1,4 @@
-import { Link } from "alab/components";
+import { Link } from "alabjs/components";
 import { Nav } from "../nav";
 
 // Rendered when any server function in this route tree throws

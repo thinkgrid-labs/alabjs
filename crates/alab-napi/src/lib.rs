@@ -105,11 +105,11 @@ pub fn extract_server_fns(source: String, filename: String) -> napi::Result<Stri
 /// Generate a client-side stub for a single server function.
 ///
 /// Used by the Vite plugin during client builds to replace the real handler
-/// (which may contain DB calls and secrets) with a `fetch("/_alab/fn/<name>")`
+/// (which may contain DB calls and secrets) with a `fetch("/_alabjs/fn/<name>")`
 /// stub that works identically from the browser's perspective.
 ///
 /// @param name     - The exported binding name (e.g. `"getUser"`)
-/// @param endpoint - The HTTP endpoint (e.g. `"/_alab/fn/getUser"`)
+/// @param endpoint - The HTTP endpoint (e.g. `"/_alabjs/fn/getUser"`)
 /// @returns ES module snippet ready to be injected into the client bundle
 #[napi]
 pub fn server_fn_stub(name: String, endpoint: String) -> String {

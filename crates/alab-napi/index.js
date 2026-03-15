@@ -44,7 +44,7 @@ if (target) {
   } else {
     // Production: load from the scoped platform package
     try {
-      nativeBinding = require(`@alab/compiler-${target}`)
+      nativeBinding = require(`@alabjs/compiler-${target}`)
     } catch (e) {
       loadError = e
     }
@@ -57,7 +57,7 @@ if (!nativeBinding) {
     .join(', ')
 
   throw new Error(
-    `[alab] Failed to load the Rust compiler binary.\n` +
+    `[alabjs] Failed to load the Rust compiler binary.\n` +
     `  Platform: ${platform}-${arch}\n` +
     `  Supported: ${supported}\n` +
     (loadError ? `  Error: ${loadError.message}\n` : '') +

@@ -3,7 +3,7 @@
 First off, thank you for considering contributing to AlabJS! It's people like you that make AlabJS a great tool for everyone.
 
 > [!NOTE]
-> AlabJS is under active development. If you're looking for something to work on, check the [GitHub Issues](https://github.com/alabjs/alab/issues) for "good first issue" labels.
+> AlabJS is under active development. If you're looking for something to work on, check the [GitHub Issues](https://github.com/alabjsjs/alabjs/issues) for "good first issue" labels.
 
 ---
 
@@ -20,8 +20,8 @@ AlabJS is a monorepo containing both Rust (the compiler core) and TypeScript (th
 ### Getting Started
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/alabjs/alab.git
-   cd alab
+   git clone https://github.com/alabjsjs/alabjs.git
+   cd alabjs
    ```
 
 2. **Install dependencies**:
@@ -65,7 +65,7 @@ We value high test coverage. Every new feature or bug fix should include tests.
 ### JavaScript/TypeScript Tests
 We use **Vitest** for all JS-side logic.
 - **Run all JS tests**: `pnpm test` (at project root)
-- **Run tests for a specific package**: `cd packages/alab && pnpm test`
+- **Run tests for a specific package**: `cd packages/alabjsjs && pnpm test`
 
 ### Rust Tests
 We use **Cargo** for the compiler and router logic.

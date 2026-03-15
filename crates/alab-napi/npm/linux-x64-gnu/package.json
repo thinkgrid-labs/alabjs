@@ -1,7 +1,7 @@
 {
-  "name": "@alab/compiler-linux-x64-gnu",
+  "name": " @alabjs/compiler-linux-x64-gnu",
   "version": "0.1.0",
-  "description": "Alab compiler binary for linux-x64-gnu",
+  "description": "AlabJS compiler binary for linux-x64-gnu",
   "license": "MIT",
   "main": "alab-napi.linux-x64-gnu.node",
   "files": [

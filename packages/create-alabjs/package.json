@@ -1,0 +1,23 @@
+{
+  "name": "create-alabjs",
+  "version": "0.1.0",
+  "description": "Scaffold a new AlabJS app",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "create-alab": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.0",
+    "@types/node": "^22.0.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

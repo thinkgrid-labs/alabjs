@@ -4,7 +4,7 @@ node_modules/
 
 # build outputs
 dist/
-.alab/
+.alabjs/
 *.node
 *.tsbuildinfo
 

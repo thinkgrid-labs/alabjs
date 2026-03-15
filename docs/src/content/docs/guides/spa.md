@@ -23,7 +23,7 @@ If you need SEO, public-facing content, or dynamic OG images, use SSR instead.
 ## Creating a SPA Project
 
 ```bash
-npx create-alab@latest my-spa
+npx create-alabjs@latest my-spa
 cd my-spa
 pnpm dev
 ```
@@ -54,7 +54,7 @@ Pages render in the browser. No `export const ssr` needed.
 
 ```tsx
 // app/dashboard/page.tsx
-import { useServerData } from "alab/client";
+import { useServerData } from "alabjs/client";
 import type { getDashboardStats } from "./page.server";
 
 export default function DashboardPage() {
@@ -75,7 +75,7 @@ export default function DashboardPage() {
 Use `<Link>` for client-side navigation without page reloads.
 
 ```tsx
-import { Link } from "alab/components";
+import { Link } from "alabjs/components";
 
 export default function Sidebar() {
   return (
@@ -93,7 +93,7 @@ Use middleware to redirect unauthenticated users.
 
 ```ts
 // middleware.ts
-import { redirect, next } from "alab/middleware";
+import { redirect, next } from "alabjs/middleware";
 
 export async function middleware(req: Request) {
   const { pathname } = new URL(req.url);
@@ -116,7 +116,7 @@ export const config = {
 ```tsx
 // app/dashboard/settings/page.tsx
 import type { updateProfile } from "./page.server";
-import { useMutation } from "alab/client";
+import { useMutation } from "alabjs/client";
 
 export default function SettingsPage() {
   const { mutate, isPending, isSuccess, error } =
@@ -147,7 +147,7 @@ SPA users often expect the app to work when connectivity drops.
 
 ```tsx
 // app/layout.tsx
-import { useOfflineMutations } from "alab/client";
+import { useOfflineMutations } from "alabjs/client";
 
 export default function RootLayout({ children }) {
   const { isOffline, queuedCount, replay } = useOfflineMutations();
@@ -172,7 +172,7 @@ When the user goes offline, any mutations that fail are queued in IndexedDB and 
 
 ```tsx
 // app/dashboard/page.tsx
-import { useSSE } from "alab/client";
+import { useSSE } from "alabjs/client";
 
 export default function LiveDashboard() {
   const { data: stats } = useSSE<{ users: number; revenue: number }>(
@@ -186,7 +186,7 @@ export default function LiveDashboard() {
 
 ```ts
 // app/api/stats/route.ts
-import { defineSSEHandler } from "alab/server";
+import { defineSSEHandler } from "alabjs/server";
 
 export const GET = defineSSEHandler(async function* () {
   while (true) {
@@ -201,13 +201,13 @@ export const GET = defineSSEHandler(async function* () {
 
 ```bash
 # SPA build — outputs a static folder with index.html + hashed assets
-alab build --mode spa
+alabjs build --mode spa
 ```
 
-The output is in `.alab/dist/spa/`. Deploy the contents of that folder to:
+The output is in `.alabjs/dist/spa/`. Deploy the contents of that folder to:
 
-- **Netlify** — `netlify deploy --dir .alab/dist/spa`
-- **Cloudflare Pages** — point the build output to `.alab/dist/spa`
+- **Netlify** — `netlify deploy --dir .alabjsjs/dist/spa`
+- **Cloudflare Pages** — point the build output to `.alabjs/dist/spa`
 - **GitHub Pages** — push contents to the `gh-pages` branch
 - **AWS S3 + CloudFront** — sync the folder to your bucket
 

@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 pub struct ServerFn {
     /// Exported binding name (e.g. `"getUser"`).
     pub name: String,
-    /// The `/_alab/fn/<name>` HTTP endpoint registered at runtime.
+    /// The `/_alabjs/fn/<name>` HTTP endpoint registered at runtime.
     pub endpoint: String,
 }
 
@@ -61,7 +61,7 @@ pub fn extract_server_fns(source: &str, filename: &str) -> Vec<ServerFn> {
             }
 
             let name = ident.name.to_string();
-            let endpoint = format!("/_alab/fn/{name}");
+            let endpoint = format!("/_alabjs/fn/{name}");
             fns.push(ServerFn { name, endpoint });
         }
     }
@@ -74,8 +74,8 @@ pub fn extract_server_fns(source: &str, filename: &str) -> Vec<ServerFn> {
 /// The stub is injected into client bundles in place of the real handler so
 /// that server code (DB calls, secrets, etc.) never ships to the browser.
 ///
-/// At runtime the stub issues a `POST /_alab/fn/<name>` request and returns
-/// the JSON response — exactly what the Alab production server handles.
+/// At runtime the stub issues a `POST /_alabjs/fn/<name>` request and returns
+/// the JSON response — exactly what the AlabJS production server handles.
 pub fn server_fn_client_stub(name: &str, endpoint: &str) -> String {
     format!(
         r#"export const {name} = async (input) => {{
@@ -84,7 +84,7 @@ pub fn server_fn_client_stub(name: &str, endpoint: &str) -> String {
     headers: {{ "Content-Type": "application/json" }},
     body: JSON.stringify(input ?? null),
   }});
-  if (!res.ok) throw new Error(`[alab] server fn '{name}' failed: ${{res.status}}`);
+  if (!res.ok) throw new Error(`[alabjs] server fn '{name}' failed: ${{res.status}}`);
   return res.json();
 }};
 "#
@@ -98,7 +98,7 @@ mod tests {
     #[test]
     fn detects_single_server_fn() {
         let src = r#"
-import { defineServerFn } from "alab/server";
+import { defineServerFn } from "alabjs/server";
 export const getUser = defineServerFn(async ({ params }) => {
     return { id: params.id };
 });
@@ -106,7 +106,7 @@ export const getUser = defineServerFn(async ({ params }) => {
         let fns = extract_server_fns(src, "user.server.ts");
         assert_eq!(fns.len(), 1);
         assert_eq!(fns[0].name, "getUser");
-        assert_eq!(fns[0].endpoint, "/_alab/fn/getUser");
+        assert_eq!(fns[0].endpoint, "/_alabjs/fn/getUser");
     }
 
     #[test]
@@ -143,9 +143,9 @@ export const getUser = defineServerFn(async () => {});
 
     #[test]
     fn stub_output_contains_endpoint() {
-        let stub = server_fn_client_stub("getUser", "/_alab/fn/getUser");
+        let stub = server_fn_client_stub("getUser", "/_alabjs/fn/getUser");
         assert!(stub.contains("export const getUser"));
-        assert!(stub.contains("/_alab/fn/getUser"));
+        assert!(stub.contains("/_alabjs/fn/getUser"));
         assert!(stub.contains("POST"));
     }
 }

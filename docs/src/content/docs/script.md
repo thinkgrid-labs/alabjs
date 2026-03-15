@@ -10,7 +10,7 @@ The `<Script>` component loads third-party scripts with control over timing. Loa
 ## Basic usage
 
 ```tsx
-import { Script } from "alab/components";
+import { Script } from "alabjs/components";
 
 // Load after the page is interactive (safe default)
 <Script src="https://cdn.example.com/widget.js" strategy="afterInteractive" />

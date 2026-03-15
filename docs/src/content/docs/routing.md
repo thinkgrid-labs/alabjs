@@ -127,7 +127,7 @@ Create `middleware.ts` at the project root to run code before every request.
 
 ```ts
 // middleware.ts
-import { redirect, next } from "alab/middleware";
+import { redirect, next } from "alabjs/middleware";
 
 export async function middleware(req: Request) {
   const { pathname } = new URL(req.url);
@@ -150,7 +150,7 @@ export const config = {
 
 ```ts
 // i18n.ts
-import { createI18nConfig } from "alab/i18n";
+import { createI18nConfig } from "alabjs/i18n";
 
 export const i18n = createI18nConfig({
   locales: ["en", "fil", "es"],
@@ -161,7 +161,7 @@ export const i18n = createI18nConfig({
 ```ts
 // middleware.ts
 import { i18n } from "./i18n.js";
-import { redirect, next } from "alab/middleware";
+import { redirect, next } from "alabjs/middleware";
 
 export async function middleware(req: Request) {
   const { pathname } = new URL(req.url);
@@ -174,7 +174,7 @@ export async function middleware(req: Request) {
 
 ```tsx
 // app/[locale]/layout.tsx
-import { LocaleProvider } from "alab/i18n";
+import { LocaleProvider } from "alabjs/i18n";
 
 export default function LocaleLayout({ params, children }) {
   return <LocaleProvider locale={params.locale}>{children}</LocaleProvider>;

@@ -26,7 +26,7 @@ On the first request, AlabJS renders the page and stores the HTML in memory. For
 
 ## Cache-status header
 
-Every response includes an `x-alab-cache` header so you can inspect cache behaviour:
+Every response includes an `x-alabjs-cache` header so you can inspect cache behaviour:
 
 | Value | Meaning |
 |---|---|
@@ -49,8 +49,8 @@ This is the default — pages without `revalidate` are always rendered on demand
 Call `revalidatePath` to force a specific path out of the cache before its TTL expires:
 
 ```ts
-import { defineServerFn } from "alab/server";
-import { revalidatePath } from "alab/cache";
+import { defineServerFn } from "alabjs/server";
+import { revalidatePath } from "alabjs/cache";
 
 export const publishPost = defineServerFn(async ({ id }) => {
   await db.posts.update({ where: { id }, data: { published: true } });
@@ -66,7 +66,7 @@ The next request to those paths triggers a fresh render and re-caches the result
 ## Revalidating all pages
 
 ```ts
-import { revalidateAll } from "alab/cache";
+import { revalidateAll } from "alabjs/cache";
 
 // Nuke the entire page cache — use sparingly.
 revalidateAll();

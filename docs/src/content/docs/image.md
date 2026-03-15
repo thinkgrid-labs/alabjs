@@ -8,7 +8,7 @@ The `<Image>` component automatically converts images to WebP, generates a respo
 ## Basic usage
 
 ```tsx
-import { Image } from "alab/components";
+import { Image } from "alabjs/components";
 
 <Image src="/hero.jpg" alt="Hero" width={1200} height={600} />
 ```
@@ -27,8 +27,8 @@ Generate a tiny Base64 placeholder on the server for an instant-load feel:
 
 ```ts
 // In a server function:
-import { defineServerFn } from "alab/server";
-import { generateBlurPlaceholder } from "alab/components";
+import { defineServerFn } from "alabjs/server";
+import { generateBlurPlaceholder } from "alabjs/components";
 
 export const getHero = defineServerFn(async (_, { publicDir }) => {
   const blur = await generateBlurPlaceholder("/hero.jpg", publicDir);
@@ -57,4 +57,4 @@ export const getHero = defineServerFn(async (_, { publicDir }) => {
 
 ## How it works
 
-Images are served from `/_alab/image?src=...&w=...&q=...&fmt=webp`. The Rust napi binding decodes, resizes, and encodes the image on a blocking thread pool — the Node.js event loop is never blocked.
+Images are served from `/_alabjs/image?src=...&w=...&q=...&fmt=webp`. The Rust napi binding decodes, resizes, and encodes the image on a blocking thread pool — the Node.js event loop is never blocked.

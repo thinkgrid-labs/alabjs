@@ -1,6 +1,6 @@
 # AlabJS
 
-> *Filipino: alab — blaze, flame, burning passion*
+> *Filipino: alabjs — blaze, flame, burning passion*
 
 > [!WARNING]
 > **AlabJS is under active development and not yet production-ready.**
@@ -16,7 +16,7 @@
 
 ---
 
-## Why Alab Exists
+## Why AlabJS Exists
 
 Modern React development has a hidden tax. The tools that promise to make things easier — SSR frameworks, bundlers, image pipelines — each come with their own configuration files, plugin ecosystems, and deployment opinions. By the time you have a production-ready app, you have spent days configuring things that should have just worked.
 
@@ -36,12 +36,12 @@ In Alab, clarity is a feature. We avoid "invisible magic" that makes debugging a
 - **Clear Boundaries**: Server-only code lives in `.server.ts` files. This isn't just a convention; the Rust compiler enforces this boundary at build time, preventing accidental leaks of server logic to the client.
 
 ### 2. Standarized & Runtime Agnostic
-Alab is built on web standards. The core server is a standard H3 handler that works with `Request` and `Response` objects.
-- **Deploy Anywhere**: Whether it's Node.js, Cloudflare Workers, Deno, or Bun—if it speaks HTTP, Alab runs on it.
+AlabJS is built on web standards. The core server is a standard H3 handler that works with `Request` and `Response` objects.
+- **Deploy Anywhere**: Whether it's Node.js, Cloudflare Workers, Deno, or Bun—if it speaks HTTP, AlabJS runs on it.
 - **No Lock-in**: We don't build features that require proprietary infrastructure. You own your server.
 
 ### 3. Performance as a Baseline
-Most frameworks give you the tools to be fast; Alab makes fast the only option.
+Most frameworks give you the tools to be fast; AlabJS makes fast the only option.
 - **Rust-Powered**: Our compiler is built on **oxc**, making it 50-100x faster than legacy tools.
 - **Production-Grade Defaults**: Streaming SSR, image optimization, and security headers are active from the first byte.
 
@@ -54,15 +54,15 @@ We believe that a "great DX" isn't just about hot-reloading (though we're fast a
 
 ## What Problem It Solves
 
-**Configuration sprawl.** Most React setups require a bundler config, a TypeScript config, a PostCSS config, a Tailwind config, and deployment configuration on top. Alab has zero required config files. One command creates a working app.
+**Configuration sprawl.** Most React setups require a bundler config, a TypeScript config, a PostCSS config, a Tailwind config, and deployment configuration on top. AlabJS has zero required config files. One command creates a working app.
 
-**Unclear server/client boundaries.** Magic directives create invisible walls in your component tree. Alab uses file naming — `.server.ts` — enforced by the Rust compiler at build time. Cross the boundary and you get a clear error before anything ships.
+**Unclear server/client boundaries.** Magic directives create invisible walls in your component tree. AlabJS uses file naming — `.server.ts` — enforced by the Rust compiler at build time. Cross the boundary and you get a clear error before anything ships.
 
-**Performance as an afterthought.** Most frameworks give you the tools to be fast. Alab makes fast the default: SSR on, code splitting on, image optimization on, security headers on. You opt out if you don't need it — not opt in.
+**Performance as an afterthought.** Most frameworks give you the tools to be fast. AlabJS makes fast the default: SSR on, code splitting on, image optimization on, security headers on. You opt out if you don't need it — not opt in.
 
-**Deployment lock-in.** Building on a framework should not mean committing to a specific cloud provider. Alab runs on any Node.js host, Cloudflare Workers, or Deno Deploy — the server is a plain H3 HTTP handler you own entirely.
+**Deployment lock-in.** Building on a framework should not mean committing to a specific cloud provider. AlabJS runs on any Node.js host, Cloudflare Workers, or Deno Deploy — the server is a plain H3 HTTP handler you own entirely.
 
-**Slow builds at scale.** Alab uses an oxc-based Rust compiler — the same technology powering Vite 8's Rolldown. Compilation is 50–100× faster than Webpack-era tools.
+**Slow builds at scale.** AlabJS uses an oxc-based Rust compiler — the same technology powering Vite 8's Rolldown. Compilation is 50–100× faster than Webpack-era tools.
 
 ---
 
@@ -125,23 +125,23 @@ We believe that a "great DX" isn't just about hot-reloading (though we're fast a
 - **Dev boundary overlay** — `Alt+Shift+B` shows SSR/CSR status, route file, layout chain, cache status
 - **Error overlay** — Rust compiler errors mapped to exact source lines in the browser
 - **Build-time type checking** — `tsc --noEmit` runs in parallel with the Vite 8 build
-- **Bundle analyzer** — `alab build --analyze` opens an interactive Rolldown treemap
-- **Zero-config testing** — `alab test` with Vitest; `alab/test` exports `renderPage` and `renderComponent` helpers
+- **Bundle analyzer** — `alabjs build --analyze` opens an interactive Rolldown treemap
+- **Zero-config testing** — `alabjs test` with Vitest; `alabjs/test` exports `renderPage` and `renderComponent` helpers
 
 ### Deployment
 
-- **Node.js / Docker** — `alab start` runs the H3 production server
-- **Cloudflare Workers** — `alab/adapters/cloudflare`
-- **Deno Deploy** — `alab/adapters/deno`
-- **Web standard** — `alab/adapters/web` for any fetch-based runtime
-- **SPA mode** — `alab build --mode spa` for CDN-deployable client-only builds
-- **Static site generation** — `alab ssg` pre-renders static routes to HTML files
+- **Node.js / Docker** — `alabjs start` runs the H3 production server
+- **Cloudflare Workers** — `alabjs/adapters/cloudflare`
+- **Deno Deploy** — `alabjs/adapters/deno`
+- **Web standard** — `alabjs/adapters/web` for any fetch-based runtime
+- **SPA mode** — `alabjs build --mode spa` for CDN-deployable client-only builds
+- **Static site generation** — `alabjs ssg` pre-renders static routes to HTML files
 
 ### Offline & Local-First
 
 - **Offline mutation queue** — service worker queues failed POSTs in IndexedDB, replays on reconnect
 - **`useOfflineMutations`** — observe queue count, trigger replay, render offline banners
-- **`@alab/sync`** — local-first sync adapters for PGlite, ElectricSQL, and PowerSync
+- **`@alabjs/sync`** — local-first sync adapters for PGlite, ElectricSQL, and PowerSync
 
 ### Reactivity
 
@@ -159,11 +159,11 @@ We believe that a "great DX" isn't just about hot-reloading (though we're fast a
 
 **Deployable anywhere.** The production server is a plain H3 handler. Any runtime that speaks HTTP can run it. No proprietary infrastructure required.
 
-**Open compiler.** oxc is open source, documented, and extensible. The Rust compilation pipeline is inspectable via `alab info`. You can write your own transforms.
+**Open compiler.** oxc is open source, documented, and extensible. The Rust compilation pipeline is inspectable via `alabjs info`. You can write your own transforms.
 
 **95+ Lighthouse by default.** SSR, code splitting, image optimization, and security headers are all active from the first line. You would have to actively disable features to score lower.
 
-**Grows with you.** Start with the file-system router and server functions. Add the code-based router when the project scales. Add `@alab/sync` for offline-first. Every capability is additive — the simple baseline never changes.
+**Grows with you.** Start with the file-system router and server functions. Add the code-based router when the project scales. Add `@alabjs/sync` for offline-first. Every capability is additive — the simple baseline never changes.
 
 ---
 
@@ -184,7 +184,7 @@ We believe that a "great DX" isn't just about hot-reloading (though we're fast a
 ## Get Started
 
 ```bash
-npx create-alab@latest my-app
+npx create-alabjs@latest my-app
 cd my-app
 pnpm dev
 ```

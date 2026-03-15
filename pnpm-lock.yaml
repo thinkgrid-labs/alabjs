@@ -21,7 +21,7 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
-  crates/alab-napi:
+  crates/@alabjs/compiler:
     devDependencies:
       '@napi-rs/cli':
         specifier: ^3.0.0
@@ -44,12 +44,12 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.1.0
         version: 4.2.1(vite@8.0.0(@types/node@24.12.0)(jiti@2.6.1))
-      alab:
+      alabjs:
         specifier: workspace:*
-        version: link:../../packages/alab
-      alab-vite-plugin:
+        version: link:../../packages/alabjs
+      alabjs-vite-plugin:
         specifier: workspace:*
-        version: link:../../packages/alab-vite-plugin
+        version: link:../../packages/alabjs-vite-plugin
       react:
         specifier: ^19.1.0
         version: 19.2.4
@@ -72,12 +72,12 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.1.0
         version: 4.2.1(vite@8.0.0(@types/node@24.12.0)(jiti@2.6.1))
-      alab:
+      alabjs:
         specifier: workspace:*
-        version: link:../../packages/alab
-      alab-vite-plugin:
+        version: link:../../packages/alabjs
+      alabjs-vite-plugin:
         specifier: workspace:*
-        version: link:../../packages/alab-vite-plugin
+        version: link:../../packages/alabjs-vite-plugin
       react:
         specifier: ^19.1.0
         version: 19.2.4
@@ -95,9 +95,9 @@ importers:
         specifier: ^19.1.0
         version: 19.2.3(@types/react@19.2.14)
 
-  packages/alab:
+  packages/alabjs:
     dependencies:
-      alab-vite-plugin:
+      alabjs-vite-plugin:
         specifier: workspace:*
         version: link:../alab-vite-plugin
       h3:
@@ -139,7 +139,7 @@ importers:
         specifier: workspace:*
         version: link:../../crates/alab-napi
 
-  packages/alab-sync:
+  packages/alabjs-sync:
     dependencies:
       react:
         specifier: ^19.0.0
@@ -155,7 +155,7 @@ importers:
         specifier: ^5.8.0
         version: 5.9.3
 
-  packages/alab-vite-plugin:
+  packages/alabjs-vite-plugin:
     dependencies:
       '@tailwindcss/vite':
         specifier: ^4.0.0
@@ -175,7 +175,7 @@ importers:
         specifier: workspace:*
         version: link:../../crates/alab-napi
 
-  packages/create-alab:
+  packages/create-alabjs:
     devDependencies:
       '@types/node':
         specifier: ^22.0.0

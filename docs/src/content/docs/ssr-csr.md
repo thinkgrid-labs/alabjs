@@ -75,14 +75,14 @@ export default function PostsPage() {
 
 How it works:
 1. First request renders and caches the HTML
-2. Subsequent requests within the TTL get the cached HTML (`x-alab-cache: hit`)
-3. After TTL, the next request gets stale HTML while a background re-render runs (`x-alab-cache: stale`)
+2. Subsequent requests within the TTL get the cached HTML (`x-alabjs-cache: hit`)
+3. After TTL, the next request gets stale HTML while a background re-render runs (`x-alabjs-cache: stale`)
 4. Future requests get the freshly rendered HTML
 
 To manually purge a cached page:
 
 ```ts
-import { revalidatePath } from "alab/cache";
+import { revalidatePath } from "alabjs/cache";
 
 // Purge exact path
 revalidatePath("/posts");
@@ -96,7 +96,7 @@ revalidatePathPrefix("/posts");
 Pre-render pages to static HTML files at build time:
 
 ```bash
-alab ssg
+alabjs ssg
 ```
 
 For dynamic routes, export `generateStaticParams`:
@@ -109,4 +109,4 @@ export async function generateStaticParams() {
 }
 ```
 
-`alab ssg` calls this, renders each combination, and writes HTML files to `.alab/dist/`.
+`alabjs ssg` calls this, renders each combination, and writes HTML files to `.alabjs/dist/`.

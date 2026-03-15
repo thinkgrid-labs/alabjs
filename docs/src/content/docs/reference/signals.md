@@ -10,7 +10,7 @@ AlabJS ships a tiny, framework-agnostic signal primitive built on `useSyncExtern
 ## Creating a signal
 
 ```ts
-import { signal } from "alab/signals";
+import { signal } from "alabjs/signals";
 
 // Create a signal with an initial value.
 const count = signal(0);
@@ -32,7 +32,7 @@ Signals created at module scope are singletons — the same object is reused acr
 `useSignalValue` subscribes the component to the signal. The component re-renders only when the signal's value changes.
 
 ```tsx
-import { useSignalValue } from "alab/signals";
+import { useSignalValue } from "alabjs/signals";
 import { count } from "./state";
 
 export default function Counter() {
@@ -46,7 +46,7 @@ export default function Counter() {
 `useSignal` creates a signal that lives for the lifetime of the component instance. Useful as an ergonomic alternative to `useState` when you need to read the value outside of React (e.g. in an event listener).
 
 ```tsx
-import { useSignal, useSignalValue } from "alab/signals";
+import { useSignal, useSignalValue } from "alabjs/signals";
 
 export default function LocalCounter() {
   const count = useSignal(0);
@@ -65,7 +65,7 @@ export default function LocalCounter() {
 Combine multiple signals into a derived read-only value using `computed`:
 
 ```ts
-import { signal, computed } from "alab/signals";
+import { signal, computed } from "alabjs/signals";
 
 const a = signal(2);
 const b = signal(3);
@@ -83,7 +83,7 @@ Computed signals are lazy — they recalculate only when read after a dependency
 Run a side effect whenever signal values change:
 
 ```ts
-import { effect } from "alab/signals";
+import { effect } from "alabjs/signals";
 
 const name = signal("Alice");
 

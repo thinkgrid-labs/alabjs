@@ -1,8 +1,8 @@
-import { useServerData } from "alab/client";
-import { Link } from "alab/components";
+import { useServerData } from "alabjs/client";
+import { Link } from "alabjs/components";
 import type { getPosts } from "./page.server";
 import { Nav } from "../nav";
-import type { PageMetadata } from "alab";
+import type { PageMetadata } from "alabjs";
 
 export const ssr = true;
 

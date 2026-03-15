@@ -1,8 +1,8 @@
-import { AlabProvider, useServerData, useMutation } from "alab/client";
-import { Link } from "alab/components";
+import { AlabProvider, useServerData, useMutation } from "alabjs/client";
+import { Link } from "alabjs/components";
 import type { getUser, toggleUserStatus } from "./page.server";
 import { Sidebar } from "../../nav";
-import type { GenerateMetadata } from "alab";
+import type { GenerateMetadata } from "alabjs";
 
 export const generateMetadata: GenerateMetadata = async ({ params }) => ({
   title: `User #${params.id} — Alab Dashboard`,

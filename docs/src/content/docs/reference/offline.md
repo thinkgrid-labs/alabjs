@@ -9,9 +9,9 @@ AlabJS includes an offline-first layer that intercepts failed server function ca
 
 ## How it works
 
-When `alab build` runs, it compiles a service worker to `.alab/dist/client/_alab/offline-sw.js` and serves it at `/_alab/offline-sw.js`.
+When `alabjs build` runs, it compiles a service worker to `.alabjs/dist/client/_alabjs/offline-sw.js` and serves it at `/_alabjs/offline-sw.js`.
 
-The service worker intercepts all `POST /_alab/fn/*` requests (server function calls). When the network is unavailable, instead of letting the request fail, it:
+The service worker intercepts all `POST /_alabjs/fn/*` requests (server function calls). When the network is unavailable, instead of letting the request fail, it:
 
 1. Stores the request body in IndexedDB
 2. Returns a synthetic `202 Accepted` response with `{ __queued: true, id }`
@@ -21,7 +21,7 @@ The service worker intercepts all `POST /_alab/fn/*` requests (server function c
 ## Reading offline state in a component
 
 ```tsx
-import { useOfflineMutations } from "alab/client";
+import { useOfflineMutations } from "alabjs/client";
 
 export default function StatusBar() {
   const { isOffline, queuedCount, replay, replayed } = useOfflineMutations();
@@ -51,7 +51,7 @@ export default function StatusBar() {
 When a mutation is queued, the server function call still "succeeds" from the caller's perspective — it just gets `{ __queued: true }` back instead of real data. You can check for this in your mutation handler:
 
 ```tsx
-import { useMutation } from "alab/client";
+import { useMutation } from "alabjs/client";
 import { createPost } from "./page.server";
 
 export function CreatePostButton() {
@@ -70,7 +70,7 @@ export function CreatePostButton() {
 
 ## Automatic replay
 
-The service worker registers a Background Sync tag (`alab-mutation-replay`) when it queues a mutation. The browser automatically triggers replay when the connection is restored — even if the tab is closed.
+The service worker registers a Background Sync tag (`alabjs-mutation-replay`) when it queues a mutation. The browser automatically triggers replay when the connection is restored — even if the tab is closed.
 
 :::note
 Background Sync is currently supported in Chrome and Edge. In Firefox and Safari, AlabJS falls back to replaying when the `online` event fires while the tab is open.
@@ -100,21 +100,21 @@ const { replay } = useOfflineMutations();
 The offline service worker is registered automatically in production builds. To opt out, set:
 
 ```ts
-// alab.config.ts
+// alabjs.config.ts
 export default {
   offline: false,
 };
 ```
 
-## Local-first sync with `@alab/sync`
+## Local-first sync with `@alabjs/sync`
 
-For more advanced offline-first patterns — conflict resolution, real-time collaborative editing, local SQL — use the `@alab/sync` package:
+For more advanced offline-first patterns — conflict resolution, real-time collaborative editing, local SQL — use the `@alabjs/sync` package:
 
 ```bash
-pnpm add @alab/sync
+pnpm add @alabjs/sync
 ```
 
-`@alab/sync` provides duck-typed React adapters for:
+`@alabjs/sync` provides duck-typed React adapters for:
 
 - **PGlite** — SQLite in the browser (WASM) with live queries
 - **ElectricSQL** — Postgres-to-browser sync via shapes
@@ -123,7 +123,7 @@ pnpm add @alab/sync
 ### PGlite
 
 ```tsx
-import { PGliteProvider, usePGliteQuery } from "@alab/sync/pglite";
+import { PGliteProvider, usePGliteQuery } from "@alabjs/sync/pglite";
 import { PGlite } from "@electric-sql/pglite";
 import { live } from "@electric-sql/pglite/live";
 
@@ -147,7 +147,7 @@ function PostList() {
 ### ElectricSQL
 
 ```tsx
-import { ElectricProvider, useShape } from "@alab/sync/electric";
+import { ElectricProvider, useShape } from "@alabjs/sync/electric";
 
 function App() {
   return (
@@ -166,7 +166,7 @@ function PostList() {
 ### PowerSync
 
 ```tsx
-import { PowerSyncProvider, usePowerSyncQuery } from "@alab/sync/powersync";
+import { PowerSyncProvider, usePowerSyncQuery } from "@alabjs/sync/powersync";
 
 function App() {
   return (

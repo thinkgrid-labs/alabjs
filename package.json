@@ -1,5 +1,5 @@
 {
-  "name": "alab-monorepo",
+  "name": "alabjs-monorepo",
   "private": true,
   "version": "0.1.0",
   "description": "AlabJS — full-stack React framework powered by a Rust compiler core",
@@ -10,9 +10,9 @@
     "lint": "turbo lint",
     "typecheck": "turbo typecheck",
     "clean": "turbo clean && find . -name 'node_modules' -type d -prune -exec rm -rf {} + && cargo clean",
-    "build:packages": "pnpm --filter alab build && pnpm --filter alab-vite-plugin build",
-    "dev:basic-ssr": "pnpm build:packages && cd examples/basic-ssr && node ../../packages/alab/dist/cli.js dev",
-    "dev:dashboard": "pnpm build:packages && cd examples/dashboard-csr && node ../../packages/alab/dist/cli.js dev"
+    "build:packages": "pnpm --filter alabjs build && pnpm --filter alabjs-vite-plugin build",
+    "dev:basic-ssr": "pnpm build:packages && cd examples/basic-ssr && node ../../packages/alabjsjs/dist/cli.js dev",
+    "dev:dashboard": "pnpm build:packages && cd examples/dashboard-csr && node ../../packages/alabjsjs/dist/cli.js dev"
   },
   "devDependencies": {
     "turbo": "^2.5.0",

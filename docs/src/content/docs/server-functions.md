@@ -13,7 +13,7 @@ Server functions are the primary way to run code on the server in AlabJS. They a
 
 ```ts
 // app/posts/page.server.ts
-import { defineServerFn } from "alab/server";
+import { defineServerFn } from "alabjs/server";
 
 export const getPosts = defineServerFn(async () => {
   return db.posts.findAll();
@@ -31,7 +31,7 @@ export const getPost = defineServerFn(async ({ params }) => {
 ```tsx
 // app/posts/page.tsx
 import type { getPosts } from "./page.server";
-import { useServerData } from "alab/client";
+import { useServerData } from "alabjs/client";
 
 export const ssr = true; // render on server for SEO
 
@@ -52,7 +52,7 @@ The return type of `getPosts` is inferred automatically. No manual type annotati
 
 ```tsx
 import type { createPost } from "./page.server";
-import { useMutation } from "alab/client";
+import { useMutation } from "alabjs/client";
 
 export default function NewPostForm() {
   const { mutate, isPending, error, isSuccess, reset } =
@@ -88,7 +88,7 @@ Pass a Zod schema as the first argument. Invalid input returns HTTP 422 with str
 
 ```ts
 // app/posts/page.server.ts
-import { defineServerFn } from "alab/server";
+import { defineServerFn } from "alabjs/server";
 import { z } from "zod";
 
 const CreatePostSchema = z.object({
@@ -130,7 +130,7 @@ export const getPopularPosts = defineServerFn(
 Invalidate from another server function or API route:
 
 ```ts
-import { invalidateCache } from "alab/cache";
+import { invalidateCache } from "alabjs/cache";
 
 // Invalidate everything tagged "posts"
 invalidateCache({ tags: ["posts"] });

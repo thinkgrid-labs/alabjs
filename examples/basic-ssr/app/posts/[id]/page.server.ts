@@ -1,4 +1,4 @@
-import { defineServerFn } from "alab/server";
+import { defineServerFn } from "alabjs/server";
 
 // Shared post data — re-exported from parent for DRY access
 export type { Post } from "../page.server";

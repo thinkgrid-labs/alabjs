@@ -15,7 +15,7 @@ sidebar:
 ## Create a New App
 
 ```bash
-npx create-alab@latest my-app
+npx create-alabjs@latest my-app
 cd my-app
 pnpm install
 pnpm dev
@@ -27,13 +27,13 @@ No config files to touch. Tailwind is ready. TypeScript is ready. The Rust compi
 
 ## Available Templates
 
-`create-alab` ships three templates:
+`create-alabjs` ships three templates:
 
 | Template | Command | Best for |
 |---|---|---|
-| `basic` | `create-alab my-app` | Starting from scratch |
-| `blog` | `create-alab my-app --template blog` | Content-heavy sites with SSR |
-| `dashboard` | `create-alab my-app --template dashboard` | Admin UIs with server functions |
+| `basic` | `create-alabjs my-app` | Starting from scratch |
+| `blog` | `create-alabjs my-app --template blog` | Content-heavy sites with SSR |
+| `dashboard` | `create-alabjs my-app --template dashboard` | Admin UIs with server functions |
 
 ## Project Structure
 
@@ -64,14 +64,14 @@ my-app/
 ## CLI Commands
 
 ```bash
-alab dev                    # Dev server with HMR
-alab build                  # Production build (Vite 8 + Rolldown)
-alab build --mode spa       # Client-only SPA build
-alab build --analyze        # Build + open bundle treemap
-alab start                  # Start production H3 server
-alab ssg                    # Pre-render static routes to HTML
-alab test                   # Run tests with Vitest
-alab test --watch           # Watch mode
-alab test --ui              # Vitest UI
-alab info                   # Print route manifest and compiler info
+alabjs dev                    # Dev server with HMR
+alabjs build                  # Production build (Vite 8 + Rolldown)
+alabjs build --mode spa       # Client-only SPA build
+alabjs build --analyze        # Build + open bundle treemap
+alabjs start                  # Start production H3 server
+alabjs ssg                    # Pre-render static routes to HTML
+alabjs test                   # Run tests with Vitest
+alabjs test --watch           # Watch mode
+alabjs test --ui              # Vitest UI
+alabjs info                   # Print route manifest and compiler info
 ```

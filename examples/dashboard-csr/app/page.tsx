@@ -1,6 +1,6 @@
 import { Sidebar } from "./nav";
-import { AlabProvider } from "alab/client";
-import type { PageMetadata } from "alab";
+import { AlabProvider } from "alabjs/client";
+import type { PageMetadata } from "alabjs";
 
 export const metadata: PageMetadata = {
   title: "Overview — Alab Dashboard",

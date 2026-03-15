@@ -1,4 +1,4 @@
-import { defineSSEHandler } from "alab/server";
+import { defineSSEHandler } from "alabjs/server";
 
 // Sample activity events — replace with real DB change feed or Redis pub/sub
 const EVENTS = [

@@ -63,19 +63,22 @@ jobs:
         run: |
           mkdir -p crates/alab-napi/npm/${{ matrix.settings.pkg }}
           cp target/${{ matrix.settings.target }}/release/${{ matrix.settings.binary }} \
-             crates/alab-napi/npm/${{ matrix.settings.pkg }}/alab_napi.node
+             crates/alab-napi/npm/${{ matrix.settings.pkg }}/alab-napi.${{ matrix.settings.pkg }}.node
 
       - name: Upload binary artifact
         uses: actions/upload-artifact@v4
         with:
           name: napi-${{ matrix.settings.pkg }}
-          path: crates/alab-napi/npm/${{ matrix.settings.pkg }}/alab_napi.node
+          path: crates/alab-napi/npm/${{ matrix.settings.pkg }}/alab-napi.${{ matrix.settings.pkg }}.node
 
   # ─── 2. Publish platform packages to npm ─────────────────────────────────
   publish-napi-platforms:
-    name: Publish @alab/compiler-${{ matrix.pkg }}
+    name: Publish @alabjs/compiler-${{ matrix.pkg }}
     needs: build-napi
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       matrix:
         pkg: [linux-x64-gnu, darwin-arm64, darwin-x64, win32-x64-msvc]
@@ -93,10 +96,16 @@ jobs:
           name: napi-${{ matrix.pkg }}
           path: crates/alab-napi/npm/${{ matrix.pkg }}/
 
-      - name: Publish @alab/compiler-${{ matrix.pkg }}
+      - name: Set version
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          cd crates/alab-napi/npm/${{ matrix.pkg }}
+          npm version $VERSION --no-git-tag-version
+
+      - name: Publish @alabjs/compiler-${{ matrix.pkg }}
         if: ${{ !inputs.dry_run }}
         working-directory: crates/alab-napi/npm/${{ matrix.pkg }}
-        run: npm publish --access public
+        run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -105,6 +114,9 @@ jobs:
     name: Publish npm packages
     needs: publish-napi-platforms
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -118,34 +130,43 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
+      - name: Set versions
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          pnpm -r exec npm version $VERSION --no-git-tag-version
+          cd crates/alab-napi
+          npm version $VERSION --no-git-tag-version
+
       - name: Build TypeScript packages
         run: pnpm build
 
-      - name: Publish @alab/compiler
+      - name: Publish @alabjs/compiler
         if: ${{ !inputs.dry_run }}
         working-directory: crates/alab-napi
-        run: npm publish --access public
+        run: |
+          pnpm run prepublishOnly
+          npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish alab
+      - name: Publish alabjs
         if: ${{ !inputs.dry_run }}
-        working-directory: packages/alab
-        run: npm publish --access public
+        working-directory: packages/alabjsjs
+        run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish alab-vite-plugin
+      - name: Publish alabjs-vite-plugin
         if: ${{ !inputs.dry_run }}
-        working-directory: packages/alab-vite-plugin
-        run: npm publish --access public
+        working-directory: packages/alabjsjs-vite-plugin
+        run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
-      - name: Publish create-alab
+      - name: Publish create-alabjs
         if: ${{ !inputs.dry_run }}
-        working-directory: packages/create-alab
-        run: npm publish --access public
+        working-directory: packages/create-alabjsjs
+        run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -170,5 +191,5 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
-          name: "Alab v${{ steps.version.outputs.version }}"
+          name: "AlabJS v${{ steps.version.outputs.version }}"
           generate_release_notes: true

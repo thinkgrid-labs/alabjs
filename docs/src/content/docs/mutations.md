@@ -11,7 +11,7 @@ Mutations are server functions called in response to user actions — form submi
 
 ```ts
 // app/posts/page.server.ts
-import { defineServerFn } from "alab/server";
+import { defineServerFn } from "alabjs/server";
 import { z } from "zod";
 import { db } from "../../db";
 
@@ -30,7 +30,7 @@ export const createPost = defineServerFn(async (input) => {
 
 ```tsx
 // app/posts/page.tsx
-import { useMutation } from "alab/client";
+import { useMutation } from "alabjs/client";
 import { createPost } from "./page.server";
 
 export default function NewPostForm() {
@@ -107,8 +107,8 @@ const errors = data?.errors;
 For instant UI feedback, update local state optimistically before the mutation resolves:
 
 ```tsx
-import { useMutation } from "alab/client";
-import { signal, useSignalValue } from "alab/signals";
+import { useMutation } from "alabjs/client";
+import { signal, useSignalValue } from "alabjs/signals";
 import { toggleLike } from "./page.server";
 
 const liked = signal(false);
@@ -165,7 +165,7 @@ For forms that should work without JavaScript, use `mutate` inside a server-enha
     const data = Object.fromEntries(new FormData(e.currentTarget));
     await mutate(data);
   }}
-  action="/_alab/fn/createPost"
+  action="/_alabjs/fn/createPost"
   method="POST"
 >
   <input name="title" />

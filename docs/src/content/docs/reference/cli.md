@@ -1,22 +1,22 @@
 ---
 title: CLI
-description: All alab CLI commands and flags.
+description: All alabjs CLI commands and flags.
 sidebar:
   order: 7
 ---
 
-The `alab` CLI is installed locally in your project. Run it via your package manager's script runner or `node_modules/.bin/alab`.
+The `alabjs` CLI is installed locally in your project. Run it via your package manager's script runner or `node_modules/.bin/alabjs`.
 
 ## Commands
 
-### `alab dev`
+### `alabjs dev`
 
 Starts the development server with hot module replacement.
 
 ```bash
-alab dev
-alab dev --port 4000
-alab dev --host 0.0.0.0
+alabjs dev
+alabjs dev --port 4000
+alabjs dev --host 0.0.0.0
 ```
 
 | Flag | Default | Description |
@@ -34,15 +34,15 @@ The dev server:
 
 ---
 
-### `alab build`
+### `alabjs build`
 
 Builds the app for production.
 
 ```bash
-alab build
-alab build --mode spa
-alab build --analyze
-alab build --skip-typecheck
+alabjs build
+alabjs build --mode spa
+alabjs build --analyze
+alabjs build --skip-typecheck
 ```
 
 | Flag | Default | Description |
@@ -51,9 +51,9 @@ alab build --skip-typecheck
 | `--analyze` | `false` | Open bundle size treemap after build |
 | `--skip-typecheck` | `false` | Skip `tsc --noEmit` |
 
-**SSR mode** (default): Outputs a Node.js server bundle to `.alab/dist/`. Requires a Node.js runtime to serve.
+**SSR mode** (default): Outputs a Node.js server bundle to `.alabjs/dist/`. Requires a Node.js runtime to serve.
 
-**SPA mode**: Outputs a static `index.html` + hashed assets to `.alab/dist/spa/`. Deployable to any CDN. Server functions become fetch calls to `/_alab/fn/*` — point these at a separate API server.
+**SPA mode**: Outputs a static `index.html` + hashed assets to `.alabjs/dist/spa/`. Deployable to any CDN. Server functions become fetch calls to `/_alabjs/fn/*` — point these at a separate API server.
 
 The `--analyze` flag requires `rolldown-plugin-visualizer` or `rollup-plugin-visualizer` to be installed:
 
@@ -63,13 +63,13 @@ pnpm add -D rolldown-plugin-visualizer
 
 ---
 
-### `alab start`
+### `alabjs start`
 
 Serves the production build.
 
 ```bash
-alab start
-PORT=8080 alab start
+alabjs start
+PORT=8080 alabjs start
 ```
 
 | Environment Variable | Default | Description |
@@ -78,22 +78,22 @@ PORT=8080 alab start
 | `HOST` | `0.0.0.0` | Bind address |
 | `PUBLIC_URL` | — | Public base URL (for sitemap + CSRF) |
 
-Must run `alab build` before `alab start`.
+Must run `alabjs build` before `alabjs start`.
 
 ---
 
-### `alab ssg`
+### `alabjs ssg`
 
 Pre-renders static routes to HTML files.
 
 ```bash
-alab ssg
-alab ssg --out ./public
+alabjs ssg
+alabjs ssg --out ./public
 ```
 
 | Flag | Default | Description |
 |---|---|---|
-| `--out` | `.alab/dist/static` | Output directory |
+| `--out` | `.alabjs/dist/static` | Output directory |
 
 SSG renders all routes without dynamic segments. For dynamic routes, export `generateStaticParams` from the page:
 
@@ -107,12 +107,12 @@ export async function generateStaticParams() {
 
 ---
 
-### `alab info`
+### `alabjs info`
 
 Prints environment and dependency information for bug reports.
 
 ```bash
-alab info
+alabjs info
 ```
 
 Output includes: OS, Node.js version, pnpm version, AlabJS version, Vite version, Rust toolchain.
@@ -145,7 +145,7 @@ Output includes: OS, Node.js version, pnpm version, AlabJS version, Vite version
 The CLI commands are also exported as functions for use in custom scripts:
 
 ```ts
-import { build, dev, ssg } from "alab/commands";
+import { build, dev, ssg } from "alabjs/commands";
 
 await build({ cwd: process.cwd(), mode: "ssr", analyze: false });
 await ssg({ cwd: process.cwd(), out: "./static" });

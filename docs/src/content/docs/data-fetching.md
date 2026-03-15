@@ -11,7 +11,7 @@ AlabJS fetches data through server functions — typed TypeScript functions that
 
 ```ts
 // app/posts/page.server.ts
-import { defineServerFn } from "alab/server";
+import { defineServerFn } from "alabjs/server";
 import { db } from "../../db";
 
 export const getPosts = defineServerFn(async () => {
@@ -25,7 +25,7 @@ export const getPosts = defineServerFn(async () => {
 
 ```tsx
 // app/posts/page.tsx
-import { useServerData } from "alab/client";
+import { useServerData } from "alabjs/client";
 import { getPosts } from "./page.server";
 
 export default function PostsPage() {

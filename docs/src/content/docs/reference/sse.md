@@ -13,7 +13,7 @@ Use `defineSSEHandler` in an API route (`app/.../route.ts`) to turn an async gen
 
 ```ts
 // app/prices/route.ts
-import { defineSSEHandler } from "alab/server";
+import { defineSSEHandler } from "alabjs/server";
 
 export const GET = defineSSEHandler(async function* (req) {
   // Stream a new price every second
@@ -49,7 +49,7 @@ AlabJS handles all the encoding, headers (`content-type: text/event-stream`, `ca
 ## Consuming SSE in a component
 
 ```tsx
-import { useSSE } from "alab/client";
+import { useSSE } from "alabjs/client";
 
 interface Price {
   symbol: string;
