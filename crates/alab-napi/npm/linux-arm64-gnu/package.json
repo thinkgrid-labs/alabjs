@@ -1,0 +1,19 @@
+{
+  "name": "@alab/compiler-linux-arm64-gnu",
+  "version": "0.1.0",
+  "description": "Alab compiler binary for linux-arm64-gnu",
+  "license": "MIT",
+  "main": "alab-napi.linux-arm64-gnu.node",
+  "files": [
+    "alab-napi.linux-arm64-gnu.node"
+  ],
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "engines": {
+    "node": ">=22"
+  }
+}

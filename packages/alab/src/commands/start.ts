@@ -19,6 +19,7 @@ export async function start({ cwd, port = 3000 }: StartOptions) {
     process.exit(1);
   }
 
-  const app = createApp(manifest);
+  const distDir = resolve(cwd, ".alab/dist");
+  const app = createApp(manifest, distDir);
   app.listen(port);
 }

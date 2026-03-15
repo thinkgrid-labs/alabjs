@@ -1,0 +1,19 @@
+{
+  "name": "@alab/compiler-linux-x64-gnu",
+  "version": "0.1.0",
+  "description": "Alab compiler binary for linux-x64-gnu",
+  "license": "MIT",
+  "main": "alab-napi.linux-x64-gnu.node",
+  "files": [
+    "alab-napi.linux-x64-gnu.node"
+  ],
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "engines": {
+    "node": ">=22"
+  }
+}

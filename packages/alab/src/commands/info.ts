@@ -1,16 +1,16 @@
 import { resolve } from "node:path";
+import type { AlabNapi } from "../types/napi.js";
 
 interface InfoOptions {
   cwd: string;
 }
 
 export async function info({ cwd }: InfoOptions) {
-  // Dynamically load the napi binding to print compiler info
-  let napi: typeof import("alab-napi");
+  let napi: AlabNapi;
   try {
-    napi = await import("alab-napi");
+    napi = (await import("@alab/compiler")) as AlabNapi;
   } catch {
-    console.error("  alab  Rust compiler not built. Run `pnpm --filter alab-napi build`.");
+    console.error("  alab  Rust compiler not built. Run `cargo build --release -p alab-napi && bash scripts/copy-napi-binary.sh`.");
     process.exit(1);
   }
 

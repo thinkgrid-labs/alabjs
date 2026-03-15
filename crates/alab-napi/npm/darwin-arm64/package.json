@@ -1,0 +1,19 @@
+{
+  "name": "@alab/compiler-darwin-arm64",
+  "version": "0.1.0",
+  "description": "Alab compiler binary for darwin-arm64",
+  "license": "MIT",
+  "main": "alab-napi.darwin-arm64.node",
+  "files": [
+    "alab-napi.darwin-arm64.node"
+  ],
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "engines": {
+    "node": ">=22"
+  }
+}

@@ -6,7 +6,7 @@
  *   npx create-alab@latest my-app
  *   npx create-alab@latest my-app --template dashboard
  */
-import { mkdir, writeFile, copyFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { resolve, join } from "node:path";
 import { parseArgs } from "node:util";
 
@@ -28,7 +28,7 @@ await mkdir(join(targetDir, "app"), { recursive: true });
 await mkdir(join(targetDir, "app", "users", "[id]"), { recursive: true });
 await mkdir(join(targetDir, "public"), { recursive: true });
 
-// package.json
+// ─── package.json ──────────────────────────────────────────────────────────────
 await writeFile(
   join(targetDir, "package.json"),
   JSON.stringify(
@@ -46,6 +46,16 @@ await writeFile(
         alab: "^0.1.0",
         react: "^19.1.0",
         "react-dom": "^19.1.0",
+        tailwindcss: "^4.0.0",
+        "@tailwindcss/vite": "^4.0.0",
+      },
+      devDependencies: {
+        "@types/react": "^19.1.0",
+        "@types/react-dom": "^19.1.0",
+        typescript: "^5.8.0",
+      },
+      engines: {
+        node: ">=22",
       },
     },
     null,
@@ -53,18 +63,25 @@ await writeFile(
   ),
 );
 
-// tsconfig.json
+// ─── tsconfig.json ─────────────────────────────────────────────────────────────
 await writeFile(
   join(targetDir, "tsconfig.json"),
   JSON.stringify(
     {
       compilerOptions: {
         target: "ES2022",
-        module: "NodeNext",
-        moduleResolution: "NodeNext",
+        lib: ["ES2022", "DOM", "DOM.Iterable"],
+        module: "ESNext",
+        moduleResolution: "Bundler",
         jsx: "react-jsx",
         strict: true,
-        paths: { "alab/*": ["./node_modules/alab/dist/*"] },
+        exactOptionalPropertyTypes: true,
+        noUncheckedIndexedAccess: true,
+        noImplicitOverride: true,
+        noImplicitReturns: true,
+        isolatedModules: true,
+        verbatimModuleSyntax: true,
+        skipLibCheck: true,
       },
       include: ["app/**/*"],
     },
@@ -73,66 +90,70 @@ await writeFile(
   ),
 );
 
-// app/page.tsx — root page
+// ─── app/globals.css ──────────────────────────────────────────────────────────
+// Tailwind CSS v4 — @tailwindcss/vite auto-discovers utility classes, no config file needed.
+await writeFile(
+  join(targetDir, "app", "globals.css"),
+  `@import "tailwindcss";\n`,
+);
+
+// ─── app/page.tsx — root page ──────────────────────────────────────────────────
 await writeFile(
   join(targetDir, "app", "page.tsx"),
-  `export default function HomePage() {
+  `import type { PageMetadata } from "alab";
+
+export const metadata: PageMetadata = {
+  title: "Alab App",
+  description: "Built with Alab — the blazing-fast React framework.",
+};
+
+export default function HomePage() {
   return (
-    <main>
-      <h1>Welcome to Alab</h1>
-      <p>Edit <code>app/page.tsx</code> to get started.</p>
+    <main className="flex min-h-screen flex-col items-center justify-center p-8">
+      <h1 className="text-4xl font-bold tracking-tight">Welcome to Alab</h1>
+      <p className="mt-4 text-lg text-gray-600">
+        Edit <code className="font-mono bg-gray-100 px-1 rounded">app/page.tsx</code> to get started.
+      </p>
     </main>
   );
 }
 `,
 );
 
-// app/layout.tsx
-await writeFile(
-  join(targetDir, "app", "layout.tsx"),
-  `import { AlabProvider } from "alab/client";
-import type { ReactNode } from "react";
-
-export default function RootLayout({ children }: { children: ReactNode }) {
-  return (
-    <html lang="en">
-      <head>
-        <meta charSet="utf-8" />
-        <title>Alab App</title>
-      </head>
-      <body>
-        <AlabProvider>{children}</AlabProvider>
-      </body>
-    </html>
-  );
-}
-`,
-);
-
-// Example server function + page
+// ─── Example server function + typed page ──────────────────────────────────────
 await writeFile(
   join(targetDir, "app", "users", "[id]", "page.server.ts"),
   `import { defineServerFn } from "alab/server";
 
 export const getUser = defineServerFn(async ({ params }) => {
   // Replace with your real data source
-  return { id: params.id, name: \`User \${params.id}\` };
+  return { id: params["id"] ?? "", name: \`User \${params["id"] ?? ""}\` };
 });
 `,
 );
 
 await writeFile(
   join(targetDir, "app", "users", "[id]", "page.tsx"),
-  `import { useServerData } from "alab/client";
+  `import type { AlabPage } from "alab";
+import type { getUser } from "./page.server";
+import { useServerData } from "alab/client";
 
-export default function UserPage({ params }: { params: { id: string } }) {
-  const user = useServerData<{ id: string; name: string }>("getUser", params);
-  return <h1>{user.name}</h1>;
-}
+const UserPage: AlabPage<"/users/[id]"> = ({ params }) => {
+  // Type-safe: useServerData infers the return type from getUser
+  const user = useServerData<typeof getUser>("getUser", params);
+  return (
+    <main className="p-8">
+      <h1 className="text-2xl font-bold">{user.name}</h1>
+      <p className="text-gray-500">id: {user.id}</p>
+    </main>
+  );
+};
+
+export default UserPage;
 `,
 );
 
-// .gitignore
+// ─── .gitignore ────────────────────────────────────────────────────────────────
 await writeFile(
   join(targetDir, ".gitignore"),
   "node_modules/\n.alab/\ndist/\n.DS_Store\n",
