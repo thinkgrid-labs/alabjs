@@ -32,7 +32,7 @@ jobs:
             target: aarch64-apple-darwin
             pkg: darwin-arm64
             binary: libalab_napi.dylib
-          - host: macos-13
+          - host: macos-latest
             target: x86_64-apple-darwin
             pkg: darwin-x64
             binary: libalab_napi.dylib
@@ -151,21 +151,21 @@ jobs:
 
       - name: Publish alabjs
         if: ${{ !inputs.dry_run }}
-        working-directory: packages/alabjsjs
+        working-directory: packages/alabjs
         run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish alabjs-vite-plugin
         if: ${{ !inputs.dry_run }}
-        working-directory: packages/alabjsjs-vite-plugin
+        working-directory: packages/alabjs-vite-plugin
         run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish create-alabjs
         if: ${{ !inputs.dry_run }}
-        working-directory: packages/create-alabjsjs
+        working-directory: packages/create-alabjs
         run: npm publish --access public --provenance
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
