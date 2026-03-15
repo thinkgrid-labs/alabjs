@@ -33,7 +33,8 @@ pub fn scan_routes(app_dir: &str) -> RouteManifest {
             continue;
         };
 
-        if !matches!(ext, "ts" | "tsx" | "js" | "jsx") {
+        // Alab is TypeScript-only. Plain .js / .jsx files are not recognized.
+        if !matches!(ext, "ts" | "tsx") {
             continue;
         }
 
@@ -68,15 +69,15 @@ pub fn scan_routes(app_dir: &str) -> RouteManifest {
 }
 
 fn classify_file(name: &str) -> Option<RouteKind> {
-    if name == "page.tsx" || name == "page.jsx" || name.ends_with(".page.tsx") || name.ends_with(".page.jsx") {
+    if name == "page.tsx" || name.ends_with(".page.tsx") {
         Some(RouteKind::Page)
     } else if name.ends_with(".server.ts") || name.ends_with(".server.tsx") {
         Some(RouteKind::Server)
-    } else if name == "layout.tsx" || name == "layout.jsx" {
+    } else if name == "layout.tsx" {
         Some(RouteKind::Layout)
-    } else if name == "error.tsx" || name == "error.jsx" {
+    } else if name == "error.tsx" {
         Some(RouteKind::Error)
-    } else if name == "loading.tsx" || name == "loading.jsx" {
+    } else if name == "loading.tsx" {
         Some(RouteKind::Loading)
     } else {
         None
@@ -113,18 +114,8 @@ fn file_to_url_path(rel: &Path) -> String {
 }
 
 fn is_route_filename(name: &str) -> bool {
-    matches!(
-        name,
-        "page.tsx"
-            | "page.jsx"
-            | "layout.tsx"
-            | "layout.jsx"
-            | "error.tsx"
-            | "error.jsx"
-            | "loading.tsx"
-            | "loading.jsx"
-    ) || name.ends_with(".page.tsx")
-        || name.ends_with(".page.jsx")
+    matches!(name, "page.tsx" | "layout.tsx" | "error.tsx" | "loading.tsx")
+        || name.ends_with(".page.tsx")
         || name.ends_with(".server.ts")
         || name.ends_with(".server.tsx")
 }

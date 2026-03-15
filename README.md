@@ -38,7 +38,7 @@ Most frameworks give you the tools to build fast, secure, SEO-friendly apps — 
 | **Image optimization** | `<Image>` component converts to WebP, generates `srcset`, and lazy-loads by default. |
 | **Meta tag helpers** | Export `metadata` from any page to set `<title>`, Open Graph, Twitter Card, and canonical URL. |
 | **Auto sitemap** | `/sitemap.xml` is generated from the route manifest — no plugin needed. |
-| **Zero-config TypeScript** | TypeScript is the only supported language. No config file needed — Alab's compiler knows the right settings. |
+| **TypeScript only** | Alab does not support plain JavaScript. TypeScript is the one language, with no config file needed — Alab's compiler knows the right settings. Plain `.js` / `.jsx` files are not recognized by the router or compiler. |
 
 ---
 

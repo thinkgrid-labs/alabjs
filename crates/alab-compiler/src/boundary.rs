@@ -60,10 +60,10 @@ fn is_client_context(filename: &str) -> bool {
 }
 
 fn is_server_module(specifier: &str) -> bool {
+    // Alab is TypeScript-only — no .js variants
     specifier.ends_with(".server")
         || specifier.ends_with(".server.ts")
         || specifier.ends_with(".server.tsx")
-        || specifier.ends_with(".server.js")
 }
 
 #[cfg(test)]
