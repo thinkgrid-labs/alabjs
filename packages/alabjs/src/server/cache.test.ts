@@ -164,4 +164,29 @@ describe("page cache (ISR)", () => {
     expect(getCachedPage("/a/2")).toBe(null);
     expect(getCachedPage("/b")).not.toBe(null);
   });
+
+  it("revalidateTag purges page HTML entries carrying a matching tag", () => {
+    setCachedPage("/posts", "<html>posts</html>", 60, ["posts"]);
+    setCachedPage("/posts/1", "<html>post 1</html>", 60, ["posts", "post:1"]);
+    setCachedPage("/about", "<html>about</html>", 60, ["static"]);
+
+    revalidateTag({ tags: ["posts"] });
+
+    expect(getCachedPage("/posts")).toBe(null);
+    expect(getCachedPage("/posts/1")).toBe(null);
+    expect(getCachedPage("/about")).not.toBe(null);
+  });
+
+  it("revalidateTag leaves page HTML entries with no matching tag intact", () => {
+    setCachedPage("/home", "<html>home</html>", 60, ["home"]);
+    revalidateTag({ tags: ["posts"] });
+    expect(getCachedPage("/home")).not.toBe(null);
+  });
+
+  it("setCachedPage stores tags and they survive a fresh read", () => {
+    setCachedPage("/tagged", "<html>tagged</html>", 60, ["t1", "t2"]);
+    expect(getCachedPage("/tagged")).not.toBe(null);
+    revalidateTag({ tags: ["t2"] });
+    expect(getCachedPage("/tagged")).toBe(null);
+  });
 });

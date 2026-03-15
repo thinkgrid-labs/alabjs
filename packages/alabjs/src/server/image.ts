@@ -104,8 +104,9 @@ export async function handleImageRequest(
     res.setHeader("content-length", optimised.length);
     res.end(optimised);
   } catch (err) {
-    console.error("[alabjs] image optimisation error:", err);
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error(`[alabjs] image optimisation failed — src=${safeSrc} w=${width} fmt=${fmt}: ${msg}`);
     res.statusCode = 500;
-    res.end("[alabjs] Image optimisation failed");
+    res.end("[alabjs] Image optimisation failed — check server logs");
   }
 }

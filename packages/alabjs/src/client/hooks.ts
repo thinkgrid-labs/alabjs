@@ -304,7 +304,9 @@ export function useSSE<T = unknown>(
       try {
         setData(e.data ? (JSON.parse(e.data) as T) : undefined);
       } catch {
-        setData(e.data as unknown as T);
+        // Server sent data that isn't valid JSON — log and discard rather than
+        // silently casting a raw string to T (which would cause runtime type errors).
+        console.warn("[alabjs] useSSE: received non-JSON data on", url, "— discarding:", e.data);
       }
     });
 

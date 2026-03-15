@@ -189,7 +189,7 @@ cd my-app
 pnpm dev
 ```
 
-Full documentation lives in the [`docs/`](./docs/src/content/docs/) folder.
+Full documentation lives in the [`docs/`](./docs/) folder.
 
 ---
 

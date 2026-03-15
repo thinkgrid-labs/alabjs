@@ -89,6 +89,8 @@ interface PageCacheEntry {
   expires: number;
   /** Whether a background revalidation is already in flight. */
   revalidating: boolean;
+  /** Tags for on-demand invalidation via `revalidateTag`. */
+  tags: string[];
 }
 
 const _pageStore = new Map<string, PageCacheEntry>();
@@ -113,8 +115,8 @@ export function getCachedPage(pathname: string): { html: string; stale: boolean 
 }
 
 /** Store a rendered HTML page with a TTL (seconds). */
-export function setCachedPage(pathname: string, html: string, ttl: number): void {
-  _pageStore.set(pathname, { html, expires: Date.now() + ttl * 1_000, revalidating: false });
+export function setCachedPage(pathname: string, html: string, ttl: number, tags: string[] = []): void {
+  _pageStore.set(pathname, { html, expires: Date.now() + ttl * 1_000, revalidating: false, tags });
 }
 
 /** Mark a page as currently being revalidated to prevent concurrent regen. */
@@ -156,11 +158,24 @@ export function revalidatePathPrefix(prefix: string): void {
 }
 
 /**
- * Alias for `invalidateCache` — consistent naming with Next.js mental model.
- * Purges all server-function cache entries matching the given tags.
+ * Purge all server-function cache entries AND page HTML cache entries
+ * that carry at least one of the given tags.
+ *
+ * @example
+ * ```ts
+ * import { revalidateTag } from "alabjs/cache";
+ * revalidateTag({ tags: ["posts"] }); // clears both data and page caches
+ * ```
  */
 export function revalidateTag(opts: { tags: string[] }): void {
+  // Server-function data cache
   invalidateCache(opts);
+  // Page HTML cache (ISR)
+  for (const [path, entry] of _pageStore) {
+    if (opts.tags.some((t) => entry.tags.includes(t))) {
+      _pageStore.delete(path);
+    }
+  }
 }
 
 /** Return a snapshot of all live cache entries (for the dev Cache Inspector). */

@@ -1,7 +1,7 @@
 import { build as viteBuild, type PluginOption } from "vite";
 import { resolve } from "node:path";
 import { spawn } from "node:child_process";
-import { existsSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 
 interface BuildOptions {
   cwd: string;
@@ -126,7 +126,13 @@ export async function build({ cwd, skipTypecheck = false, mode = "ssr", analyze 
         console.log(`  alab  bundle report → .alabjs/report.html  (${pkg})\n`);
         loaded = true;
         break;
-      } catch { /* try next */ }
+      } catch (err) {
+        const msg = String(err);
+        // Only silently skip "module not found"; anything else is unexpected.
+        if (!msg.includes("Cannot find module") && !msg.includes("ERR_MODULE_NOT_FOUND")) {
+          console.warn(`  alab  warning: failed to load visualizer (${pkg}): ${msg}`);
+        }
+      }
     }
     if (!loaded) {
       console.warn("  alab  warning: install rolldown-plugin-visualizer or rollup-plugin-visualizer to enable --analyze.");
@@ -187,8 +193,9 @@ async function buildOfflineSw(cwd: string): Promise<void> {
         rolldownOptions: { output: { inlineDynamicImports: true } },
       },
     });
-  } catch {
+  } catch (err) {
     // Non-fatal: offline SW is a progressive enhancement
-    console.warn("  alab  warning: could not build offline service worker");
+    const msg = err instanceof Error ? err.message : String(err);
+    console.warn(`  alab  warning: could not build offline service worker: ${msg}`);
   }
 }

@@ -14,8 +14,15 @@ export async function start({ cwd, port = 3000 }: StartOptions) {
   try {
     const { readFileSync } = await import("node:fs");
     manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as RouteManifest;
-  } catch {
-    console.error("  alab  no build found. Run `alab build` first.");
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code === "ENOENT") {
+      console.error("  alab  no build found. Run `alab build` first.");
+    } else {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error(`  alab  failed to load route manifest: ${msg}`);
+      console.error("  alab  try running `alab build` again.");
+    }
     process.exit(1);
   }
 

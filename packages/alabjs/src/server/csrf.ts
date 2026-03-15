@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import {
   defineEventHandler,
   getCookie,
@@ -33,7 +34,13 @@ export function csrfMiddleware() {
     const cookieToken = getCookie(event, CSRF_COOKIE);
     const headerToken = getHeader(event, CSRF_HEADER);
 
-    if (!cookieToken || !headerToken || cookieToken !== headerToken) {
+    const tokensMatch =
+      !!cookieToken &&
+      !!headerToken &&
+      cookieToken.length === headerToken.length &&
+      timingSafeEqual(Buffer.from(cookieToken), Buffer.from(headerToken));
+
+    if (!tokensMatch) {
       throw createError({
         statusCode: 403,
         message: "CSRF token mismatch. Include the x-csrf-token header.",

@@ -16,6 +16,7 @@ import { runMiddleware } from "../server/middleware.js";
 import {
   getCachedPage, setCachedPage, markPageRevalidating, isPageRevalidating,
 } from "../server/cache.js";
+import { checkRevalidateAuth, applyRevalidate } from "../server/revalidate.js";
 import type { PageMetadata } from "../types/index.js";
 import type { Route } from "../router/manifest.js";
 
@@ -37,7 +38,12 @@ function findServerFiles(dir: string): string[] {
         results.push(full);
       }
     }
-  } catch { /* dir may not exist */ }
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code !== "ENOENT") {
+      console.warn(`[alabjs] warning: failed to scan ${dir}:`, (err as Error).message ?? err);
+    }
+  }
   return results;
 }
 
@@ -88,6 +94,13 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
     ) {
       return next();
     }
+
+    // Apply security headers to every alab-handled response.
+    res.setHeader("x-content-type-options", "nosniff");
+    res.setHeader("x-frame-options", "SAMEORIGIN");
+    res.setHeader("referrer-policy", "strict-origin-when-cross-origin");
+    res.setHeader("permissions-policy", "camera=(), microphone=(), geolocation=()");
+    res.setHeader("x-permitted-cross-domain-policies", "none");
 
     try {
       // ── User middleware (middleware.ts at project root) ───────────────────────
@@ -149,7 +162,8 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
               } else {
                 res.statusCode = 500;
                 res.setHeader("content-type", "application/json");
-                res.end(JSON.stringify({ error: String(err) }));
+                const msg = err instanceof Error ? err.message : String(err);
+              res.end(JSON.stringify({ error: msg }));
               }
             }
             break;
@@ -189,6 +203,36 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
         return;
       }
 
+      // ── On-demand ISR revalidation ────────────────────────────────────────────
+      if (pathname === "/_alabjs/revalidate") {
+        if (req.method !== "POST") {
+          res.statusCode = 405;
+          res.setHeader("allow", "POST");
+          res.setHeader("content-type", "application/json");
+          res.end(JSON.stringify({ error: "Method Not Allowed" }));
+          return;
+        }
+        if (!checkRevalidateAuth(req.headers["authorization"])) {
+          res.statusCode = 401;
+          res.setHeader("content-type", "application/json");
+          res.end(JSON.stringify({ error: "Unauthorized. Set Authorization: Bearer <ALAB_REVALIDATE_SECRET>." }));
+          return;
+        }
+        const chunks: Buffer[] = [];
+        await new Promise<void>((ok) => {
+          req.on("data", (c: Buffer) => chunks.push(c));
+          req.on("end", ok);
+        });
+        let body: unknown;
+        try { body = JSON.parse(Buffer.concat(chunks).toString()); }
+        catch { body = null; }
+        const result = applyRevalidate(body);
+        res.statusCode = "error" in result ? result.status : 200;
+        res.setHeader("content-type", "application/json");
+        res.end(JSON.stringify("error" in result ? { error: result.error } : result));
+        return;
+      }
+
       // ── API routes (route.ts) ─────────────────────────────────────────────────
       const apiRoutes = scanDevApiRoutes(appDir);
       const matchedApi = matchDevApiRoute(apiRoutes, pathname);
@@ -217,6 +261,26 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
         const webRes = await (handler as (r: Request) => Promise<Response>)(webReq);
         res.statusCode = webRes.status;
         webRes.headers.forEach((v, k) => res.setHeader(k, v));
+
+        // SSE: pipe the ReadableStream body without buffering.
+        if (
+          (webRes.headers.get("content-type") ?? "").startsWith("text/event-stream") &&
+          webRes.body
+        ) {
+          const reader = webRes.body.getReader();
+          res.on("close", () => { void reader.cancel(); });
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done || res.destroyed) break;
+              res.write(value);
+            }
+          } catch { /* client disconnected */ } finally {
+            res.end();
+          }
+          return;
+        }
+
         res.end(Buffer.from(await webRes.arrayBuffer()));
         return;
       }
@@ -368,7 +432,10 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
                   );
                 });
               }
-            } catch { /* render plain error below */ }
+            } catch (errorPageErr) {
+              console.error("[alabjs] error.tsx SSR render failed:", errorPageErr);
+              // fall through to plain text error
+            }
           }
           if (!ssrContent) {
             res.statusCode = 500;
@@ -404,9 +471,6 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
         if (cached) {
           res.statusCode = 200;
           res.setHeader("content-type", "text/html; charset=utf-8");
-          res.setHeader("x-content-type-options", "nosniff");
-          res.setHeader("x-frame-options", "SAMEORIGIN");
-          res.setHeader("referrer-policy", "strict-origin-when-cross-origin");
           res.setHeader("x-alab-cache", cached.stale ? "stale" : "hit");
           res.end(cached.html);
           // Background revalidation for stale entries
@@ -414,7 +478,9 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
             markPageRevalidating(pathname);
             void renderPageHtml().then((fresh) => {
               setCachedPage(pathname, fresh, revalidateSecs);
-            }).catch(() => { /* keep stale on failure */ });
+            }).catch((revalErr: unknown) => {
+              console.warn(`[alabjs] ISR revalidation failed for ${pathname}:`, revalErr);
+            });
           }
           return;
         }
@@ -429,12 +495,10 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
 
       res.statusCode = 200;
       res.setHeader("content-type", "text/html; charset=utf-8");
-      res.setHeader("x-content-type-options", "nosniff");
-      res.setHeader("x-frame-options", "SAMEORIGIN");
-      res.setHeader("referrer-policy", "strict-origin-when-cross-origin");
       if (revalidateSecs !== null) res.setHeader("x-alab-cache", "miss");
       res.end(html);
     } catch (err) {
+      console.error(`[alabjs] unhandled error on ${pathname}:`, err);
       vite.ssrFixStacktrace(err as Error);
       next(err);
     }

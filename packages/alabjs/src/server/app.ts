@@ -1,4 +1,4 @@
-import { createApp as createH3App, createRouter, defineEventHandler, getQuery } from "h3";
+import { createApp as createH3App, createRouter, defineEventHandler, getQuery, readBody } from "h3";
 import { createServer } from "node:http";
 import { resolve, dirname, join, extname } from "node:path";
 import { existsSync, createReadStream, statSync } from "node:fs";
@@ -11,6 +11,7 @@ import { handleImageRequest } from "./image.js";
 import type { MiddlewareModule } from "./middleware.js";
 import { runMiddleware } from "./middleware.js";
 import type { PageMetadata } from "../types/index.js";
+import { checkRevalidateAuth, applyRevalidate } from "./revalidate.js";
 
 /**
  * Find layout file paths (relative to cwd root) for a given route.file, ordered outermost→innermost.
@@ -77,9 +78,14 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
   // ─── Global middleware ───────────────────────────────────────────────────────
   app.use(
     defineEventHandler((event) => {
-      event.node.res.setHeader("x-content-type-options", "nosniff");
-      event.node.res.setHeader("x-frame-options", "SAMEORIGIN");
-      event.node.res.setHeader("referrer-policy", "strict-origin-when-cross-origin");
+      const res = event.node.res;
+      res.setHeader("x-content-type-options", "nosniff");
+      res.setHeader("x-frame-options", "SAMEORIGIN");
+      res.setHeader("referrer-policy", "strict-origin-when-cross-origin");
+      res.setHeader("permissions-policy", "camera=(), microphone=(), geolocation=()");
+      res.setHeader("x-permitted-cross-domain-policies", "none");
+      // HSTS — only meaningful over HTTPS; set in production only.
+      res.setHeader("strict-transport-security", "max-age=31536000; includeSubDomains");
     }),
   );
 
@@ -202,6 +208,28 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
     }),
   );
 
+  // On-demand ISR revalidation
+  router.post(
+    "/_alabjs/revalidate",
+    defineEventHandler(async (event) => {
+      const res = event.node.res;
+      res.setHeader("content-type", "application/json");
+
+      if (!checkRevalidateAuth(event.node.req.headers["authorization"])) {
+        res.statusCode = 401;
+        return JSON.stringify({ error: "Unauthorized. Set Authorization: Bearer <ALAB_REVALIDATE_SECRET>." });
+      }
+
+      const body = await readBody(event);
+      const result = applyRevalidate(body);
+      if ("error" in result) {
+        res.statusCode = result.status;
+        return JSON.stringify({ error: result.error });
+      }
+      return JSON.stringify(result);
+    }),
+  );
+
   // Auto sitemap.xml from route manifest
   router.get(
     "/sitemap.xml",
@@ -250,9 +278,30 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
             body: body?.length ? body : null,
           });
           const webRes = await (handler as (r: Request) => Promise<Response>)(webReq);
-          event.node.res.statusCode = webRes.status;
-          webRes.headers.forEach((v, k) => event.node.res.setHeader(k, v));
-          event.node.res.end(Buffer.from(await webRes.arrayBuffer()));
+          const nodeRes = event.node.res;
+          nodeRes.statusCode = webRes.status;
+          webRes.headers.forEach((v, k) => nodeRes.setHeader(k, v));
+
+          // SSE: pipe the ReadableStream body without buffering.
+          if (
+            (webRes.headers.get("content-type") ?? "").startsWith("text/event-stream") &&
+            webRes.body
+          ) {
+            const reader = webRes.body.getReader();
+            nodeRes.on("close", () => { void reader.cancel(); });
+            try {
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done || nodeRes.destroyed) break;
+                nodeRes.write(value);
+              }
+            } catch { /* client disconnected */ } finally {
+              nodeRes.end();
+            }
+            return;
+          }
+
+          nodeRes.end(Buffer.from(await webRes.arrayBuffer()));
         }),
       );
     }
@@ -269,6 +318,10 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
       h3Path,
       defineEventHandler(async (event) => {
         const res = event.node.res;
+
+        // HTML pages must not be cached by intermediaries — they contain
+        // user-specific CSRF tokens and may reflect auth state.
+        res.setHeader("cache-control", "no-store");
 
         // Set CSRF cookie so the client can send it on mutations.
         const csrfToken = setCsrfCookie(event);
@@ -352,11 +405,15 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
                 });
                 return;
               }
-            } catch { /* fall through to plain error */ }
+            } catch (fallbackErr) {
+              console.warn(`[alabjs] error.tsx fallback also failed for ${route.file}:`, fallbackErr);
+              // fall through to plain error
+            }
           }
-          console.error("[alabjs] render error:", err);
+          const msg = err instanceof Error ? err.message : String(err);
+          console.error(`[alabjs] render error in ${route.file}:`, err);
           res.statusCode = 500;
-          res.end(`[alabjs] Render error: ${String(err)}`);
+          res.end(`[alabjs] Render error in ${route.file}: ${msg}`);
         }
       }),
     );
@@ -387,7 +444,10 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
             });
             return;
           }
-        } catch { /* fall through */ }
+        } catch (notFoundErr) {
+          console.warn("[alabjs] not-found.tsx render failed:", notFoundErr);
+          // fall through to plain text 404
+        }
       }
 
       res.setHeader("content-type", "text/plain; charset=utf-8");
