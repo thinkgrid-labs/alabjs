@@ -538,12 +538,12 @@ pnpm dev
 - [x] Security headers by default (`x-content-type-options`, `x-frame-options`, `referrer-policy`)
 - [x] Node ≥ 22 enforced across all packages
 
-**Phase 3 — Defaults**
-- [ ] CSRF protection middleware
-- [ ] Auto `/sitemap.xml` from route manifest
-- [ ] `<Image>` component with WebP conversion and `srcset`
+**Phase 3 — Defaults** ✅
+- [x] CSRF protection middleware
+- [x] Auto `/sitemap.xml` from route manifest
+- [x] `<Image>` component with WebP conversion, `srcset`, blur-up placeholder
 - [ ] Critical CSS inlining
-- [ ] `defineServerFn` extractor — strip server implementations from client bundle at build time
+- [x] `defineServerFn` extractor — strip server implementations from client bundle at build time
 
 **Phase 4 — DX**
 - [ ] Error overlay (Rust errors mapped to source lines)
