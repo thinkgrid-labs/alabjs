@@ -68,6 +68,7 @@ export function htmlShellBefore(opts: HtmlShellOptions): string {
     <meta name="alab-ssr" content="${ssr ? "true" : "false"}" />
     <meta name="alab-params" content="${escAttr(paramsJson)}" />
     <meta name="alab-search-params" content="${escAttr(searchParamsJson)}" />
+    <link rel="stylesheet" href="/app/globals.css" />
     ${headExtra}
   </head>
   <body>

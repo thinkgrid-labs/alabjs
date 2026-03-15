@@ -1,6 +1,8 @@
 import type { Plugin } from "vite";
 import type { AlabNapi } from "./napi.js";
 import { parseErrorLocation, formatBoundaryError } from "./overlay.js";
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
 
 interface AlabPluginOptions {
   /** "dev" (default) or "build" */
@@ -28,7 +30,9 @@ export function alabPlugin(options: AlabPluginOptions = {}): Plugin[] {
 
     async buildStart() {
       try {
-        napi = (await import("@alab/compiler")) as AlabNapi;
+        // CJS module imported via ESM dynamic import — functions land on .default
+        const mod = await import("@alab/compiler") as { default?: AlabNapi } & AlabNapi;
+        napi = (mod.default ?? mod) as AlabNapi;
       } catch {
         this.warn(
           "alab-napi binary not found — falling back to esbuild. " +
@@ -91,6 +95,11 @@ if (routeFile) {
       const isServerFile = /\.server\.(ts|tsx)$/.test(id);
       const isClientBuild = !(transformOptions as { ssr?: boolean } | undefined)?.ssr;
 
+      // Skip Rust compiler for SSR transforms — the Rust compiler injects React
+      // Fast Refresh globals ($RefreshReg$) that don't exist in the SSR context.
+      // esbuild (Vite's default) handles SSR compilation correctly.
+      if (!isClientBuild) return null;
+
       // Server files in a CLIENT build context: extract defineServerFn declarations
       // and replace the entire module with fetch stubs so server code never ships
       // to the browser (DB calls, secrets, heavy deps, etc.).
@@ -143,14 +152,38 @@ if (routeFile) {
 
   // Tailwind CSS v4 — zero-config, auto-detects utility classes in source files.
   // Installed by default via `create-alab`; gracefully skipped if absent.
+  // Use createRequire from the project root (process.cwd()) so that the package
+  // is found in the user's node_modules, not the plugin's node_modules.
   let tailwindPlugin: Plugin | null = null;
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const tw = require("@tailwindcss/vite") as { default: () => Plugin };
+    const req = createRequire(pathToFileURL(process.cwd() + "/package.json").href);
+    const tw = req("@tailwindcss/vite") as { default: () => Plugin };
     tailwindPlugin = tw.default();
   } catch {
     // @tailwindcss/vite not installed — skip silently.
   }
 
-  return [corePlugin, ...(tailwindPlugin ? [tailwindPlugin] : [])];
+  // Stub @alab/compiler in non-SSR (client) builds.
+  // generateBlurPlaceholder in Image.tsx has a dynamic import("@alab/compiler")
+  // that Vite's import-analysis picks up statically and errors on in the browser
+  // bundle. Returning a virtual empty module lets the dynamic import succeed at
+  // runtime (it returns {}) while keeping the real binary available on the server.
+  const COMPILER_STUB_ID = "\0@alab/compiler-stub";
+  const externalsPlugin: Plugin = {
+    name: "alab:externals",
+    resolveId(id, _importer, opts): string | null {
+      if (id === "@alab/compiler" && !(opts as { ssr?: boolean } | undefined)?.ssr) {
+        return COMPILER_STUB_ID;
+      }
+      return null;
+    },
+    load(id): string | null {
+      if (id === COMPILER_STUB_ID) {
+        return "export default {};\n";
+      }
+      return null;
+    },
+  };
+
+  return [externalsPlugin, corePlugin, ...(tailwindPlugin ? [tailwindPlugin] : [])];
 }

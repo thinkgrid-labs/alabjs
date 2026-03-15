@@ -1,0 +1,4 @@
+node_modules/
+.alab/
+dist/
+.DS_Store

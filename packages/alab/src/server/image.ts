@@ -59,18 +59,37 @@ export async function handleImageRequest(
     return;
   }
 
-  // Load napi binding (built by `cargo build --release -p alab-napi`)
-  let napi: AlabNapi;
+  const input = await readFile(filePath);
+
+  // Load napi binding (built by `cargo build --release -p alab-napi`).
+  // Fall back to serving the raw file when the binary isn't available so that
+  // images still load during development without the Rust toolchain.
+  let napi: AlabNapi | null = null;
   try {
-    napi = (await import("@alab/compiler")) as AlabNapi;
+    const mod = await import("@alab/compiler") as { default?: AlabNapi } & AlabNapi;
+    napi = (mod.default ?? mod) as AlabNapi;
   } catch {
-    res.statusCode = 503;
-    res.end("[alab] Rust image optimiser not available. Run `cargo build --release -p alab-napi`.");
+    // napi not built — will serve raw file below.
+  }
+
+  if (!napi) {
+    const ext = safeSrc.split(".").pop()?.toLowerCase() ?? "";
+    const mime =
+      ext === "jpg" || ext === "jpeg" ? "image/jpeg"
+      : ext === "png"                  ? "image/png"
+      : ext === "gif"                  ? "image/gif"
+      : ext === "webp"                 ? "image/webp"
+      : ext === "avif"                 ? "image/avif"
+      :                                  "application/octet-stream";
+    res.statusCode = 200;
+    res.setHeader("content-type", mime);
+    res.setHeader("cache-control", "no-store");
+    res.setHeader("content-length", input.length);
+    res.end(input);
     return;
   }
 
   try {
-    const input = await readFile(filePath);
     // Pass raw bytes to Rust — decode + resize + encode on a blocking thread pool.
     const optimised = await napi.optimizeImage(input, quality, width, undefined, fmt);
 

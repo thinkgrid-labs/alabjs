@@ -19,6 +19,9 @@
   "dependencies": {
     "vite": "^6.3.0"
   },
+  "optionalDependencies": {
+    "@alab/compiler": "workspace:*"
+  },
   "devDependencies": {
     "typescript": "^5.8.0",
     "@types/node": "^22.0.0"

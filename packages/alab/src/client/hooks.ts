@@ -1,6 +1,19 @@
 import { use } from "react";
 import type { ServerFn, InferServerOutput, RouteParams, InferServerPath } from "../types/index.js";
 
+// Promise cache keyed by URL.
+// • On the SERVER: cleared before each page render (via _clearALabSSRCache) so
+//   re-renders after Suspense resolution return the same promise object, which
+//   is required for renderToPipeableStream to correctly resolve Suspense.
+// • On the CLIENT: intentionally persists for the session to avoid redundant
+//   network round-trips on subsequent re-renders.
+const _promiseCache = new Map<string, Promise<unknown>>();
+
+/** Clear the server-side promise cache between SSR renders. Called by alab's dev server. */
+export function _clearALabSSRCache(): void {
+  _promiseCache.clear();
+}
+
 /**
  * Fetch server data with full type inference from a `ServerFn`.
  *
@@ -28,12 +41,23 @@ export function useServerData<T extends ServerFn<any, any, any>>(
   const searchParams = params
     ? new URLSearchParams(params as Record<string, string>).toString()
     : "";
-  const url = `/_alab/data/${fnName}${searchParams ? `?${searchParams}` : ""}`;
+  // When running in Node.js (SSR) fetch requires an absolute URL.
+  // Alab's dev/prod server sets ALAB_ORIGIN before rendering each page.
+  const origin =
+    typeof window !== "undefined"
+      ? ""
+      : (process.env["ALAB_ORIGIN"] ?? "http://localhost:3000");
 
-  const promise = fetch(url).then((r): Promise<InferServerOutput<T>> => {
-    if (!r.ok) throw new Error(`[alab] server data fetch failed: ${r.status} ${r.statusText} — ${url}`);
-    return r.json() as Promise<InferServerOutput<T>>;
-  });
+  const url = `${origin}/_alab/data/${fnName}${searchParams ? `?${searchParams}` : ""}`;
+
+  let promise = _promiseCache.get(url) as Promise<InferServerOutput<T>> | undefined;
+  if (!promise) {
+    promise = fetch(url).then((r): Promise<InferServerOutput<T>> => {
+      if (!r.ok) throw new Error(`[alab] server data fetch failed: ${r.status} ${r.statusText} — ${url}`);
+      return r.json() as Promise<InferServerOutput<T>>;
+    });
+    _promiseCache.set(url, promise);
+  }
 
   return use(promise);
 }
