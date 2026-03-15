@@ -52,33 +52,176 @@ export function alabPlugin(options: AlabPluginOptions = {}): Plugin[] {
       // This module is injected into every page as `<script type="module" src="/@alab/client">`.
       // It reads the route metadata embedded in <meta> tags by the SSR renderer and
       // hydrates (or mounts) the React page component on the client.
+      // It also sets up window.__alab_navigate for the <Link> component.
       return `
 import "/app/globals.css";
 import { createElement, Suspense } from "react";
 import { hydrateRoot, createRoot } from "react-dom/client";
 import { AlabProvider } from "alab/client";
+import { ErrorBoundary } from "alab/components";
 
 const meta = (name) => document.querySelector(\`meta[name="\${name}"]\`)?.getAttribute("content") ?? "";
+
+/** Load a page module, its layout modules, and optional loading fallback. */
+async function buildApp(routeFile, layoutFiles, loadingFile, params, searchParams) {
+  const mod = await import(/* @vite-ignore */ "/" + routeFile);
+  const Page = mod.default;
+  if (!Page) return null;
+
+  const layoutMods = await Promise.all(layoutFiles.map(f => import(/* @vite-ignore */ "/" + f)));
+  const layouts = layoutMods.map(m => m.default).filter(Boolean);
+
+  // Loading fallback: import loading.tsx if present
+  let loadingEl = null;
+  if (loadingFile) {
+    try {
+      const lMod = await import(/* @vite-ignore */ "/" + loadingFile);
+      const Loading = lMod.default;
+      if (Loading) loadingEl = createElement(Loading, {});
+    } catch {}
+  }
+
+  let el = createElement(Page, { params, searchParams });
+  // Wrap in Suspense with loading fallback
+  el = createElement(Suspense, { fallback: loadingEl ?? createElement("div", {}) }, el);
+  for (let i = layouts.length - 1; i >= 0; i--) {
+    el = createElement(layouts[i], {}, el);
+  }
+  return createElement(ErrorBoundary, {}, createElement(AlabProvider, {}, el));
+}
+
+let alabRoot = null;
 
 const routeFile = meta("alab-route");
 const ssrEnabled = meta("alab-ssr") === "true";
 const params = JSON.parse(meta("alab-params") || "{}");
 const searchParams = JSON.parse(meta("alab-search-params") || "{}");
+const layoutFiles = JSON.parse(meta("alab-layouts") || "[]");
+const loadingFile = meta("alab-loading") || null;
 
 if (routeFile) {
-  const mod = await import(/* @vite-ignore */ "/" + routeFile);
-  const Page = mod.default;
-  if (Page) {
+  const app = await buildApp(routeFile, layoutFiles, loadingFile, params, searchParams);
+  if (app) {
     const root = document.getElementById("alab-root");
     if (root) {
-      const app = createElement(AlabProvider, null, createElement(Page, { params, searchParams }));
       if (ssrEnabled && root.hasChildNodes()) {
-        hydrateRoot(root, app);
+        alabRoot = hydrateRoot(root, app);
       } else {
-        createRoot(root).render(app);
+        alabRoot = createRoot(root);
+        alabRoot.render(app);
       }
     }
   }
+}
+
+/** SPA navigation — fetch target page and swap React root in-place. */
+window.__alab_navigate = async (href) => {
+  try {
+    const res = await fetch(href, { headers: { "x-alab-prefetch": "1" } });
+    if (!res.ok) { window.location.href = href; return; }
+    const html = await res.text();
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, "text/html");
+
+    const newMeta = (name) => doc.querySelector(\`meta[name="\${name}"]\`)?.getAttribute("content") ?? "";
+    const newRouteFile = newMeta("alab-route");
+    const newParams = JSON.parse(newMeta("alab-params") || "{}");
+    const newSearchParams = JSON.parse(newMeta("alab-search-params") || "{}");
+    const newLayoutFiles = JSON.parse(newMeta("alab-layouts") || "[]");
+    const newLoadingFile = newMeta("alab-loading") || null;
+
+    // Update document title
+    const newTitle = doc.querySelector("title")?.textContent;
+    if (newTitle) document.title = newTitle;
+
+    history.pushState({}, "", href);
+
+    if (newRouteFile && alabRoot) {
+      const app = await buildApp(newRouteFile, newLayoutFiles, newLoadingFile, newParams, newSearchParams);
+      if (app) alabRoot.render(app);
+    }
+
+    // Scroll to top on navigation (matches browser behaviour)
+    window.scrollTo(0, 0);
+  } catch {
+    // Network error — fall back to full navigation
+    window.location.href = href;
+  }
+};
+
+// Handle browser back / forward
+window.addEventListener("popstate", () => {
+  window.__alab_navigate(location.pathname + location.search);
+});
+
+// ─── Dev boundary overlay (Alt+Shift+B to toggle) ─────────────────────────
+if (import.meta.env.DEV) {
+  let overlayActive = false;
+  let panel = null;
+  let rootOutline = null;
+
+  const toggle = () => {
+    overlayActive = !overlayActive;
+
+    if (!overlayActive) {
+      panel?.remove(); panel = null;
+      rootOutline?.remove(); rootOutline = null;
+      return;
+    }
+
+    // ── Root highlight ──────────────────────────────────────────────────────
+    const root = document.getElementById("alab-root");
+    if (root) {
+      rootOutline = document.createElement("div");
+      Object.assign(rootOutline.style, {
+        position: "fixed", inset: 0, pointerEvents: "none", zIndex: 99998,
+        outline: "2px solid rgba(99,102,241,0.6)", outlineOffset: "-2px",
+      });
+      document.body.appendChild(rootOutline);
+    }
+
+    // ── Info panel ──────────────────────────────────────────────────────────
+    const ssr = meta("alab-ssr") === "true";
+    const route = meta("alab-route");
+    const layouts = JSON.parse(meta("alab-layouts") || "[]");
+    const loading = meta("alab-loading");
+    const cache = document.querySelector("meta[name='alab-cache']")?.getAttribute("content") ?? null;
+
+    panel = document.createElement("div");
+    Object.assign(panel.style, {
+      position: "fixed", bottom: "12px", left: "12px", zIndex: 99999,
+      background: "rgba(15,15,20,0.92)", backdropFilter: "blur(8px)",
+      border: "1px solid rgba(99,102,241,0.5)", borderRadius: "8px",
+      padding: "10px 14px", color: "#e2e8f0", fontFamily: "monospace",
+      fontSize: "11px", lineHeight: "1.6", maxWidth: "340px",
+      boxShadow: "0 4px 24px rgba(0,0,0,0.5)",
+    });
+
+    const badge = (label, color) =>
+      \`<span style="background:\${color};color:#fff;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700">\${label}</span>\`;
+
+    const layoutRows = layouts.map(l =>
+      \`<div style="color:#94a3b8;padding-left:8px">↳ \${l}</div>\`
+    ).join("");
+
+    panel.innerHTML = [
+      \`<div style="margin-bottom:6px;display:flex;align-items:center;gap:6px">\`,
+      \`  \${badge(ssr ? "SSR" : "CSR", ssr ? "#6366f1" : "#f59e0b")}\`,
+      cache ? \`  \${badge("ISR " + cache, "#10b981")}\` : "",
+      \`  <span style="color:#64748b;font-size:10px">Alt+Shift+B to close</span>\`,
+      \`</div>\`,
+      \`<div><span style="color:#64748b">route  </span>\${route || "—"}</div>\`,
+      layouts.length ? \`<div style="color:#64748b">layouts</div>\${layoutRows}\` : "",
+      loading ? \`<div><span style="color:#64748b">loading</span> \${loading}</div>\` : "",
+    ].join("\\n");
+
+    document.body.appendChild(panel);
+  };
+
+  window.addEventListener("keydown", (e) => {
+    if (e.altKey && e.shiftKey && e.key === "B") toggle();
+  });
 }
 `.trimStart();
     },

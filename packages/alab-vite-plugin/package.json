@@ -17,7 +17,7 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "vite": "^6.3.0"
+    "vite": "^8.0.0"
   },
   "optionalDependencies": {
     "@alab/compiler": "workspace:*"
@@ -27,7 +27,7 @@
     "@types/node": "^22.0.0"
   },
   "peerDependencies": {
-    "vite": "^6.0.0",
+    "vite": "^8.0.0",
     "@tailwindcss/vite": "^4.0.0"
   },
   "peerDependenciesMeta": {

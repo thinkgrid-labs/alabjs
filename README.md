@@ -1,545 +1,178 @@
-# Alab
+# Alab JS
 
 > *Filipino: alab — blaze, flame, burning passion*
 
 > [!WARNING]
-> **Alab is under active development and not ready for production.**
-> APIs will change, features are incomplete, and there is no stable release yet.
-> Feel free to explore, contribute, or star the repo — but don't ship it to users yet.
+> **Alab JS is under active development and not yet production-ready.**
+> APIs may change before v1.0. Feel free to explore, contribute, or star the repo.
 
-**Alab** is an open-source, full-stack React framework that does the right thing by default.
-
-Out of the box, every Alab app is:
-
-- **Fast** — Rust compiler (oxc), streaming SSR, zero-JS pages where possible
-- **SEO-ready** — server-rendered HTML by default, meta tag helpers, auto sitemap
-- **Secure** — security headers, CSRF protection, and input sanitization built in
-- **High Lighthouse score** — SSR, code splitting, image optimization, critical CSS inlining
-- **Styled** — Tailwind CSS v4 included, no config required
-- **Simple** — one command to start, zero-config defaults, no boilerplate
-
-> One command. Production-grade defaults. Nothing to configure.
-
-```bash
-npx create-alab@latest my-app
-cd my-app
-pnpm dev
-```
+**Alab JS** is an open-source, full-stack React framework built for developers who want great results without wrestling their tools. It ships production-grade defaults — a Rust compiler, streaming SSR, security headers, image optimization, and Tailwind CSS — so you spend your time building features, not configuring pipelines.
 
 ---
 
-## Philosophy
+## The Name
 
-Most frameworks give you the tools to build fast, secure, SEO-friendly apps — and then leave it entirely up to you to wire them correctly. Alab makes the right choice the default choice.
-
-| Default | What it means in practice |
-|---|---|
-| **SSR by default** | Every page is server-rendered. Search engines and social previews get real HTML, not a blank `<div>`. Opt out per-route with `export const ssr = false`. |
-| **Tailwind CSS v4 included** | Start writing utility classes immediately. No PostCSS config, no `tailwind.config.js` to set up. |
-| **Security headers on every response** | `Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, and `Permissions-Policy` set automatically by the H3 middleware layer. |
-| **CSRF protection** | All non-GET server functions require a valid CSRF token. Handled transparently — you never write a line of CSRF logic. |
-| **Critical CSS inlining** | The CSS needed to render above-the-fold content is inlined into the HTML response. No render-blocking stylesheet requests. |
-| **Automatic code splitting** | Each route is its own JS chunk. Users only download what the current page needs. |
-| **Image optimization** | `<Image>` component converts to WebP, generates `srcset`, and lazy-loads by default. |
-| **Meta tag helpers** | Export `metadata` from any page to set `<title>`, Open Graph, Twitter Card, and canonical URL. |
-| **Auto sitemap** | `/sitemap.xml` is generated from the route manifest — no plugin needed. |
-| **TypeScript only** | Alab does not support plain JavaScript. TypeScript is the one language, with no config file needed — Alab's compiler knows the right settings. Plain `.js` / `.jsx` files are not recognized by the router or compiler. |
+*Alab* (uh-LAB) is a Filipino word meaning **blaze**, **flame**, or **burning passion**. It captures both the performance goal — Rust-fast compilation — and the spirit behind the project: building something with intensity, care, and purpose.
 
 ---
 
-## Why Developers Choose Alab
+## Why Alab Exists
 
-### "I want great defaults, not a great framework to configure"
+Modern React development has a hidden tax. The tools that promise to make things easier — SSR frameworks, bundlers, image pipelines — each come with their own configuration files, plugin ecosystems, and deployment opinions. By the time you have a production-ready app, you have spent days configuring things that should have just worked.
 
-Every framework claims to be developer-friendly. Most of them mean you *can* build a fast, secure, SEO-ready app — if you install the right plugins, write the right config, and avoid the wrong defaults. Alab means it actually works that way from line one.
+At the same time, the performance bar keeps rising. Users expect instant page loads, perfect Lighthouse scores, and offline capability. Developers are expected to know when to SSR, when to CSR, how to split bundles, when to cache, and how to stay secure — and to get all of it right, every time.
 
-### "I'm tired of debugging `use client` at 2am"
-
-Next.js RSC boundaries are powerful but opaque. You add `"use client"`, `"use server"`, and trust that the framework figures it out. When it doesn't, the errors are cryptic. In Alab, the boundary is a **file name**. The Rust compiler reads it. If you cross it, you get a clear error at build time — not a runtime crash in your user's browser.
-
-### "My app has a 65 Lighthouse score and I don't know where to start"
-
-Alab apps start at 95+ Lighthouse by default. SSR ships real HTML. Images are optimized automatically. Unused CSS is purged. Critical CSS is inlined. Fonts are preloaded. Code is split by route. You have to actively work against Alab to get a low score.
-
-### "I'm paying a Vercel tax I didn't agree to"
-
-Next.js works anywhere in theory. In practice, ISR, Edge Middleware, and Image Optimization are tied to Vercel infrastructure. Alab has zero deployment opinions — it's a plain H3 HTTP server that runs on a $6 VPS, Fly.io, Cloudflare Workers, or your own hardware.
-
-### "My builds are slow and I can't see why"
-
-Turbopack is fast but it's a closed black box. Alab uses **oxc** — the open-source Rust compiler that powers Vite 8's Rolldown. 50–100× faster than Webpack. Fully inspectable. Exposed as an SDK you can extend.
-
-### "Security is always something I'll add later"
-
-`later` doesn't come. Alab ships security headers, CSRF protection, and XSS-safe defaults on day one. You don't have to remember to add `helmet`, configure a CSP, or remember which routes need CSRF tokens.
+Alab exists because **the right defaults should be the easy defaults**. You should not have to be an expert in bundling, SSR, caching, and security to ship a fast, safe, well-optimized app. That knowledge should live in the framework.
 
 ---
 
-## Comparison
+## What Problem It Solves
 
-### vs Next.js
+**Configuration sprawl.** Most React setups require a bundler config, a TypeScript config, a PostCSS config, a Tailwind config, and deployment configuration on top. Alab has zero required config files. One command creates a working app.
 
-| | Next.js | **Alab** |
-|---|---|---|
-| Compiler | Turbopack (Rust, closed source) | oxc (Rust, open source, extensible) |
-| Tailwind | Install + configure manually | ✅ Included by default |
-| Security headers | Install `next-safe` or configure manually | ✅ Built-in, zero config |
-| CSRF protection | DIY | ✅ Built-in |
-| SSR default | ✅ Yes | ✅ Yes |
-| Server/client boundary | Magic `"use client"` directives | ✅ File conventions, Rust-enforced |
-| Deployment | Best on Vercel | Any platform |
-| Lighthouse score (default) | 70–85 (varies) | 95+ |
-| Sitemap | Plugin required | ✅ Auto-generated |
-| Image optimization | `next/image` (tied to Vercel CDN) | ✅ Built-in, self-hosted |
-| Config file required | `next.config.js` | None |
+**Unclear server/client boundaries.** Magic directives create invisible walls in your component tree. Alab uses file naming — `.server.ts` — enforced by the Rust compiler at build time. Cross the boundary and you get a clear error before anything ships.
 
-### vs Remix
+**Performance as an afterthought.** Most frameworks give you the tools to be fast. Alab makes fast the default: SSR on, code splitting on, image optimization on, security headers on. You opt out if you don't need it — not opt in.
 
-| | Remix | **Alab** |
-|---|---|---|
-| Compiler | esbuild | Rust (oxc) — significantly faster |
-| Tailwind | Configure manually | ✅ Included |
-| Security headers | DIY | ✅ Built-in |
-| SSG support | ❌ | Planned |
-| Image optimization | DIY | ✅ Built-in |
-| Lighthouse default | ~80 | 95+ |
+**Deployment lock-in.** Building on a framework should not mean committing to a specific cloud provider. Alab runs on any Node.js host, Cloudflare Workers, or Deno Deploy — the server is a plain H3 HTTP handler you own entirely.
 
-### vs Astro
-
-| | Astro | **Alab** |
-|---|---|---|
-| Primary use case | Content sites, minimal JS | Full-stack apps, SPAs, content sites |
-| React support | Islands only (partial hydration) | Full React app, streaming SSR |
-| Interactive apps | Awkward | First-class |
-| Tailwind | Configure manually | ✅ Included |
-| Server functions | Via adapters | ✅ First-class `defineServerFn` |
-| TypeScript-only | No | Yes (consistent, no JS/TS config split) |
+**Slow builds at scale.** Alab uses an oxc-based Rust compiler — the same technology powering Vite 8's Rolldown. Compilation is 50–100× faster than Webpack-era tools.
 
 ---
 
-## TypeScript Only
+## Features
 
-Alab does not support plain JavaScript. TypeScript is the only language.
+### Core
 
-This is not a limitation — it is a deliberate design decision.
+- **Rust compiler (oxc)** — 50–100× faster than Webpack, open source, extensible
+- **File-system router** — `app/` directory, nested layouts, dynamic segments
+- **Streaming SSR** — `renderToPipeableStream`, real HTML in the first byte, no blank pages
+- **CSR by default, SSR opt-in** — `export const ssr = true` on any page
+- **Auto layout composition** — `layout.tsx` files nest automatically, root to leaf
+- **SPA client navigation** — `<Link>` swaps content without a full page reload, prefetches on hover
+- **Error boundaries** — `error.tsx` files catch render errors per-route with retry support
+- **Loading UI** — `loading.tsx` files render Suspense fallbacks while data loads
+- **Not-found page** — `not-found.tsx` handles unmatched routes with HTTP 404
 
-**Why TypeScript only?**
+### Data
 
-- **The Rust compiler needs it.** oxc compiles each file independently without cross-file type information (`isolatedModules`). TypeScript's type annotations give the compiler everything it needs to do dead-code elimination, server/client splitting, and tree-shaking correctly. Plain JS provides none of that.
+- **Server functions** — `defineServerFn` runs only on the server; the Rust compiler enforces the boundary
+- **`useServerData`** — Suspense-powered data fetching, full type inference from the server function
+- **`useMutation`** — async state machine (idle → pending → success / error / invalid) with optimistic updates
+- **Explicit caching** — `{ cache: { ttl, tags } }` on any server function; nothing cached without your say-so
+- **Zod validation** — `defineServerFn(schema, handler)` validates input and returns HTTP 422 with structured errors
+- **ISR** — `export const revalidate = 60` caches rendered HTML with stale-while-revalidate background regeneration
+- **API routes** — `route.ts` exports `GET`, `POST`, `PUT`, `PATCH`, `DELETE` as standard `Request → Response` handlers
+- **Server-Sent Events** — `defineSSEHandler` streams live updates; `useSSE` subscribes on the client
 
-- **End-to-end type safety is a core feature.** Alab's server functions carry their input and output types from the server all the way to the client via `import type`. This only works if every file in the graph is typed.
+### SEO & Metadata
 
-- **`verbatimModuleSyntax` is enforced.** All type-only imports must be written as `import type`. This guarantees that the Rust compiler can safely erase them without running the TypeScript type checker — keeping builds fast.
+- **Static metadata** — `export const metadata` sets title, description, OG tags, Twitter Card
+- **Dynamic metadata** — `export async function generateMetadata(params)` for per-route values
+- **`generateStaticParams`** — pre-render dynamic routes at build time with explicit param lists
+- **Auto sitemap** — `/sitemap.xml` generated from the route manifest automatically
 
-- **One language, one toolchain.** No configuration split between `.js` and `.ts` files, no ambiguous `allowJs` settings, no mixed-mode edge cases. Every file in an Alab project is TypeScript. Full stop.
+### UI & Styling
 
-**What this means for you:**
+- **Tailwind CSS v4** — zero-config, no PostCSS setup, auto-detects classes in source files
+- **`<Image>`** — Rust WebP conversion, `srcset`, blur-up placeholder, lazy loading by default
+- **`<Link>`** — SPA navigation, hover prefetch, `history.pushState`
+- **`<Script>`** — third-party script loading with `beforeInteractive | afterInteractive | lazyOnload`
+- **`<Font>`** — Google Fonts with preconnect and `font-display: swap`
+- **`<ErrorBoundary>`** — client-side error boundary with custom fallback prop
 
-```ts
-// ✅ Allowed — runtime import of a value
-import { AlabProvider } from "alab/client";
+### Routing
 
-// ✅ Allowed — type-only import across the server boundary (erased at compile time)
-import type { getPost } from "./page.server";
+- **File-system router** — automatic, convention-based, zero config
+- **Code-based router** — opt-in typed router (`createRoute`, `createRouter`, `RouteLink`) with inferred param and search types
+- **i18n routing** — `createI18nConfig`, URL prefix detection, `LocaleProvider`, `useLocale`, `LocaleLink`
+- **Middleware** — `middleware.ts` at project root with `redirect()` and `next()` helpers, path matchers
 
-// ✅ Allowed — explicit type import in the same package
-import type { PageMetadata } from "alab";
+### Security
 
-// ❌ Error — plain JS file not recognized by router or compiler
-// app/page.js  →  use app/page.tsx instead
+- **Security headers** — `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` on every response
+- **CSRF protection** — Double Submit Cookie pattern, completely transparent
+- **Server boundary enforcement** — Rust compiler rejects any import of `.server.ts` in a client context
 
-// ❌ Error — missing `type` keyword on a type-only import
-import { ServerFn } from "alab";  // should be `import type { ServerFn }`
-```
+### Developer Experience
 
-If you are migrating an existing JavaScript project, rename files to `.ts` / `.tsx`. The Alab compiler handles the rest.
+- **Dev boundary overlay** — `Alt+Shift+B` shows SSR/CSR status, route file, layout chain, cache status
+- **Error overlay** — Rust compiler errors mapped to exact source lines in the browser
+- **Build-time type checking** — `tsc --noEmit` runs in parallel with the Vite 8 build
+- **Bundle analyzer** — `alab build --analyze` opens an interactive Rolldown treemap
+- **Zero-config testing** — `alab test` with Vitest; `alab/test` exports `renderPage` and `renderComponent` helpers
 
----
+### Deployment
 
-## Getting Started
+- **Node.js / Docker** — `alab start` runs the H3 production server
+- **Cloudflare Workers** — `alab/adapters/cloudflare`
+- **Deno Deploy** — `alab/adapters/deno`
+- **Web standard** — `alab/adapters/web` for any fetch-based runtime
+- **SPA mode** — `alab build --mode spa` for CDN-deployable client-only builds
+- **Static site generation** — `alab ssg` pre-renders static routes to HTML files
 
-### Requirements
+### Offline & Local-First
 
-- Node.js ≥ 22
-- pnpm ≥ 10
+- **Offline mutation queue** — service worker queues failed POSTs in IndexedDB, replays on reconnect
+- **`useOfflineMutations`** — observe queue count, trigger replay, render offline banners
+- **`@alab/sync`** — local-first sync adapters for PGlite, ElectricSQL, and PowerSync
 
-### Create a new app
+### Reactivity
 
-```bash
-npx create-alab@latest my-app
-cd my-app
-pnpm install
-pnpm dev
-```
-
-Open [http://localhost:3000](http://localhost:3000). That's it.
-
-No config files to touch. Tailwind is ready. TypeScript is ready. SSR is on. Security headers are set.
-
----
-
-## Project Structure
-
-```
-my-app/
-├── app/
-│   ├── layout.tsx          ← root layout (HTML shell)
-│   ├── page.tsx            ← home page  ( / )
-│   ├── page.server.ts      ← server data/actions for home page
-│   └── posts/
-│       ├── page.tsx        ← posts list  ( /posts )
-│       ├── page.server.ts
-│       └── [id]/
-│           ├── page.tsx    ← post detail  ( /posts/:id )
-│           └── page.server.ts
-├── public/                 ← static assets
-└── package.json
-```
-
-No `src/`, no `pages/`, no `components/` you have to create. Just an `app/` directory.
-
----
-
-## Pages
-
-Every file named `page.tsx` in the `app/` directory becomes a route.
-
-```tsx
-// app/page.tsx
-export const metadata = {
-  title: "Home",
-  description: "Welcome to my Alab app",
-  og: { image: "/og.png" },
-};
-
-export default function HomePage() {
-  return (
-    <main className="container mx-auto p-8">
-      <h1 className="text-4xl font-bold">Hello, Alab</h1>
-    </main>
-  );
-}
-```
-
-Tailwind classes work immediately. No config needed.
+- **`signal(initial)`** — observable value, defined at module scope, no React tree required
+- **`useSignal(sig)`** — subscribe and write; only the reading component re-renders
+- **`computed(sources, derive)`** — derived signal, auto-updates when any source changes
 
 ---
 
-## Server Functions
+## Advantages
 
-Data fetching and mutations live in `.server.ts` files — they never ship to the browser.
+**TypeScript-only by design.** Every file is TypeScript. Server function return types flow directly into client components — no manual annotation, no guesswork. The Rust compiler depends on it, and so does end-to-end type safety.
 
-```ts
-// app/posts/[id]/page.server.ts
-import { defineServerFn } from "alab/server";
+**Explicit over magic.** Caching is opt-in. SSR is opt-in. Server functions have explicit file names. Nothing happens behind your back. When something goes wrong, you know exactly where to look.
 
-export const getPost = defineServerFn(async ({ params }) => {
-  return db.posts.findById(params.id);  // runs only on the server
-});
-```
+**Deployable anywhere.** The production server is a plain H3 handler. Any runtime that speaks HTTP can run it. No proprietary infrastructure required.
 
-Use the data in your page:
+**Open compiler.** oxc is open source, documented, and extensible. The Rust compilation pipeline is inspectable via `alab info`. You can write your own transforms.
 
-```tsx
-// app/posts/[id]/page.tsx
-import { useServerData } from "alab/client";
+**95+ Lighthouse by default.** SSR, code splitting, image optimization, and security headers are all active from the first line. You would have to actively disable features to score lower.
 
-export const metadata = { title: "Post" };
-export const ssr = true; // already the default — explicit for clarity
-
-export default function PostPage({ params }: { params: { id: string } }) {
-  const post = useServerData<Post>("getPost", params);
-
-  return (
-    <article className="prose mx-auto py-12">
-      <h1>{post.title}</h1>
-      <p>{post.body}</p>
-    </article>
-  );
-}
-```
-
-If you accidentally import `page.server.ts` in a client context, **the Rust compiler stops the build** with a clear error before any code ships.
-
----
-
-## Data Fetching
-
-Alab has a clear opinion on where the line is drawn.
-
-### Built-in: `useServerData` (SSR + Suspense)
-
-For server-rendered data — data that should be fetched on the server before the page is sent to the browser — Alab ships `useServerData`. It uses React 19's `use()` hook and suspends automatically. No loading state boilerplate.
-
-```tsx
-import { useServerData } from "alab/client";
-
-export default function PostPage({ params }: { params: { id: string } }) {
-  const post = useServerData<Post>("getPost", params); // suspends until ready
-  return <h1>{post.title}</h1>;
-}
-```
-
-This covers **the majority of data fetching** in most apps: page-level data, SSR content, and API responses that need to be in the initial HTML.
-
-### Bring your own: client-side cache
-
-For **client-side interactions** — background refetch, pagination, infinite scroll, optimistic updates, and mutations — Alab does not ship a built-in query client. These problems are already solved by excellent libraries, and bundling one would add weight to every app that doesn't need it.
-
-Alab server functions are plain async functions. They work directly with any data fetching library:
-
-**With TanStack Query:**
-
-```tsx
-import { useQuery, useMutation } from "@tanstack/react-query";
-
-// Call a server function as a query
-const { data: posts } = useQuery({
-  queryKey: ["posts"],
-  queryFn: () => fetch("/_alab/fn/getPosts").then(r => r.json()),
-});
-
-// Mutate with optimistic updates, retry, etc.
-const { mutate: createPost } = useMutation({
-  mutationFn: (data) => fetch("/_alab/fn/createPost", {
-    method: "POST",
-    body: JSON.stringify(data),
-  }),
-  onSuccess: () => queryClient.invalidateQueries({ queryKey: ["posts"] }),
-});
-```
-
-**With SWR:**
-
-```tsx
-import useSWR from "swr";
-
-const { data, isLoading } = useSWR("/api/posts", (url) =>
-  fetch(url).then(r => r.json())
-);
-```
-
-Both work out of the box. No adapter, no plugin, no configuration.
-
-### Optional: `@alab/query`
-
-For teams that want a tighter integration — typed server function calls, automatic query key generation, and mutation helpers — Alab offers an optional companion package:
-
-```bash
-pnpm add @alab/query @tanstack/react-query
-```
-
-```tsx
-import { createServerQuery } from "@alab/query";
-import { getPost } from "./page.server";
-
-// Fully typed — return type inferred from the server function
-const usePost = createServerQuery(getPost);
-
-export default function PostPage({ params }: { params: { id: string } }) {
-  const { data: post } = usePost(params); // TanStack Query under the hood
-  return <h1>{post.title}</h1>;
-}
-```
-
-`@alab/query` is a thin wrapper around TanStack Query. It is **not bundled with Alab** — zero weight if you don't use it.
-
----
-
-## Metadata & SEO
-
-Export `metadata` from any page to control `<head>`:
-
-```ts
-export const metadata = {
-  title: "My Page",
-  description: "Page description for search engines",
-  canonical: "https://example.com/my-page",
-  og: {
-    title: "My Page",
-    description: "Shared on social media",
-    image: "/og-image.png",
-    type: "article",
-  },
-  twitter: {
-    card: "summary_large_image",
-  },
-  robots: "index, follow",
-};
-```
-
-Alab injects all of this into the SSR HTML automatically.
-
----
-
-## Images
-
-Use the built-in `<Image>` component for automatic optimization:
-
-```tsx
-import { Image } from "alab/client";
-
-<Image
-  src="/hero.jpg"
-  alt="Hero"
-  width={1200}
-  height={630}
-  priority          // preloads above-the-fold images
-/>
-```
-
-Alab converts to WebP, generates `srcset` for responsive sizes, adds `loading="lazy"` by default, and serves from the built-in image endpoint — no external CDN required.
-
----
-
-## Security
-
-Every Alab app gets these security defaults automatically:
-
-```
-Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-{random}'; ...
-X-Frame-Options: DENY
-X-Content-Type-Options: nosniff
-Referrer-Policy: strict-origin-when-cross-origin
-Permissions-Policy: camera=(), microphone=(), geolocation=()
-```
-
-CSRF tokens are generated per-session and validated on all non-GET server function calls. You never write any of this — it's on by default.
-
-To customize the CSP:
-
-```ts
-// alab.config.ts
-export default {
-  security: {
-    csp: {
-      scriptSrc: ["'self'", "https://cdn.example.com"],
-    },
-  },
-};
-```
-
----
-
-## CLI
-
-```bash
-alab dev      # Dev server with HMR (Vite + Rust compiler)
-alab build    # Production build
-alab start    # Production HTTP server
-alab info     # Print route manifest — path, kind, SSR status
-```
-
----
-
-## Lighthouse Score
-
-A default Alab app scores 95–100 across all Lighthouse categories because every optimization is on by default:
-
-| Category | Default behavior |
-|---|---|
-| **Performance** | SSR ships real HTML, code-split JS chunks, WebP images, critical CSS inline, font preload |
-| **Accessibility** | Semantic HTML in layout template, ARIA defaults in `<Image>` and `<Link>` |
-| **Best Practices** | HTTPS enforced in production, security headers set, no deprecated APIs |
-| **SEO** | Server-rendered HTML, canonical URLs, meta descriptions, structured sitemap |
+**Grows with you.** Start with the file-system router and server functions. Add the code-based router when the project scales. Add `@alab/sync` for offline-first. Every capability is additive — the simple baseline never changes.
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology | Why |
-|---|---|---|
-| Compiler | [oxc](https://oxc.rs/) | Open source Rust, 50–100× faster, modular, extensible |
-| Node.js bridge | [napi-rs](https://napi.rs/) | Zero-IPC native addon |
-| Styles | [Tailwind CSS v4](https://tailwindcss.com/) | Zero-config, best DX, tiny production output |
-| Dev server | [Vite](https://vitejs.dev/) | Best HMR — Alab replaces the transform layer only |
-| HTTP server | [H3](https://h3.unjs.io/) | Runs on Node, Cloudflare Workers, Deno — no lock-in |
-| React | React 19 | Streaming SSR, `use()` hook, `renderToPipeableStream` |
-| Package manager | pnpm | Workspace support |
-| Build | Turborepo | Incremental monorepo builds |
+| Layer | Technology |
+|---|---|
+| Compiler | oxc (Rust, open source) via napi-rs |
+| Bundler | Vite 8 + Rolldown (Rust-native) |
+| HTTP server | H3 (Node, Cloudflare Workers, Deno) |
+| React | React 19 (streaming SSR, `use()`, concurrent mode) |
+| Styles | Tailwind CSS v4 (zero-config) |
+| Testing | Vitest (jsdom + node environments) |
+| Package manager | pnpm workspaces |
 
 ---
 
-## Development
-
-### Setup
+## Get Started
 
 ```bash
-git clone https://github.com/alab-framework/alab
-cd alab
-pnpm install
-cargo build -p alab-napi
-pnpm build
-```
-
-### Tests
-
-```bash
-cargo test --workspace   # 8 Rust tests — compiler + router
-pnpm test                # TypeScript tests
-```
-
-### Run the example
-
-```bash
-cd examples/basic-ssr
+npx create-alab@latest my-app
+cd my-app
 pnpm dev
 ```
 
----
-
-## Roadmap
-
-**Phase 1 — Core** ✅
-- [x] Rust compiler core (oxc 0.119 — parse, transform, boundary detection)
-- [x] File-system router (route manifest builder)
-- [x] napi-rs bindings
-- [x] CLI scaffold (dev / build / start / info)
-- [x] TypeScript types (ServerFn, ClientPage boundaries)
-- [x] basic-ssr example
-
-**Phase 2 — Make it run** ✅
-- [x] napi binary packaging (`@alab/compiler-*` platform npm packages, platform loader, copy script)
-- [x] Vite plugin — virtual `/@alab/client` module, boundary enforcement at transform time
-- [x] SSR render pipeline (`renderToPipeableStream` + HTML shell + metadata `<head>` injection)
-- [x] SSR dev server (Vite `appType:"custom"` + `ssrLoadModule` + HMR)
-- [x] Client hydration (`hydrateRoot` for SSR routes, `createRoot` for CSR routes)
-- [x] Tailwind CSS v4 zero-config (auto-wired via `@tailwindcss/vite`)
-- [x] Security headers by default (`x-content-type-options`, `x-frame-options`, `referrer-policy`)
-- [x] Node ≥ 22 enforced across all packages
-
-**Phase 3 — Defaults** ✅
-- [x] CSRF protection middleware
-- [x] Auto `/sitemap.xml` from route manifest
-- [x] `<Image>` component with WebP conversion, `srcset`, blur-up placeholder
-- [ ] Critical CSS inlining
-- [x] `defineServerFn` extractor — strip server implementations from client bundle at build time
-
-**Phase 4 — DX** ✅
-- [x] Error overlay (Rust errors mapped to source lines)
-- [x] `alab info` — show per-file compile output + server function registry
-- [x] `create-alab` templates (basic, dashboard, blog)
-- [x] Docs site (Starlight)
-
-**Phase 5 — Platforms** ✅
-- [x] Cloudflare Workers adapter
-- [x] Static site generation (SSG)
-- [x] Deno Deploy adapter
-
----
-
-## Name
-
-*Alab* (uh-LAB) is a Filipino word meaning **blaze**, **flame**, or **burning passion**. It captures both the performance goals (Rust-fast) and the spirit behind it — building something with intensity, care, and purpose.
+Full documentation lives in the [`docs/`](./docs/src/content/docs/) folder.
 
 ---
 
 ## Contributing
 
-Alab is community-built. All contributions welcome — from fixing typos in docs to implementing new compiler transforms. See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get started.
+All contributions welcome — docs, bug fixes, new features, and examples. See [CONTRIBUTING.md](CONTRIBUTING.md) to get started.
 
 ---
 
 ## License
 
-MIT — free forever, no exceptions.
+MIT — free forever.

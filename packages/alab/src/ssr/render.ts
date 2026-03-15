@@ -8,6 +8,9 @@ import type { PageMetadata } from "../types/index.js";
 export interface RenderOptions {
   /** The React page component. */
   Page: ComponentType<{ params: Record<string, string>; searchParams: Record<string, string> }>;
+  /** Layout components to wrap the page, ordered outermost → innermost. */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  layouts?: ComponentType<any>[];
   /** Parsed route params (e.g. `{ id: "123" }`). */
   params: Record<string, string>;
   /** Parsed query params. */
@@ -16,6 +19,10 @@ export interface RenderOptions {
   metadata?: PageMetadata;
   /** Relative path to the page module, embedded in the HTML for client hydration. */
   routeFile: string;
+  /** JSON array of layout file paths for client-side hydration. */
+  layoutsJson?: string;
+  /** Relative path to nearest loading.tsx, for client Suspense fallback. */
+  loadingFile?: string | undefined;
   /** Whether SSR is enabled for this route. */
   ssr: boolean;
   /** Extra HTML to inject into <head> (Vite injects its HMR tags here in dev). */
@@ -33,10 +40,13 @@ export interface RenderOptions {
 export function renderToResponse(res: ServerResponse, opts: RenderOptions): void {
   const {
     Page,
+    layouts = [],
     params,
     searchParams,
     metadata = {},
     routeFile,
+    layoutsJson,
+    loadingFile,
     ssr,
     headExtra,
     nonce,
@@ -47,6 +57,8 @@ export function renderToResponse(res: ServerResponse, opts: RenderOptions): void
     paramsJson: JSON.stringify(params),
     searchParamsJson: JSON.stringify(searchParams),
     routeFile,
+    layoutsJson,
+    loadingFile,
     ssr,
     headExtra,
     nonce,
@@ -55,11 +67,19 @@ export function renderToResponse(res: ServerResponse, opts: RenderOptions): void
   const before = htmlShellBefore(shellOpts);
   const after = htmlShellAfter({ nonce });
 
+  // Build element tree: Page wrapped by layouts outermost→innermost
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const pageEl = createElement(Page, { params, searchParams }) as any;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rootEl: any = layouts.length
+    ? layouts.reduceRight((child, Layout) => createElement(Layout, {}, child), pageEl)
+    : pageEl;
+
   let didError = false;
   let headersSent = false;
 
   const { pipe, abort } = renderToPipeableStream(
-    createElement(Page, { params, searchParams }),
+    rootEl,
     {
       onShellReady() {
         if (headersSent) return;

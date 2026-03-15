@@ -3,10 +3,19 @@ import { resolve, join } from "node:path";
 import { readdirSync } from "node:fs";
 import { Writable } from "node:stream";
 import type { IncomingMessage } from "node:http";
-import { scanDevRoutes, matchDevRoute } from "../ssr/router-dev.js";
+import {
+  scanDevRoutes, matchDevRoute,
+  findLayoutFiles, findErrorFile, findLoadingFile,
+  scanDevApiRoutes, matchDevApiRoute,
+} from "../ssr/router-dev.js";
 import { htmlShellBefore, htmlShellAfter } from "../ssr/html.js";
 import { generateSitemap } from "../server/sitemap.js";
 import { handleImageRequest } from "../server/image.js";
+import type { MiddlewareModule } from "../server/middleware.js";
+import { runMiddleware } from "../server/middleware.js";
+import {
+  getCachedPage, setCachedPage, markPageRevalidating, isPageRevalidating,
+} from "../server/cache.js";
 import type { PageMetadata } from "../types/index.js";
 import type { Route } from "../router/manifest.js";
 
@@ -81,6 +90,27 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
     }
 
     try {
+      // ── User middleware (middleware.ts at project root) ───────────────────────
+      const middlewareFile = resolve(cwd, "middleware.ts");
+      const { existsSync: fsExists } = await import("node:fs");
+      if (fsExists(middlewareFile)) {
+        const middlewareMod = await vite.ssrLoadModule(middlewareFile) as MiddlewareModule;
+        if (typeof middlewareMod.middleware === "function") {
+          const url = new URL(rawUrl, `http://${host}:${port}`);
+          const webReq = new Request(url.toString(), {
+            method: req.method ?? "GET",
+            headers: req.headers as HeadersInit,
+          });
+          const middlewareRes = await runMiddleware(middlewareMod, webReq);
+          if (middlewareRes) {
+            res.statusCode = middlewareRes.status;
+            middlewareRes.headers.forEach((v, k) => res.setHeader(k, v));
+            res.end(Buffer.from(await middlewareRes.arrayBuffer()));
+            return;
+          }
+        }
+      }
+
       // ── /_alab/data/:fnName — GET data from a defineServerFn (useServerData) ─
       // ── /_alab/fn/:fnName  — POST mutation via defineServerFn stub ───────────
       if (pathname.startsWith("/_alab/data/") || pathname.startsWith("/_alab/fn/")) {
@@ -110,9 +140,17 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
               res.setHeader("content-type", "application/json");
               res.end(JSON.stringify(result));
             } catch (err) {
-              res.statusCode = 500;
-              res.setHeader("content-type", "application/json");
-              res.end(JSON.stringify({ error: String(err) }));
+              // Zod validation errors from defineServerFn get HTTP 422
+              const zodError = (err as Record<string, unknown>)?.["zodError"];
+              if (zodError) {
+                res.statusCode = 422;
+                res.setHeader("content-type", "application/json");
+                res.end(JSON.stringify({ zodError }));
+              } else {
+                res.statusCode = 500;
+                res.setHeader("content-type", "application/json");
+                res.end(JSON.stringify({ error: String(err) }));
+              }
             }
             break;
           }
@@ -151,11 +189,79 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
         return;
       }
 
+      // ── API routes (route.ts) ─────────────────────────────────────────────────
+      const apiRoutes = scanDevApiRoutes(appDir);
+      const matchedApi = matchDevApiRoute(apiRoutes, pathname);
+      if (matchedApi) {
+        const apiMod = await vite.ssrLoadModule(matchedApi.route.file) as Record<string, unknown>;
+        const method = (req.method ?? "GET").toUpperCase();
+        const handler = apiMod[method];
+        if (typeof handler !== "function") {
+          res.statusCode = 405;
+          res.setHeader("allow", Object.keys(apiMod).filter(k => /^(GET|POST|PUT|PATCH|DELETE|HEAD)$/.test(k)).join(", "));
+          res.end("Method Not Allowed");
+          return;
+        }
+        const url = new URL(rawUrl, `http://${host}:${port}`);
+        const chunks: Buffer[] = [];
+        await new Promise<void>((ok) => {
+          req.on("data", (c: Buffer) => chunks.push(c));
+          req.on("end", ok);
+        });
+        const body = chunks.length ? Buffer.concat(chunks) : null;
+        const webReq = new Request(url.toString(), {
+          method,
+          headers: req.headers as HeadersInit,
+          body: body?.length ? body : null,
+        });
+        const webRes = await (handler as (r: Request) => Promise<Response>)(webReq);
+        res.statusCode = webRes.status;
+        webRes.headers.forEach((v, k) => res.setHeader(k, v));
+        res.end(Buffer.from(await webRes.arrayBuffer()));
+        return;
+      }
+
       // ── Page routes ──────────────────────────────────────────────────────────
       const routes = scanDevRoutes(appDir);
       const matched = matchDevRoute(routes, pathname);
 
-      if (!matched) return next();
+      // ── Not-found page ────────────────────────────────────────────────────────
+      if (!matched) {
+        const wantsHtml = (req.headers["accept"] ?? "").includes("text/html");
+        if (!wantsHtml) return next();
+
+        const notFoundFile = resolve(appDir, "not-found.tsx");
+        const { existsSync } = await import("node:fs");
+        if (existsSync(notFoundFile)) {
+          const nfMod = await vite.ssrLoadModule(notFoundFile) as Record<string, unknown>;
+          const NotFound = nfMod["default"];
+          if (typeof NotFound === "function") {
+            const { createElement } = await import("react") as { createElement: (t: unknown, p: unknown) => unknown };
+            const { renderToPipeableStream } = await import("react-dom/server.node") as {
+              renderToPipeableStream: (el: unknown, opts: { onAllReady: () => void; onError: (e: unknown) => void }) => { pipe: (d: Writable) => void };
+            };
+            const nfContent = await new Promise<string>((ok, fail) => {
+              let html = "";
+              const sink = new Writable({
+                write(chunk: Buffer, _enc: string, cb: () => void) { html += chunk.toString(); cb(); },
+              });
+              sink.on("finish", () => ok(html));
+              const { pipe } = renderToPipeableStream(createElement(NotFound, {}), {
+                onAllReady() { pipe(sink); },
+                onError(e) { fail(e); },
+              });
+            });
+            const shell = htmlShellBefore({ metadata: { title: "404 — Not Found" }, paramsJson: "{}", searchParamsJson: "{}", routeFile: "app/not-found.tsx", ssr: true });
+            const rawHtml = `${shell}${nfContent}${htmlShellAfter({})}`;
+            const html = await vite.transformIndexHtml(pathname, rawHtml);
+            res.statusCode = 404;
+            res.setHeader("content-type", "text/html; charset=utf-8");
+            res.end(html);
+            return;
+          }
+        }
+        return next();
+      }
 
       const { route, params } = matched;
 
@@ -164,6 +270,8 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
         metadata?: PageMetadata;
         generateMetadata?: (params: Record<string, string>) => PageMetadata | Promise<PageMetadata>;
         ssr?: boolean;
+        /** ISR: seconds before a cached page is considered stale. Omit to disable caching. */
+        revalidate?: number;
       };
 
       const Page = mod.default;
@@ -177,15 +285,25 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
         typeof mod.generateMetadata === "function"
           ? await mod.generateMetadata(params)
           : (mod.metadata ?? {});
+
       // Make the server's base URL available to useServerData during SSR,
       // so it can construct an absolute URL for its internal fetch call.
       process.env["ALAB_ORIGIN"] = `http://${host}:${port}`;
 
-      const ssrEnabled = mod.ssr !== false;
+      const ssrEnabled = mod.ssr === true;
 
       const searchParams = Object.fromEntries(
         new URLSearchParams(rawUrl.includes("?") ? rawUrl.split("?")[1] : "").entries(),
       );
+
+      // ── Layouts + loading file ────────────────────────────────────────────────
+      const layoutFiles = findLayoutFiles(route.file, appDir);
+      const layoutMods = await Promise.all(layoutFiles.map((f) => vite.ssrLoadModule(f)));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const layoutComponents = layoutMods.map((m) => m["default"]).filter((c): c is any => typeof c === "function");
+      const layoutsJson = JSON.stringify(layoutFiles.map((f) => f.replace(cwd + "/", "")));
+      const loadingFileAbs = findLoadingFile(route.file, appDir);
+      const loadingFile = loadingFileAbs ? loadingFileAbs.replace(cwd + "/", "") : undefined;
 
       const { renderToPipeableStream } = await import("react-dom/server.node") as {
         renderToPipeableStream: (el: unknown, opts: {
@@ -194,7 +312,7 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
         }) => { pipe: (dest: Writable) => void };
       };
       const { createElement } = await import("react") as {
-        createElement: (type: unknown, props: unknown) => unknown;
+        createElement: (type: unknown, props: unknown, ...children: unknown[]) => unknown;
       };
 
       // Clear SSR promise cache so each request gets fresh data but re-renders
@@ -204,8 +322,19 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
       };
       alabClient._clearALabSSRCache?.();
 
-      const ssrContent = ssrEnabled
-        ? await new Promise<string>((ok, fail) => {
+      // Build element tree: Page wrapped by layouts outermost→innermost
+      const buildTree = (PageComp: unknown): unknown => {
+        let el = createElement(PageComp, { params, searchParams });
+        for (let i = layoutComponents.length - 1; i >= 0; i--) {
+          el = createElement(layoutComponents[i], {}, el);
+        }
+        return el;
+      };
+
+      let ssrContent = "";
+      if (ssrEnabled) {
+        try {
+          ssrContent = await new Promise<string>((ok, fail) => {
             let html = "";
             const sink = new Writable({
               write(chunk: Buffer, _enc: string, cb: () => void) {
@@ -214,34 +343,96 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
               },
             });
             sink.on("finish", () => ok(html));
-            const { pipe } = renderToPipeableStream(
-              createElement(Page, { params, searchParams }),
-              {
-                onAllReady() { pipe(sink); },
-                onError(err) { fail(err); },
-              },
-            );
-          })
-        : "";
+            const { pipe } = renderToPipeableStream(buildTree(Page), {
+              onAllReady() { pipe(sink); },
+              onError(err) { fail(err); },
+            });
+          });
+        } catch (ssrErr) {
+          // ── error.tsx fallback ──────────────────────────────────────────────
+          const errorFile = findErrorFile(route.file, appDir);
+          if (errorFile) {
+            try {
+              const errorMod = await vite.ssrLoadModule(errorFile) as Record<string, unknown>;
+              const ErrorPage = errorMod["default"];
+              if (typeof ErrorPage === "function") {
+                ssrContent = await new Promise<string>((ok, fail) => {
+                  let html = "";
+                  const sink = new Writable({
+                    write(chunk: Buffer, _enc: string, cb: () => void) { html += chunk.toString(); cb(); },
+                  });
+                  sink.on("finish", () => ok(html));
+                  const { pipe } = renderToPipeableStream(
+                    createElement(ErrorPage, { error: ssrErr, reset: () => {} }),
+                    { onAllReady() { pipe(sink); }, onError(e) { fail(e); } },
+                  );
+                });
+              }
+            } catch { /* render plain error below */ }
+          }
+          if (!ssrContent) {
+            res.statusCode = 500;
+            res.setHeader("content-type", "text/plain; charset=utf-8");
+            res.end(`[alab] SSR error: ${String(ssrErr)}`);
+            return;
+          }
+        }
+      }
 
       const routeFile = route.file.replace(cwd, "").replace(/^\//, "");
-      const shellBefore = htmlShellBefore({
-        metadata,
-        paramsJson: JSON.stringify(params),
-        searchParamsJson: JSON.stringify(searchParams),
-        routeFile,
-        ssr: ssrEnabled,
-      });
-      const shellAfter = htmlShellAfter({});
 
-      const rawHtml = `${shellBefore}${ssrContent}${shellAfter}`;
-      const html = await vite.transformIndexHtml(pathname, rawHtml);
+      // ── Render helper (used for both fresh render + background revalidation) ─
+      const revalidateSecs = typeof mod.revalidate === "number" ? mod.revalidate : null;
+      const renderPageHtml = async (): Promise<string> => {
+        const shellBefore = htmlShellBefore({
+          metadata,
+          paramsJson: JSON.stringify(params),
+          searchParamsJson: JSON.stringify(searchParams),
+          routeFile,
+          layoutsJson,
+          loadingFile,
+          ssr: ssrEnabled,
+        });
+        const shellAfter = htmlShellAfter({});
+        const rawHtml = `${shellBefore}${ssrContent}${shellAfter}`;
+        return vite.transformIndexHtml(pathname, rawHtml);
+      };
+
+      // ── ISR: serve cached page if available ──────────────────────────────────
+      if (revalidateSecs !== null) {
+        const cached = getCachedPage(pathname);
+        if (cached) {
+          res.statusCode = 200;
+          res.setHeader("content-type", "text/html; charset=utf-8");
+          res.setHeader("x-content-type-options", "nosniff");
+          res.setHeader("x-frame-options", "SAMEORIGIN");
+          res.setHeader("referrer-policy", "strict-origin-when-cross-origin");
+          res.setHeader("x-alab-cache", cached.stale ? "stale" : "hit");
+          res.end(cached.html);
+          // Background revalidation for stale entries
+          if (cached.stale && !isPageRevalidating(pathname)) {
+            markPageRevalidating(pathname);
+            void renderPageHtml().then((fresh) => {
+              setCachedPage(pathname, fresh, revalidateSecs);
+            }).catch(() => { /* keep stale on failure */ });
+          }
+          return;
+        }
+      }
+
+      const html = await renderPageHtml();
+
+      // Store in ISR cache if page exports `revalidate`
+      if (revalidateSecs !== null) {
+        setCachedPage(pathname, html, revalidateSecs);
+      }
 
       res.statusCode = 200;
       res.setHeader("content-type", "text/html; charset=utf-8");
       res.setHeader("x-content-type-options", "nosniff");
       res.setHeader("x-frame-options", "SAMEORIGIN");
       res.setHeader("referrer-policy", "strict-origin-when-cross-origin");
+      if (revalidateSecs !== null) res.setHeader("x-alab-cache", "miss");
       res.end(html);
     } catch (err) {
       vite.ssrFixStacktrace(err as Error);

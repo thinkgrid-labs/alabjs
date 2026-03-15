@@ -10,6 +10,10 @@ export interface HtmlShellOptions {
   routeFile: string;
   /** Whether SSR is enabled for this route. */
   ssr: boolean;
+  /** JSON array of layout file paths (relative to cwd), outermost first. */
+  layoutsJson?: string | undefined;
+  /** Relative path to the nearest loading.tsx (for client-side Suspense fallback). */
+  loadingFile?: string | undefined;
   /** Extra content injected into <head> (used by Vite to insert HMR scripts). */
   headExtra?: string | undefined;
   /** Nonce for CSP inline scripts (optional). */
@@ -24,6 +28,8 @@ export function htmlShellBefore(opts: HtmlShellOptions): string {
     searchParamsJson,
     routeFile,
     ssr,
+    layoutsJson,
+    loadingFile,
     headExtra = "",
   } = opts;
 
@@ -68,6 +74,8 @@ export function htmlShellBefore(opts: HtmlShellOptions): string {
     <meta name="alab-ssr" content="${ssr ? "true" : "false"}" />
     <meta name="alab-params" content="${escAttr(paramsJson)}" />
     <meta name="alab-search-params" content="${escAttr(searchParamsJson)}" />
+    ${layoutsJson ? `<meta name="alab-layouts" content="${escAttr(layoutsJson)}" />` : ""}
+    ${loadingFile ? `<meta name="alab-loading" content="${escAttr(loadingFile)}" />` : ""}
     <link rel="stylesheet" href="/app/globals.css" />
     ${headExtra}
   </head>

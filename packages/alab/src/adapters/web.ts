@@ -26,8 +26,12 @@ export type PageModule = {
     searchParams: Record<string, string>;
   }) => unknown;
   metadata?: PageMetadata | undefined;
+  generateMetadata?: (params: Record<string, string>) => PageMetadata | Promise<PageMetadata>;
   ssr?: boolean | undefined;
 };
+
+/** API route module — exports HTTP method handlers. */
+export type ApiModule = Record<string, (req: Request) => Promise<Response> | Response>;
 
 /**
  * Create a Web Fetch API handler from the Alab route manifest and a map of
@@ -49,6 +53,7 @@ export type PageModule = {
 export function createFetchHandler(
   manifest: RouteManifest,
   pageModules: Record<string, PageModule>,
+  apiModules: Record<string, ApiModule> = {},
 ): { fetch(request: Request): Promise<Response> } {
   return {
     async fetch(request: Request): Promise<Response> {
@@ -84,9 +89,56 @@ export function createFetchHandler(
         return new Response("[alab] Image src missing", { status: 400, headers: secHeaders });
       }
 
+      // ── API routes ────────────────────────────────────────────────────────
+      const matchedApi = matchRoute(manifest.routes.filter(r => r.kind === "api"), pathname);
+      if (matchedApi) {
+        const apiMod = apiModules[matchedApi.route.file];
+        if (!apiMod) {
+          return new Response(`[alab] API module not found: ${matchedApi.route.file}`, {
+            status: 500, headers: secHeaders,
+          });
+        }
+        const method = request.method.toUpperCase();
+        const handler = apiMod[method];
+        if (typeof handler !== "function") {
+          const allowed = Object.keys(apiMod).filter(k => /^(GET|POST|PUT|PATCH|DELETE|HEAD)$/.test(k)).join(", ");
+          return new Response("Method Not Allowed", { status: 405, headers: { ...secHeaders, allow: allowed } });
+        }
+        return handler(request);
+      }
+
       // ── Page routing ──────────────────────────────────────────────────────
       const matched = matchRoute(manifest.routes, pathname);
       if (!matched) {
+        // Check for not-found page module
+        const nfMod = pageModules["app/not-found.tsx"];
+        if (nfMod?.default) {
+          const shellBefore = htmlShellBefore({
+            metadata: { title: "404 — Not Found" },
+            paramsJson: "{}",
+            searchParamsJson: "{}",
+            routeFile: "app/not-found.tsx",
+            ssr: true,
+          });
+          const shellAfter = htmlShellAfter({});
+          const enc = new TextEncoder();
+          type NfProps = { params: Record<string, string>; searchParams: Record<string, string> };
+          const nfStream = await renderToReadableStream(
+            createElement(nfMod.default as React.ComponentType<NfProps>, { params: {}, searchParams: {} }),
+            { onError(err) { console.error("[alab] not-found SSR error:", err); } },
+          );
+          await nfStream.allReady;
+          const readable = new ReadableStream({
+            async start(ctrl) {
+              ctrl.enqueue(enc.encode(shellBefore));
+              const reader = nfStream.getReader();
+              for (;;) { const { done, value } = await reader.read(); if (done) break; ctrl.enqueue(value); }
+              ctrl.enqueue(enc.encode(shellAfter));
+              ctrl.close();
+            },
+          });
+          return new Response(readable, { status: 404, headers: { ...secHeaders, "content-type": "text/html; charset=utf-8" } });
+        }
         return new Response("Not Found", { status: 404, headers: secHeaders });
       }
 
@@ -100,8 +152,11 @@ export function createFetchHandler(
       }
 
       const Page = mod.default;
-      const metadata: PageMetadata = mod.metadata ?? {};
-      const ssrEnabled = mod.ssr !== false;
+      const metadata: PageMetadata =
+        typeof mod.generateMetadata === "function"
+          ? await mod.generateMetadata(params)
+          : (mod.metadata ?? {});
+      const ssrEnabled = mod.ssr === true;
 
       const searchParams: Record<string, string> = {};
       for (const [k, v] of url.searchParams.entries()) {
@@ -173,7 +228,7 @@ function matchRoute(
   const sorted = [...routes].sort((a, b) => a.params.length - b.params.length);
 
   for (const route of sorted) {
-    if (route.kind !== "page") continue;
+    if (route.kind !== "page" && route.kind !== "api") continue;
 
     const paramNames: string[] = [];
     const regexStr = route.path

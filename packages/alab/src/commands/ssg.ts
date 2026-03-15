@@ -39,37 +39,34 @@ export async function ssg({ cwd, outDir = "dist" }: SsgOptions) {
 
   const allRoutes = scanDevRoutes(appDir);
 
-  // Only generate pages with no dynamic params — dynamic routes need a server.
-  const staticRoutes = allRoutes.filter((r) => r.paramNames.length === 0);
-  const skipped = allRoutes.length - staticRoutes.length;
-
   await mkdir(outputDir, { recursive: true });
 
+  // Load React renderer once.
+  const { renderToString: reactRenderToString } = (await vite.ssrLoadModule(
+    "react-dom/server",
+  )) as { renderToString: (el: unknown) => string };
+  const { createElement } = (await vite.ssrLoadModule("react")) as {
+    createElement: (type: unknown, props: unknown) => unknown;
+  };
+
   let written = 0;
-  for (const route of staticRoutes) {
+  let skipped = 0;
+
+  for (const route of allRoutes) {
     const mod = (await vite.ssrLoadModule(route.file)) as {
       default?: unknown;
       metadata?: PageMetadata;
+      generateMetadata?: (params: Record<string, string>) => PageMetadata | Promise<PageMetadata>;
+      generateStaticParams?: () => Promise<Array<Record<string, string>>>;
       ssr?: boolean;
     };
 
     const Page = mod.default;
     if (typeof Page !== "function") {
       console.warn(`  alab  [ssg] skip ${route.file} — no default export`);
+      skipped++;
       continue;
     }
-
-    // Load React server renderer via Vite (ensures HMR-aware module graph).
-    const { renderToString: reactRenderToString } = (await vite.ssrLoadModule(
-      "react-dom/server",
-    )) as { renderToString: (el: unknown) => string };
-    const { createElement } = (await vite.ssrLoadModule("react")) as {
-      createElement: (type: unknown, props: unknown) => unknown;
-    };
-
-    const ssrContent = reactRenderToString(
-      createElement(Page, { params: {}, searchParams: {} }),
-    );
 
     // Derive the URL path from the file path.
     const urlPath =
@@ -77,15 +74,79 @@ export async function ssg({ cwd, outDir = "dist" }: SsgOptions) {
         .replace(appDir, "")
         .replace(/\/page\.(tsx|ts)$/, "") || "/";
 
-    // Build the output file path: /about → dist/about/index.html
+    const routeFile = route.file.replace(cwd, "").replace(/^\//, "");
+
+    // ── Dynamic routes: require generateStaticParams ─────────────────────────
+    if (route.paramNames.length > 0) {
+      if (typeof mod.generateStaticParams !== "function") {
+        console.warn(
+          `  alab  [ssg] skip ${urlPath} — dynamic route missing generateStaticParams()`,
+        );
+        skipped++;
+        continue;
+      }
+
+      let paramSets: Array<Record<string, string>>;
+      try {
+        paramSets = await mod.generateStaticParams();
+      } catch (err) {
+        console.warn(`  alab  [ssg] skip ${urlPath} — generateStaticParams threw: ${String(err)}`);
+        skipped++;
+        continue;
+      }
+
+      for (const params of paramSets) {
+        // Replace [param] segments with actual values.
+        const resolvedPath = urlPath.replace(/\[([^\]]+)\]/g, (_, name) => params[name] ?? name);
+        const segments = resolvedPath === "/" ? [] : resolvedPath.split("/").filter(Boolean);
+        const pageOutputDir = join(outputDir, ...segments);
+        await mkdir(pageOutputDir, { recursive: true });
+        const outputFile = join(pageOutputDir, "index.html");
+
+        const metadata: PageMetadata =
+          typeof mod.generateMetadata === "function"
+            ? await mod.generateMetadata(params)
+            : (mod.metadata ?? {});
+
+        const ssrContent = reactRenderToString(
+          createElement(Page, { params, searchParams: {} }),
+        );
+
+        const shellBefore = htmlShellBefore({
+          metadata,
+          paramsJson: JSON.stringify(params),
+          searchParamsJson: "{}",
+          routeFile,
+          ssr: true,
+        });
+        const shellAfter = htmlShellAfter({});
+
+        await writeFile(outputFile, `${shellBefore}${ssrContent}${shellAfter}`, "utf8");
+        console.log(
+          `  alab  [ssg] ${resolvedPath.padEnd(30)} → ${outputFile.replace(cwd + "/", "")}`,
+        );
+        written++;
+      }
+      continue;
+    }
+
+    // ── Static routes ─────────────────────────────────────────────────────────
+    const metadata: PageMetadata =
+      typeof mod.generateMetadata === "function"
+        ? await mod.generateMetadata({})
+        : (mod.metadata ?? {});
+
+    const ssrContent = reactRenderToString(
+      createElement(Page, { params: {}, searchParams: {} }),
+    );
+
     const segments = urlPath === "/" ? [] : urlPath.split("/").filter(Boolean);
     const pageOutputDir = join(outputDir, ...segments);
     await mkdir(pageOutputDir, { recursive: true });
     const outputFile = join(pageOutputDir, "index.html");
 
-    const routeFile = route.file.replace(cwd, "").replace(/^\//, "");
     const shellBefore = htmlShellBefore({
-      metadata: mod.metadata ?? {},
+      metadata,
       paramsJson: "{}",
       searchParamsJson: "{}",
       routeFile,

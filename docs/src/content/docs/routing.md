@@ -1,53 +1,182 @@
 ---
 title: Routing
-description: File-based routing in Alab.
+description: File-system routing, layouts, dynamic segments, middleware, and API routes.
+sidebar:
+  order: 3
 ---
 
-Alab uses file-based routing. Files in `app/` map directly to URL paths.
+# Routing
 
-## File conventions
+Alab uses a file-system router. Every `page.tsx` in the `app/` directory becomes a route. No config, no manual registration.
+
+## Basic Routes
 
 | File | Route |
-|------|-------|
+|---|---|
 | `app/page.tsx` | `/` |
 | `app/about/page.tsx` | `/about` |
-| `app/posts/[slug]/page.tsx` | `/posts/:slug` |
-| `app/users/[id]/settings/page.tsx` | `/users/:id/settings` |
+| `app/posts/page.tsx` | `/posts` |
+| `app/posts/[id]/page.tsx` | `/posts/:id` |
+| `app/posts/[id]/edit/page.tsx` | `/posts/:id/edit` |
+| `app/[...slug]/page.tsx` | `/anything/deeply/nested` |
 
-## Page component
+## Layouts
 
-Every route exports a default React component:
+Place a `layout.tsx` in any directory. Alab automatically wraps child pages with the nearest parent layouts, outermost first.
 
 ```tsx
-export default function AboutPage() {
-  return <h1>About</h1>;
+// app/layout.tsx — wraps every page
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html lang="en">
+      <body className="bg-white text-gray-900">
+        {children}
+      </body>
+    </html>
+  );
 }
 ```
 
-## Metadata
+```tsx
+// app/dashboard/layout.tsx — wraps /dashboard/* only
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex">
+      <Sidebar />
+      <main className="flex-1 p-8">{children}</main>
+    </div>
+  );
+}
+```
 
-Export a `metadata` object for SEO:
+## Dynamic Segments
+
+Use `[param]` folder names for dynamic routes. Params are passed to the page as props.
 
 ```tsx
-import type { PageMetadata } from "alab";
+// app/posts/[id]/page.tsx
+export default function PostPage({ params }: { params: { id: string } }) {
+  return <h1>Post {params.id}</h1>;
+}
+```
 
-export const metadata: PageMetadata = {
-  title: "About Us",
-  description: "Learn more about our team.",
+## Loading UI
+
+Create `loading.tsx` in any directory to show a Suspense fallback while data loads.
+
+```tsx
+// app/posts/[id]/loading.tsx
+export default function Loading() {
+  return <div className="animate-pulse h-8 bg-gray-200 rounded" />;
+}
+```
+
+## Error Boundaries
+
+Create `error.tsx` to catch render errors in a subtree.
+
+```tsx
+// app/posts/[id]/error.tsx
+export default function PostError({ error, reset }: { error: Error; reset: () => void }) {
+  return (
+    <div className="p-8 text-center">
+      <p className="text-red-600">{error.message}</p>
+      <button onClick={reset} className="mt-4 btn">Try again</button>
+    </div>
+  );
+}
+```
+
+## Not-Found Page
+
+```tsx
+// app/not-found.tsx
+export default function NotFound() {
+  return (
+    <div className="p-8 text-center">
+      <h1 className="text-4xl font-bold">404</h1>
+      <p className="mt-2 text-gray-600">Page not found.</p>
+    </div>
+  );
+}
+```
+
+## API Routes
+
+Create `route.ts` in any directory to expose HTTP endpoints.
+
+```ts
+// app/api/posts/route.ts
+export async function GET(req: Request): Promise<Response> {
+  const posts = await db.posts.findAll();
+  return Response.json(posts);
+}
+
+export async function POST(req: Request): Promise<Response> {
+  const body = await req.json();
+  const post = await db.posts.create(body);
+  return Response.json(post, { status: 201 });
+}
+```
+
+Supported methods: `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, `HEAD`.
+
+## Middleware
+
+Create `middleware.ts` at the project root to run code before every request.
+
+```ts
+// middleware.ts
+import { redirect, next } from "alab/middleware";
+
+export async function middleware(req: Request) {
+  const { pathname } = new URL(req.url);
+
+  if (pathname.startsWith("/dashboard")) {
+    const session = req.headers.get("cookie")?.includes("session");
+    if (!session) return redirect("/login");
+  }
+
+  return next();
+}
+
+// Optional: restrict to specific paths
+export const config = {
+  matcher: ["/dashboard/:path*", "/api/:path*"],
 };
 ```
 
-## Dynamic routes
+## i18n Routing
 
-Use `[param]` folders for dynamic segments:
+```ts
+// i18n.ts
+import { createI18nConfig } from "alab/i18n";
+
+export const i18n = createI18nConfig({
+  locales: ["en", "fil", "es"],
+  defaultLocale: "en",
+});
+```
+
+```ts
+// middleware.ts
+import { i18n } from "./i18n.js";
+import { redirect, next } from "alab/middleware";
+
+export async function middleware(req: Request) {
+  const { pathname } = new URL(req.url);
+  if (!i18n.hasLocalePrefix(pathname)) {
+    return redirect(`/${i18n.detectLocale(req)}${pathname}`);
+  }
+  return next();
+}
+```
 
 ```tsx
-// app/posts/[slug]/page.tsx
-import type { AlabPage } from "alab";
+// app/[locale]/layout.tsx
+import { LocaleProvider } from "alab/i18n";
 
-const PostPage: AlabPage<"/posts/[slug]"> = ({ params }) => {
-  return <h1>{params.slug}</h1>;
-};
-
-export default PostPage;
+export default function LocaleLayout({ params, children }) {
+  return <LocaleProvider locale={params.locale}>{children}</LocaleProvider>;
+}
 ```

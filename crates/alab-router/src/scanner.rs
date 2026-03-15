@@ -56,13 +56,14 @@ pub fn scan_routes(app_dir: &str) -> RouteManifest {
         });
     }
 
-    // Sort: layouts first, then pages, then server, then error/loading
+    // Sort: layouts first, then pages, then server/api, then error/loading
     routes.sort_by_key(|r| match r.kind {
         RouteKind::Layout => 0,
         RouteKind::Page => 1,
-        RouteKind::Server => 2,
-        RouteKind::Error => 3,
-        RouteKind::Loading => 4,
+        RouteKind::Api => 2,
+        RouteKind::Server => 3,
+        RouteKind::Error => 4,
+        RouteKind::Loading => 5,
     });
 
     RouteManifest { routes }
@@ -79,6 +80,8 @@ fn classify_file(name: &str) -> Option<RouteKind> {
         Some(RouteKind::Error)
     } else if name == "loading.tsx" {
         Some(RouteKind::Loading)
+    } else if name == "route.ts" || name == "route.tsx" {
+        Some(RouteKind::Api)
     } else {
         None
     }
@@ -114,7 +117,7 @@ fn file_to_url_path(rel: &Path) -> String {
 }
 
 fn is_route_filename(name: &str) -> bool {
-    matches!(name, "page.tsx" | "layout.tsx" | "error.tsx" | "loading.tsx")
+    matches!(name, "page.tsx" | "layout.tsx" | "error.tsx" | "loading.tsx" | "route.ts" | "route.tsx")
         || name.ends_with(".page.tsx")
         || name.ends_with(".server.ts")
         || name.ends_with(".server.tsx")

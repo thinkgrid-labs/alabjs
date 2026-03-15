@@ -21,9 +21,33 @@
       "import": "./dist/router/index.js",
       "types": "./dist/router/index.d.ts"
     },
+    "./router/code": {
+      "import": "./dist/router/code-router.js",
+      "types": "./dist/router/code-router.d.ts"
+    },
+    "./test": {
+      "import": "./dist/test/index.js",
+      "types": "./dist/test/index.d.ts"
+    },
+    "./signals": {
+      "import": "./dist/signals/index.js",
+      "types": "./dist/signals/index.d.ts"
+    },
+    "./i18n": {
+      "import": "./dist/i18n/index.js",
+      "types": "./dist/i18n/index.d.ts"
+    },
     "./components": {
       "import": "./dist/components/index.js",
       "types": "./dist/components/index.d.ts"
+    },
+    "./middleware": {
+      "import": "./dist/server/middleware.js",
+      "types": "./dist/server/middleware.d.ts"
+    },
+    "./cache": {
+      "import": "./dist/server/cache.js",
+      "types": "./dist/server/cache.d.ts"
     },
     "./adapters/cloudflare": {
       "import": "./dist/adapters/cloudflare.js",
@@ -52,7 +76,7 @@
   },
   "dependencies": {
     "h3": "^1.15.0",
-    "vite": "^6.3.0",
+    "vite": "^8.0.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "alab-vite-plugin": "workspace:*"

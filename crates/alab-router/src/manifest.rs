@@ -14,6 +14,8 @@ pub enum RouteKind {
     Error,
     /// A loading skeleton (`loading.tsx`)
     Loading,
+    /// An HTTP API route handler (`route.ts` / `route.tsx`)
+    Api,
 }
 
 /// A single entry in the route manifest.

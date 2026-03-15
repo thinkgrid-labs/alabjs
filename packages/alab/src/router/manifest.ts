@@ -1,4 +1,4 @@
-export type RouteKind = "page" | "server" | "layout" | "error" | "loading";
+export type RouteKind = "page" | "server" | "layout" | "error" | "loading" | "api";
 
 export interface Route {
   path: string;
