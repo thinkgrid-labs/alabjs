@@ -199,7 +199,7 @@ export const GET = defineSSEHandler(async function* () {
 
 ```bash
 # SPA build — outputs a static folder with index.html + hashed assets
-alabjs build --mode spa
+alab build --mode spa
 ```
 
 The output is in `.alabjs/dist/spa/`. Deploy the contents of that folder to:

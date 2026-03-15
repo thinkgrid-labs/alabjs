@@ -13,7 +13,7 @@ AlabJS can be deployed to Cloudflare Workers for globally distributed edge rende
 ## Build for Cloudflare
 
 ```bash
-alabjs build --adapter cloudflare
+alab build
 ```
 
 This produces:
@@ -95,4 +95,4 @@ After deploying, add a custom domain in the Cloudflare dashboard under Workers â
 
 ## Pages vs Workers
 
-AlabJS targets **Workers** (not Pages) for full server-side rendering flexibility. If you only need to serve static assets, use `alabjs build --mode spa` and deploy the `spa/` output to Cloudflare Pages directly.
+AlabJS targets **Workers** (not Pages) for full server-side rendering flexibility. If you only need to serve static assets, use `alab build --mode spa` and deploy the `spa/` output to Cloudflare Pages directly.

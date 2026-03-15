@@ -7,7 +7,7 @@ AlabJS includes an offline-first layer that intercepts failed server function ca
 
 ## How it works
 
-When `alabjs build` runs, it compiles a service worker to `.alabjs/dist/client/_alabjs/offline-sw.js` and serves it at `/_alabjs/offline-sw.js`.
+When `alab build` runs, it compiles a service worker to `.alabjs/dist/client/_alabjs/offline-sw.js` and serves it at `/_alabjs/offline-sw.js`.
 
 The service worker intercepts all `POST /_alabjs/fn/*` requests (server function calls). When the network is unavailable, instead of letting the request fail, it:
 

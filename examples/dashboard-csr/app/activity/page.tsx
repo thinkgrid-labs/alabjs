@@ -1,7 +1,6 @@
-import { AlabProvider } from "alabjs/client";
-import { useSSE } from "alabjs/client";
-import { useSignal, useSignalValue } from "alabjs/signals";
-import { useOfflineMutations } from "alabjs/client";
+import { useMemo, useEffect } from "react";
+import { AlabProvider, useSSE, useOfflineMutations } from "alabjs/client";
+import { signal, useSignalValue } from "alabjs/signals";
 import { Sidebar } from "../nav";
 import type { ActivityEvent } from "./route";
 import type { PageMetadata } from "alabjs";
@@ -36,14 +35,18 @@ function ActivityFeed() {
   // useSSE — subscribes to the GET /activity SSE stream
   const { data: latest, readyState } = useSSE<ActivityEvent>("/activity", { event: "activity" });
 
-  // useSignal — accumulate events without re-rendering the whole list
-  const events = useSignal<ActivityEvent[]>([]);
+  // signal — accumulate events without re-rendering the whole list
+  const events = useMemo(() => signal<ActivityEvent[]>([]), []);
   const list = useSignalValue(events);
 
-  // Append new events to the signal
-  if (latest && (list.length === 0 || list[list.length - 1]?.id !== latest.id)) {
-    events.update((prev) => [...prev.slice(-49), latest]);
-  }
+  // Append new events via useEffect to avoid side effects during render
+  useEffect(() => {
+    if (!latest) return;
+    events.set((prev: ActivityEvent[]) => {
+      if (prev.length > 0 && prev[prev.length - 1]?.id === latest.id) return prev;
+      return [...prev.slice(-49), latest];
+    });
+  }, [latest, events]);
 
   return (
     <div className="rounded-xl border border-zinc-200 bg-white shadow-sm overflow-hidden">

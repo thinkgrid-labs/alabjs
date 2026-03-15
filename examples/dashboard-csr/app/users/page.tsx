@@ -1,6 +1,7 @@
+import { useMemo } from "react";
 import { AlabProvider, useServerData } from "alabjs/client";
 import { Link } from "alabjs/components";
-import { useSignal, useSignalValue } from "alabjs/signals";
+import { signal, useSignalValue } from "alabjs/signals";
 import type { getUsers } from "./page.server";
 import { Sidebar } from "../nav";
 import type { PageMetadata } from "alabjs";
@@ -23,8 +24,8 @@ const AVATAR_COLORS = [
 function UserTable() {
   const users = useServerData<typeof getUsers>("getUsers");
 
-  // useSignal — fine-grained reactive state without useState re-rendering the whole tree
-  const query = useSignal("");
+  // signal — fine-grained reactive state without useState re-rendering the whole tree
+  const query = useMemo(() => signal(""), []);
   const queryValue = useSignalValue(query);
 
   const filtered = queryValue

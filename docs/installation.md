@@ -62,14 +62,14 @@ my-app/
 ## CLI Commands
 
 ```bash
-alabjs dev                    # Dev server with HMR
-alabjs build                  # Production build (Vite 8 + Rolldown)
-alabjs build --mode spa       # Client-only SPA build
-alabjs build --analyze        # Build + open bundle treemap
-alabjs start                  # Start production H3 server
-alabjs ssg                    # Pre-render static routes to HTML
-alabjs test                   # Run tests with Vitest
-alabjs test --watch           # Watch mode
-alabjs test --ui              # Vitest UI
-alabjs info                   # Print route manifest and compiler info
+alab dev                    # Dev server with HMR
+alab build                  # Production build (Vite 8 + Rolldown)
+alab build --mode spa       # Client-only SPA build
+alab build --analyze        # Build + open bundle treemap
+alab start                  # Start production H3 server
+alab ssg                    # Pre-render static routes to HTML
+alab test                   # Run tests with Vitest
+alab test --watch           # Watch mode
+alab test --ui              # Vitest UI
+alab info                   # Print route manifest and compiler info
 ```

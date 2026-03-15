@@ -27,6 +27,25 @@
   letter-spacing: -0.03em;
 }
 
+/* ── Dev warning banner ───────────────────────────────────────────────────── */
+.alab-dev-banner {
+  background-color: #fef3c7;
+  border-bottom: 1px solid #fcd34d;
+  color: #92400e;
+  font-size: 13px;
+  line-height: 1.5;
+  padding: 8px 24px;
+  text-align: center;
+}
+.alab-dev-banner a {
+  color: #b45309;
+  font-weight: 600;
+  text-decoration: underline;
+}
+.alab-dev-banner a:hover {
+  color: #92400e;
+}
+
 /* ── Active sidebar link ──────────────────────────────────────────────────── */
 .VPSidebarItem.is-active > .item .link .text,
 .VPSidebarItem.is-active > .item .VPLink .text {

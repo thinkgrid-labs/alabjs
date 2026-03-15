@@ -94,7 +94,7 @@ revalidatePathPrefix("/posts");
 Pre-render pages to static HTML files at build time:
 
 ```bash
-alabjs ssg
+alab ssg
 ```
 
 For dynamic routes, export `generateStaticParams`:
@@ -107,4 +107,4 @@ export async function generateStaticParams() {
 }
 ```
 
-`alabjs ssg` calls this, renders each combination, and writes HTML files to `.alabjs/dist/`.
+`alab ssg` calls this, renders each combination, and writes HTML files to `.alabjs/dist/`.

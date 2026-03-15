@@ -1,27 +1,26 @@
 ---
 title: CLI
-description: All alabjs CLI commands and flags.
+description: All alab CLI commands and flags.
 ---
 
-The `alabjs` CLI is installed locally in your project. Run it via your package manager's script runner or `node_modules/.bin/alabjs`.
+The `alab` CLI is installed locally in your project. Run it via your package manager's script runner or `node_modules/.bin/alab`.
 
 ## Commands
 
-### `alabjs dev`
+### `alab dev`
 
 Starts the development server with hot module replacement.
 
 ```bash
-alabjs dev
-alabjs dev --port 4000
-alabjs dev --host 0.0.0.0
+alab dev
+alab dev --port 4000
+alab dev --host 0.0.0.0
 ```
 
 | Flag | Default | Description |
 |---|---|---|
 | `--port` | `3000` | Port to listen on |
 | `--host` | `localhost` | Host to bind |
-| `--open` | `false` | Open browser on start |
 
 The dev server:
 - Compiles TypeScript with the Rust/oxc compiler
@@ -32,15 +31,15 @@ The dev server:
 
 ---
 
-### `alabjs build`
+### `alab build`
 
 Builds the app for production.
 
 ```bash
-alabjs build
-alabjs build --mode spa
-alabjs build --analyze
-alabjs build --skip-typecheck
+alab build
+alab build --mode spa
+alab build --analyze
+alab build --skip-typecheck
 ```
 
 | Flag | Default | Description |
@@ -61,13 +60,13 @@ pnpm add -D rolldown-plugin-visualizer
 
 ---
 
-### `alabjs start`
+### `alab start`
 
 Serves the production build.
 
 ```bash
-alabjs start
-PORT=8080 alabjs start
+alab start
+PORT=8080 alab start
 ```
 
 | Environment Variable | Default | Description |
@@ -76,22 +75,17 @@ PORT=8080 alabjs start
 | `HOST` | `0.0.0.0` | Bind address |
 | `PUBLIC_URL` | — | Public base URL (for sitemap + CSRF) |
 
-Must run `alabjs build` before `alabjs start`.
+Must run `alab build` before `alab start`.
 
 ---
 
-### `alabjs ssg`
+### `alab ssg`
 
 Pre-renders static routes to HTML files.
 
 ```bash
-alabjs ssg
-alabjs ssg --out ./public
+alab ssg
 ```
-
-| Flag | Default | Description |
-|---|---|---|
-| `--out` | `.alabjs/dist/static` | Output directory |
 
 SSG renders all routes without dynamic segments. For dynamic routes, export `generateStaticParams` from the page:
 
@@ -105,15 +99,41 @@ export async function generateStaticParams() {
 
 ---
 
-### `alabjs info`
+### `alab test`
 
-Prints environment and dependency information for bug reports.
+Runs tests with Vitest.
 
 ```bash
-alabjs info
+alab test
+alab test --watch
+alab test --ui
 ```
 
-Output includes: OS, Node.js version, pnpm version, AlabJS version, Vite version, Rust toolchain.
+| Flag | Default | Description |
+|---|---|---|
+| `--watch` | `false` | Re-run tests on file changes |
+| `--ui` | `false` | Open the Vitest UI in the browser |
+
+You can also pass file paths to run a subset of tests:
+
+```bash
+alab test src/utils.test.ts
+```
+
+---
+
+### `alab info`
+
+Prints the route manifest, server functions, and boundary violations for the current project.
+
+```bash
+alab info
+```
+
+Output includes:
+- **Route manifest** — all discovered routes, their kind (page / api / layout), and SSR status
+- **Server functions** — every `defineServerFn` export and its generated POST endpoint
+- **Boundary violations** — client files that illegally import server modules at runtime
 
 ---
 
@@ -146,5 +166,5 @@ The CLI commands are also exported as functions for use in custom scripts:
 import { build, dev, ssg } from "alabjs/commands";
 
 await build({ cwd: process.cwd(), mode: "ssr", analyze: false });
-await ssg({ cwd: process.cwd(), out: "./static" });
+await ssg({ cwd: process.cwd() });
 ```

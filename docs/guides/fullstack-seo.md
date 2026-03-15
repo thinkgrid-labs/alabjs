@@ -232,11 +232,11 @@ AlabJS converts images to WebP at request time, generates `srcset`, and serves t
 ## Production Build
 
 ```bash
-alabjs build     # compiles TypeScript, bundles with Vite 8 + Rolldown
-alabjs start     # starts the H3 production server
+alab build     # compiles TypeScript, bundles with Vite 8 + Rolldown
+alab start     # starts the H3 production server
 ```
 
-By default, `alabjs start` listens on port 3000. Set `PORT` to override.
+By default, `alab start` listens on port 3000. Set `PORT` to override.
 
 ## Deployment: Node.js VPS / Docker
 
@@ -268,7 +268,7 @@ export default defineConfig({ adapter: "cloudflare" });
 ```
 
 ```bash
-alabjs build --adapter cloudflare
+alab build
 wrangler deploy
 ```
 
