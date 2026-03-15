@@ -31,5 +31,6 @@
     "create",
     "scaffold",
     "starter"
-  ]
+  ],
+  "author": "Dennis Paler <dennis@thinkgrid.dev>"
 }

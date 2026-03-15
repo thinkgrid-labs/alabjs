@@ -2,7 +2,18 @@
   "name": "alabjs",
   "version": "0.1.0",
   "description": "AlabJS — full-stack React framework powered by a Rust compiler",
-  "keywords": ["react", "framework", "ssr", "fullstack", "rust", "vite", "typescript", "server-functions", "signals", "isr"],
+  "keywords": [
+    "react",
+    "framework",
+    "ssr",
+    "fullstack",
+    "rust",
+    "vite",
+    "typescript",
+    "server-functions",
+    "signals",
+    "isr"
+  ],
   "license": "MIT",
   "type": "module",
   "exports": {
@@ -104,5 +115,6 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/thinkgrid-labs/alabjs.git"
-  }
+  },
+  "author": "Dennis Paler <dennis@thinkgrid.dev>"
 }

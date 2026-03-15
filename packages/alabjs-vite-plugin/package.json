@@ -50,5 +50,6 @@
     "react",
     "rust",
     "oxc"
-  ]
+  ],
+  "author": "Dennis Paler <dennis@thinkgrid.dev>"
 }
