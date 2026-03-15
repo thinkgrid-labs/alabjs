@@ -2,6 +2,10 @@ import { defineConfig } from "astro/config";
 import starlight from "@astrojs/starlight";
 
 export default defineConfig({
+  // Set site + base to match your GitHub Pages URL.
+  // If the repo name is "alab", Pages serves at https://<org>.github.io/alab/
+  site: "https://alab-framework.github.io",
+  base: "/alab",
   integrations: [
     starlight({
       title: "Alab",
