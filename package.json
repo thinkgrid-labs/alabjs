@@ -1,0 +1,24 @@
+{
+  "name": "alab-monorepo",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Alab — full-stack React framework powered by a Rust compiler core",
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "test": "turbo test",
+    "lint": "turbo lint",
+    "typecheck": "turbo typecheck",
+    "clean": "turbo clean && find . -name 'node_modules' -type d -prune -exec rm -rf {} + && cargo clean"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.0",
+    "typescript": "^5.8.0",
+    "@types/node": "^22.0.0"
+  },
+  "engines": {
+    "node": ">=22",
+    "pnpm": ">=10"
+  },
+  "packageManager": "pnpm@10.23.0"
+}

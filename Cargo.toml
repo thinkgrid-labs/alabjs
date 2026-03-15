@@ -1,0 +1,36 @@
+[workspace]
+resolver = "2"
+
+members = [
+  "crates/alab-compiler",
+  "crates/alab-router",
+  "crates/alab-napi",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Alab Contributors"]
+license = "MIT"
+repository = "https://github.com/alab-framework/alab"
+
+[workspace.dependencies]
+# oxc compiler components
+oxc_allocator = "0.119"
+oxc_parser = "0.119"
+oxc_ast = "0.119"
+oxc_span = "0.119"
+oxc_transformer = "0.119"
+oxc_codegen = "0.119"
+oxc_semantic = "0.119"
+
+# napi-rs
+napi = { version = "2", features = ["napi8"] }
+napi-derive = "2"
+
+# utils
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+walkdir = "2"
+regex = "1"
+thiserror = "2"

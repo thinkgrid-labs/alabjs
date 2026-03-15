@@ -1,0 +1,116 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  RUST_BACKTRACE: 1
+
+jobs:
+  # ─── Rust tests ───────────────────────────────────────────────────────────
+  rust-test:
+    name: Rust tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust deps
+        uses: Swatinem/rust-cache@v2
+
+      - name: cargo test
+        run: cargo test --workspace
+
+  # ─── TypeScript typecheck ─────────────────────────────────────────────────
+  ts-typecheck:
+    name: TypeScript typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+
+  # ─── napi cross-compile ───────────────────────────────────────────────────
+  napi-build:
+    name: Build napi binary (${{ matrix.settings.target }})
+    runs-on: ${{ matrix.settings.host }}
+    strategy:
+      fail-fast: false
+      matrix:
+        settings:
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            build: cargo build --release --target x86_64-unknown-linux-gnu -p alab-napi
+          - host: macos-latest
+            target: aarch64-apple-darwin
+            build: cargo build --release --target aarch64-apple-darwin -p alab-napi
+          - host: macos-latest
+            target: x86_64-apple-darwin
+            build: cargo build --release --target x86_64-apple-darwin -p alab-napi
+          - host: windows-latest
+            target: x86_64-pc-windows-msvc
+            build: cargo build --release --target x86_64-pc-windows-msvc -p alab-napi
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.settings.target }}
+
+      - name: Cache Rust deps
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.settings.target }}
+
+      - name: Build
+        run: ${{ matrix.settings.build }}
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: alab-napi-${{ matrix.settings.target }}
+          path: target/${{ matrix.settings.target }}/release/libalab_napi.*
+
+  # ─── Example smoke test ───────────────────────────────────────────────────
+  example-build:
+    name: Example build smoke test
+    runs-on: ubuntu-latest
+    needs: [rust-test, ts-typecheck]
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust deps
+        uses: Swatinem/rust-cache@v2
+
+      - run: pnpm install --frozen-lockfile
+      - run: cargo build --release -p alab-napi
+      - run: pnpm build
