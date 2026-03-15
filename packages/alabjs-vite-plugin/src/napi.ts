@@ -1,6 +1,6 @@
 /** Minimal interface for the @alabjs/compiler napi binding. */
 export interface AlabNapi {
-  compileSource(source: string, filename: string, minify: boolean): string;
+  compileSource(source: string, filename: string, minify: boolean, sourceMap: boolean): string;
   checkBoundary(source: string, filename: string): string;
   buildRoutes(appDir: string): string;
   optimizeImage(

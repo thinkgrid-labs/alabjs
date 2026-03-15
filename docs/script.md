@@ -1,8 +1,6 @@
 ---
 title: Script Component
 description: Load third-party scripts with strategy control and no LCP impact.
-sidebar:
-  order: 3
 ---
 
 The `<Script>` component loads third-party scripts with control over timing. Loading scripts at the wrong time is one of the most common causes of poor Lighthouse scores — `<Script>` makes the right choice the default.

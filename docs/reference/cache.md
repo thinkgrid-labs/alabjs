@@ -1,8 +1,6 @@
 ---
 title: Cache & ISR
 description: Stale-while-revalidate page caching with the revalidate export and revalidatePath().
-sidebar:
-  order: 5
 ---
 
 AlabJS supports Incremental Static Regeneration (ISR) — a page-level HTML cache that serves stale content instantly while regenerating in the background. Pages that do not change often can be cached for seconds, minutes, or hours without a full CDN setup.

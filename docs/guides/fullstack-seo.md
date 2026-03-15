@@ -1,8 +1,6 @@
 ---
 title: "Guide: Full-Stack App with SEO"
 description: Build a production full-stack React app with server rendering, SEO, API routes, and a Node.js server.
-sidebar:
-  order: 2
 ---
 
 # Building a Full-Stack App with SEO

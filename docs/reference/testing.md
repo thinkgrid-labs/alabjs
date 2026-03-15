@@ -1,8 +1,6 @@
 ---
 title: Testing
 description: Integration and unit testing with alabjs/test — no HTTP server required.
-sidebar:
-  order: 6
 ---
 
 `alabjs/test` provides utilities for testing AlabJS pages and server functions without starting an HTTP server. Tests run entirely in-process using Vitest.

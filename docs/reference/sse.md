@@ -1,8 +1,6 @@
 ---
 title: Server-Sent Events
 description: Real-time server-to-client streaming with defineSSEHandler and useSSE.
-sidebar:
-  order: 3
 ---
 
 AlabJS has first-class support for Server-Sent Events (SSE) — a lightweight, HTTP-native protocol for pushing data from the server to the browser. Unlike WebSockets, SSE works over a standard HTTP connection, passes through any proxy, and reconnects automatically.

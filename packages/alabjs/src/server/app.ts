@@ -1,7 +1,7 @@
 import { createApp as createH3App, createRouter, defineEventHandler, getQuery } from "h3";
 import { createServer } from "node:http";
-import { resolve, dirname, join } from "node:path";
-import { existsSync } from "node:fs";
+import { resolve, dirname, join, extname } from "node:path";
+import { existsSync, createReadStream, statSync } from "node:fs";
 import { toNodeListener } from "h3";
 import type { RouteManifest } from "../router/manifest.js";
 import { renderToResponse } from "../ssr/render.js";
@@ -114,6 +114,83 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
 
   // CSRF protection (active in production, skipped in dev)
   app.use(csrfMiddleware());
+
+  // ─── Static file serving ────────────────────────────────────────────────────
+  // Serves built client assets (JS/CSS from `.alabjs/dist/client/`) and files
+  // from the project's `public/` directory. Dynamic alab routes take priority
+  // via the router registered below; this handler only fires for real files.
+  const clientDir = resolve(distDir, "client");
+  const MIME_TYPES: Record<string, string> = {
+    ".js":    "application/javascript; charset=utf-8",
+    ".mjs":   "application/javascript; charset=utf-8",
+    ".css":   "text/css; charset=utf-8",
+    ".html":  "text/html; charset=utf-8",
+    ".json":  "application/json; charset=utf-8",
+    ".svg":   "image/svg+xml",
+    ".png":   "image/png",
+    ".jpg":   "image/jpeg",
+    ".jpeg":  "image/jpeg",
+    ".gif":   "image/gif",
+    ".webp":  "image/webp",
+    ".ico":   "image/x-icon",
+    ".woff":  "font/woff",
+    ".woff2": "font/woff2",
+    ".ttf":   "font/ttf",
+    ".txt":   "text/plain; charset=utf-8",
+    ".xml":   "application/xml; charset=utf-8",
+    ".map":   "application/json; charset=utf-8",
+  };
+
+  app.use(
+    defineEventHandler((event) => {
+      const req = event.node.req;
+      const res = event.node.res;
+      if (req.method !== "GET" && req.method !== "HEAD") return;
+
+      const rawPath = (req.url ?? "/").split("?")[0] ?? "/";
+      // Decode and strip traversal attempts
+      let relPath: string;
+      try { relPath = decodeURIComponent(rawPath); } catch { return; }
+      if (relPath.includes("..")) return;
+
+      const ext = extname(relPath).toLowerCase();
+      const contentType = MIME_TYPES[ext];
+      if (!contentType) return; // skip extensionless paths (page routes)
+
+      // 1. Built client assets (JS chunks, CSS, source maps)
+      const clientCandidate = join(clientDir, relPath);
+      if (existsSync(clientCandidate)) {
+        const stat = statSync(clientCandidate);
+        if (stat.isFile()) {
+          res.setHeader("content-type", contentType);
+          res.setHeader("content-length", stat.size);
+          // Immutable cache for hashed assets; short TTL for others
+          const isHashed = /\.[a-f0-9]{8,}\.[a-z]+$/.test(relPath);
+          res.setHeader("cache-control", isHashed
+            ? "public, max-age=31536000, immutable"
+            : "public, max-age=3600");
+          if (req.method === "HEAD") { res.end(); return null; }
+          createReadStream(clientCandidate).pipe(res);
+          return null;
+        }
+      }
+
+      // 2. Public directory (favicons, fonts, open-graph images, etc.)
+      const publicCandidate = join(publicDir, relPath);
+      if (existsSync(publicCandidate)) {
+        const stat = statSync(publicCandidate);
+        if (stat.isFile()) {
+          res.setHeader("content-type", contentType);
+          res.setHeader("content-length", stat.size);
+          res.setHeader("cache-control", "public, max-age=3600");
+          if (req.method === "HEAD") { res.end(); return null; }
+          createReadStream(publicCandidate).pipe(res);
+          return null;
+        }
+      }
+      return undefined;
+    }),
+  );
 
   // ─── Built-in routes ────────────────────────────────────────────────────────
 

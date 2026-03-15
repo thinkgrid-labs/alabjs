@@ -1,8 +1,6 @@
 ---
 title: Introduction
 description: What AlabJS is, why it exists, and when to use it.
-sidebar:
-  order: 1
 ---
 
 # Introduction

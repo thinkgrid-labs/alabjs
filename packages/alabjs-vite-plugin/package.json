@@ -17,7 +17,8 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "vite": "^8.0.0"
+    "vite": "^8.0.0",
+    "react-refresh": "^0.14.0"
   },
   "optionalDependencies": {
     "@alabjs/compiler": "workspace:*"

@@ -1,7 +1,7 @@
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 use oxc_allocator::Allocator;
-use oxc_codegen::Codegen;
+use oxc_codegen::{Codegen, CodegenOptions};
 use oxc_parser::Parser;
 use oxc_semantic::SemanticBuilder;
 use oxc_span::SourceType;
@@ -80,10 +80,20 @@ pub fn compile(source: &str, options: &CompileOptions) -> Result<CompileOutput, 
         });
     }
 
-    // 4. Codegen
-    let code = Codegen::new().build(&program).code;
+    // 4. Codegen — enable source map when requested
+    let codegen_opts = if options.source_map {
+        CodegenOptions {
+            source_map_path: Some(PathBuf::from(&options.filename)),
+            ..Default::default()
+        }
+    } else {
+        CodegenOptions::default()
+    };
 
-    Ok(CompileOutput { code, map: None })
+    let ret = Codegen::new().with_options(codegen_opts).build(&program);
+    let map_json = ret.map.map(|sm| sm.to_json_string());
+
+    Ok(CompileOutput { code: ret.code, map: map_json })
 }
 
 #[cfg(test)]

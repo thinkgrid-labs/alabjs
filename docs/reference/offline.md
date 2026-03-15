@@ -1,8 +1,6 @@
 ---
 title: Offline & Sync
 description: Queue mutations when offline and replay them when connectivity returns.
-sidebar:
-  order: 4
 ---
 
 AlabJS includes an offline-first layer that intercepts failed server function calls, stores them in IndexedDB, and replays them when the network returns. No configuration required.

@@ -1,8 +1,6 @@
 ---
 title: Cloudflare Workers
 description: Deploy AlabJS to Cloudflare Workers for global edge rendering.
-sidebar:
-  order: 2
 ---
 
 AlabJS can be deployed to Cloudflare Workers for globally distributed edge rendering — your pages render in the data centre closest to each user with no cold starts.

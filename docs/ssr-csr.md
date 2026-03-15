@@ -1,8 +1,6 @@
 ---
 title: SSR & CSR
 description: Server-side rendering, client-side rendering, ISR, and metadata.
-sidebar:
-  order: 5
 ---
 
 # SSR & CSR

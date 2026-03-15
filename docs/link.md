@@ -1,8 +1,6 @@
 ---
 title: Link Component
 description: Client-side navigation without a full page reload.
-sidebar:
-  order: 2
 ---
 
 The `<Link>` component enables SPA-style navigation between AlabJS pages. Clicking a link fetches the next page HTML and swaps the content in place — no full browser navigation, no white flash, no layout re-mount.

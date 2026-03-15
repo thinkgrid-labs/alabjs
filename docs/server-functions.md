@@ -1,8 +1,6 @@
 ---
 title: Server Functions
 description: defineServerFn, useServerData, useMutation, caching, and Zod validation.
-sidebar:
-  order: 4
 ---
 
 # Server Functions

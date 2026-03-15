@@ -1,8 +1,6 @@
 ---
 title: Routing
 description: File-system routing, layouts, dynamic segments, middleware, and API routes.
-sidebar:
-  order: 3
 ---
 
 # Routing

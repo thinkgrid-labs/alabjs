@@ -1,8 +1,6 @@
 ---
 title: Data Fetching
 description: Fetch server data in components with useServerData and Suspense.
-sidebar:
-  order: 1
 ---
 
 AlabJS fetches data through server functions — typed TypeScript functions that run on the server and are automatically called from the client via a type-safe RPC layer. There is no `fetch`, no REST endpoints to define, and no `useEffect` data fetching.

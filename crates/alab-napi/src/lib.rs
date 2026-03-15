@@ -13,9 +13,10 @@ use alab_router::scan_routes;
 /// Compile a TypeScript / TSX source string to JavaScript.
 ///
 /// Returns a JSON string `{ code: string, map: string | null }`.
+/// Pass `source_map: true` to include a VLQ source map in `map`.
 #[napi]
-pub fn compile_source(source: String, filename: String, minify: bool) -> napi::Result<String> {
-    let opts = CompileOptions { filename, source_map: false, minify };
+pub fn compile_source(source: String, filename: String, minify: bool, source_map: bool) -> napi::Result<String> {
+    let opts = CompileOptions { filename, source_map, minify };
     let output = compile(&source, &opts)
         .map_err(|e| napi::Error::from_reason(e.to_string()))?;
     serde_json::to_string(&output)

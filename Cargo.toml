@@ -23,6 +23,7 @@ oxc_span = "0.119"
 oxc_transformer = "0.119"
 oxc_codegen = "0.119"
 oxc_semantic = "0.119"
+oxc_sourcemap = "6"
 
 # napi-rs
 napi = { version = "2", features = ["napi8"] }

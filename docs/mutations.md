@@ -1,8 +1,6 @@
 ---
 title: Mutations
 description: Write data with useMutation — loading, error, and optimistic update state included.
-sidebar:
-  order: 2
 ---
 
 Mutations are server functions called in response to user actions — form submissions, button clicks, drag-and-drop reorders. AlabJS's `useMutation` hook wraps a server function and tracks its loading, error, and return value state.

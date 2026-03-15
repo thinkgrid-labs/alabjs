@@ -1,8 +1,6 @@
 ---
 title: "Guide: Building a SPA"
 description: Build a client-rendered single-page application with AlabJS — no server required.
-sidebar:
-  order: 1
 ---
 
 # Building a SPA with AlabJS

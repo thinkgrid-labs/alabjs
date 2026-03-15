@@ -1,8 +1,6 @@
 ---
 title: Signals
 description: Fine-grained reactive state with signal(), useSignal(), and useSignalValue().
-sidebar:
-  order: 1
 ---
 
 AlabJS ships a tiny, framework-agnostic signal primitive built on `useSyncExternalStore`. Signals give you **cell-level reactivity** — only the component that reads a signal re-renders when it changes. No context, no prop drilling, no global store boilerplate.

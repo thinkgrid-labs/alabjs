@@ -10,6 +10,20 @@ interface AlabPluginOptions {
 }
 
 const VIRTUAL_CLIENT_ID = "/@alabjs/client";
+const VIRTUAL_REFRESH_ID = "/@react-refresh";
+
+/**
+ * Preamble injected into every HTML page in dev mode.
+ * Sets up the global $RefreshReg$ / $RefreshSig$ hooks that the Rust
+ * compiler (oxc_transformer enable_all) writes calls to in every TSX file.
+ */
+const REACT_REFRESH_PREAMBLE = `
+import RefreshRuntime from "${VIRTUAL_REFRESH_ID}";
+RefreshRuntime.injectIntoGlobalHook(window);
+window.$RefreshReg$ = () => {};
+window.$RefreshSig$ = () => (type) => type;
+window.__vite_plugin_react_preamble_installed__ = true;
+`.trimStart();
 
 /**
  * Alab Vite Plugin
@@ -43,10 +57,15 @@ export function alabPlugin(options: AlabPluginOptions = {}): Plugin[] {
 
     resolveId(id): string | null {
       if (id === VIRTUAL_CLIENT_ID) return VIRTUAL_CLIENT_ID;
+      if (id === VIRTUAL_REFRESH_ID) return VIRTUAL_REFRESH_ID;
       return null;
     },
 
     load(id): string | null {
+      if (id === VIRTUAL_REFRESH_ID) {
+        // Re-export the react-refresh runtime so the preamble can import it.
+        return `export { default } from "react-refresh/runtime";\n`;
+      }
       if (id !== VIRTUAL_CLIENT_ID) return null;
 
       // This module is injected into every page as `<script type="module" src="/@alabjs/client">`.
@@ -226,6 +245,13 @@ if (import.meta.env.DEV) {
 `.trimStart();
     },
 
+    transformIndexHtml(html, ctx) {
+      // Inject the react-refresh preamble only in dev (SSR has no window).
+      if (ctx.server == null) return html; // production build — skip
+      const preambleTag = `<script type="module">\n${REACT_REFRESH_PREAMBLE}</script>`;
+      return html.replace(/(<head[^>]*>)/i, `$1\n${preambleTag}`);
+    },
+
     async transform(
       code,
       id,
@@ -279,9 +305,11 @@ if (import.meta.env.DEV) {
       // Catch errors and attach source location so Vite's overlay shows
       // the exact line/column instead of a raw stack trace.
       const minify = options.mode === "build";
+      // Emit source maps in dev mode so browser devtools map to original TS/TSX.
+      const sourceMap = !minify;
       let outputJson: string;
       try {
-        outputJson = napi.compileSource(code, id, minify);
+        outputJson = napi.compileSource(code, id, minify, sourceMap);
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         const loc = parseErrorLocation(message, id);
@@ -289,7 +317,23 @@ if (import.meta.env.DEV) {
       }
       const output = JSON.parse(outputJson!) as { code: string; map: string | null };
 
-      return { code: output.code, map: output.map ?? null };
+      let finalCode = output.code;
+
+      // In dev mode, append the react-refresh HMR accept footer to TSX files.
+      // This tells Vite the module self-accepts so hot updates stay component-
+      // level instead of propagating to a full page reload.
+      // The $RefreshReg$ / $RefreshSig$ calls are already emitted by the Rust
+      // compiler (oxc_transformer::enable_all includes the react-refresh pass).
+      if (!minify && /\.tsx$/.test(id)) {
+        finalCode +=
+          `\nimport __RefreshRuntime__ from "${VIRTUAL_REFRESH_ID}";` +
+          `\nif (import.meta.hot) {` +
+          `\n  import.meta.hot.accept();` +
+          `\n  __RefreshRuntime__.performReactRefresh();` +
+          `\n}`;
+      }
+
+      return { code: finalCode, map: output.map ?? null };
     },
   };
 

@@ -1,0 +1,29 @@
+---
+layout: home
+
+hero:
+  name: "🔥 AlabJS"
+  text: "React framework with a Rust core."
+  tagline: 95+ Lighthouse. Zero config. Full-stack TypeScript.
+  actions:
+    - theme: brand
+      text: Get Started
+      link: /installation
+    - theme: alt
+      text: Introduction
+      link: /introduction
+
+features:
+  - title: Rust-powered compiler
+    details: oxc 0.119 compiles TypeScript and JSX 5–10× faster than esbuild. Server/client boundary violations caught at build time.
+  - title: Secure by default
+    details: Security headers, CSRF protection, and server/client code isolation — on every project, without writing a single line of config.
+  - title: Zero-config SSR + CSR
+    details: Pages render on the client by default. Add `export const ssr = true` to any page for full server-side rendering.
+  - title: File-system routing
+    details: Drop a `page.tsx` and get a route. Layouts, loading states, error boundaries, and API routes all follow the same convention.
+  - title: Server Functions
+    details: Define `defineServerFn` in `.server.ts` files. The Rust compiler strips them from the browser bundle and generates type-safe fetch stubs.
+  - title: Built-in image optimization
+    details: The `<Image>` component converts to WebP, generates responsive `srcset`, and lazy-loads by default — powered by the same Rust binary.
+---

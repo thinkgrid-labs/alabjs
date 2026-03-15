@@ -1,8 +1,6 @@
 ---
 title: CLI
 description: All alabjs CLI commands and flags.
-sidebar:
-  order: 7
 ---
 
 The `alabjs` CLI is installed locally in your project. Run it via your package manager's script runner or `node_modules/.bin/alabjs`.
