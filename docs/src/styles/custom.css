@@ -1,5 +1,29 @@
 :root {
   --sl-color-accent-low: #331100;
-  --sl-color-accent: #f97316; /* Tailwind orange-500 */
+  --sl-color-accent: #f97316;
+  /* Tailwind orange-500 */
   --sl-color-accent-high: #ff9966;
+}
+
+[data-theme='light'] {
+  --sl-color-accent-low: #ffedd5;
+  /* orange-100 */
+  --sl-color-accent: #f97316;
+  /* orange-500 */
+  --sl-color-accent-high: #7c2d12;
+  /* orange-900 */
+}
+
+/* Site title refinement */
+:root .site-title,
+:root .site-title:hover {
+  color: #18181b !important;
+  /* zinc-900 */
+  text-decoration: none;
+  font-weight: 700;
+}
+
+[data-theme='dark'] .site-title,
+[data-theme='dark'] .site-title:hover {
+  color: #ffffff !important;
 }
