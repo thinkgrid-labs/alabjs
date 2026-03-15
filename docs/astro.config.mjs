@@ -10,10 +10,6 @@ export default defineConfig({
     starlight({
       title: "Alab",
       description: "The blazing-fast React framework with a Rust core.",
-      logo: {
-        alt: "Alab",
-        replacesTitle: false,
-      },
       social: {
         github: "https://github.com/alab-framework/alab",
       },
