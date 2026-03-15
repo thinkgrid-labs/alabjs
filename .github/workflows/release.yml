@@ -138,7 +138,7 @@ jobs:
           npm version $VERSION --no-git-tag-version --allow-same-version
 
       - name: Build TypeScript packages
-        run: pnpm build
+        run: pnpm run build:packages
 
       - name: Publish @alabjs/compiler
         if: ${{ !inputs.dry_run }}
