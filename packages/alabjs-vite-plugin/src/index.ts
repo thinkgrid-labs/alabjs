@@ -4,6 +4,7 @@ import { parseErrorLocation, formatBoundaryError } from "./overlay.js";
 import { devToolbarScript } from "./devtools.js";
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
+import { dirname } from "node:path";
 
 interface AlabPluginOptions {
   /** "dev" (default) or "build" */
@@ -12,6 +13,12 @@ interface AlabPluginOptions {
 
 const VIRTUAL_CLIENT_ID = "/@alabjs/client";
 const VIRTUAL_REFRESH_ID = "/@react-refresh";
+
+// Resolve react-refresh from the plugin's own node_modules so consumers
+// don't need to install it. We alias the package root (not runtime directly)
+// so Vite's dep optimizer can pre-bundle it as proper ESM.
+const _require = createRequire(import.meta.url);
+const REACT_REFRESH_PKG_DIR = dirname(_require.resolve("react-refresh/package.json"));
 
 /**
  * Preamble injected into every HTML page in dev mode.
@@ -49,6 +56,15 @@ export function alabPlugin(options: AlabPluginOptions = {}): Plugin[] {
         // VITE_* is kept for backwards-compatibility with vanilla Vite projects.
         // Everything else (ALAB_REVALIDATE_SECRET, ALAB_CDN, etc.) stays server-only.
         envPrefix: ["VITE_", "ALAB_PUBLIC_"],
+        // Alias react-refresh to the plugin's own copy so consumers don't need
+        // to install it. optimizeDeps.include ensures Vite pre-bundles it as
+        // proper ESM (CJS→ESM interop), giving us a valid `default` export.
+        resolve: {
+          alias: { "react-refresh": REACT_REFRESH_PKG_DIR },
+        },
+        optimizeDeps: {
+          include: ["react-refresh"],
+        },
       };
     },
 
@@ -74,6 +90,9 @@ export function alabPlugin(options: AlabPluginOptions = {}): Plugin[] {
     load(id): string | null {
       if (id === VIRTUAL_REFRESH_ID) {
         // Re-export the react-refresh runtime so the preamble can import it.
+        // Use bare specifier so Vite's dep optimizer (pre-bundler) handles the
+        // CJS→ESM conversion. The resolve.alias above points react-refresh to
+        // the plugin's own copy, so consumers don't need it installed.
         return `export { default } from "react-refresh/runtime";\n`;
       }
       if (id !== VIRTUAL_CLIENT_ID) return null;
@@ -123,6 +142,7 @@ let alabRoot = null;
 
 const routeFile = meta("alabjs-route");
 const ssrEnabled = meta("alabjs-ssr") === "true";
+const isFullDocument = meta("alabjs-full-document") === "true";
 const params = JSON.parse(meta("alabjs-params") || "{}");
 const searchParams = JSON.parse(meta("alabjs-search-params") || "{}");
 const layoutFiles = JSON.parse(meta("alabjs-layouts") || "[]");
@@ -134,13 +154,18 @@ const currentBuildId = meta("alabjs-build-id");
 if (routeFile) {
   const app = await buildApp(routeFile, layoutFiles, loadingFile, params, searchParams);
   if (app) {
-    const root = document.getElementById("alabjs-root");
-    if (root) {
-      if (ssrEnabled && root.hasChildNodes()) {
-        alabRoot = hydrateRoot(root, app);
-      } else {
-        alabRoot = createRoot(root);
-        alabRoot.render(app);
+    if (isFullDocument) {
+      // Layout returns <html> — mount on document itself, no shell div needed.
+      alabRoot = hydrateRoot(document, app);
+    } else {
+      const root = document.getElementById("alabjs-root");
+      if (root) {
+        if (ssrEnabled && root.hasChildNodes()) {
+          alabRoot = hydrateRoot(root, app);
+        } else {
+          alabRoot = createRoot(root);
+          alabRoot.render(app);
+        }
       }
     }
   }

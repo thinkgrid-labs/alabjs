@@ -181,7 +181,7 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
             found = true;
             const url = new URL(rawUrl, `http://${host}:${port}`);
             const params = Object.fromEntries(url.searchParams.entries());
-            const input = req.method === "POST" ? await readJsonBody(req) : undefined;
+            const input = req.method === "POST" ? await readJsonBody(req) : (Object.keys(params).length ? params : undefined);
             const ctx = {
               params,
               query: params,
@@ -205,7 +205,8 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
                 res.statusCode = 500;
                 res.setHeader("content-type", "application/json");
                 const msg = err instanceof Error ? err.message : String(err);
-              res.end(JSON.stringify({ error: msg }));
+                console.error(`[alabjs] server fn "${fnName}" threw:`, err);
+                res.end(JSON.stringify({ error: msg }));
               }
             }
             break;
@@ -302,8 +303,12 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
       }
 
       // ── API routes (route.ts) ─────────────────────────────────────────────────
+      // Browser navigations (Accept: text/html) skip API routing so a path can
+      // serve both a React page AND an API endpoint (e.g. /activity as a page
+      // and GET /activity as an SSE stream).
+      const wantsHtml = (req.headers["accept"] ?? "").includes("text/html");
       const apiRoutes = scanDevApiRoutes(appDir);
-      const matchedApi = matchDevApiRoute(apiRoutes, pathname);
+      const matchedApi = !wantsHtml ? matchDevApiRoute(apiRoutes, pathname) : null;
       if (matchedApi) {
         const apiMod = await vite.ssrLoadModule(matchedApi.route.file) as Record<string, unknown>;
         const method = (req.method ?? "GET").toUpperCase();
@@ -359,7 +364,6 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
 
       // ── Not-found page ────────────────────────────────────────────────────────
       if (!matched) {
-        const wantsHtml = (req.headers["accept"] ?? "").includes("text/html");
         if (!wantsHtml) return next();
 
         const notFoundFile = resolve(appDir, "not-found.tsx");
@@ -400,7 +404,7 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
       const mod = await vite.ssrLoadModule(route.file) as {
         default?: unknown;
         metadata?: PageMetadata;
-        generateMetadata?: (params: Record<string, string>) => PageMetadata | Promise<PageMetadata>;
+        generateMetadata?: (ctx: { params: Record<string, string> }) => PageMetadata | Promise<PageMetadata>;
         ssr?: boolean;
         /** ISR: seconds before a cached page is considered stale. Omit to disable caching. */
         revalidate?: number;
@@ -415,7 +419,7 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
       // Support both static `export const metadata` and dynamic `export async function generateMetadata`.
       const metadata: PageMetadata =
         typeof mod.generateMetadata === "function"
-          ? await mod.generateMetadata(params)
+          ? await mod.generateMetadata({ params })
           : (mod.metadata ?? {});
 
       // Make the server's base URL available to useServerData during SSR,

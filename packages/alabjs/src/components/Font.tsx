@@ -94,7 +94,7 @@ export function Font(props: FontProps) {
   // Return nothing in production — self-hosted fonts are injected by the build.
   // This must be checked before building the URL so the server and client
   // always produce identical output (both null in prod, both links in dev).
-  if (!import.meta.env.DEV) return null;
+  if (!import.meta.env?.DEV) return null;
 
   const href = buildGoogleFontsUrl(props);
 

@@ -15,10 +15,6 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         `}</style>
       </head>
       <body>
-        <nav>
-          <a href="/">Home</a>
-          <a href="/posts">Posts</a>
-        </nav>
         <AlabProvider fallback={<p>Loading…</p>}>{children}</AlabProvider>
         <Analytics />
       </body>
