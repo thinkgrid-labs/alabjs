@@ -19,7 +19,7 @@ export function devToolbarScript(): string {
   const meta = (n) =>
     document.querySelector('meta[name="' + n + '"]')?.getAttribute('content') ?? '';
 
-  const routeFile  = meta('alabjs-route-file') || '(unknown)';
+  const routeFile  = meta('alabjs-route') || '(unknown)';
   const isSSR      = meta('alabjs-ssr') === 'true';
   const isPPR      = document.querySelector('meta[name="alabjs-ppr"]') !== null;
   const buildId    = meta('alabjs-build-id') || 'dev';

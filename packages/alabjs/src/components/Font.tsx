@@ -82,10 +82,20 @@ function buildGoogleFontsUrl(props: FontProps): string {
 /**
  * Renders the `<link>` tags needed to load a Google Font.
  *
- * In production (`alab build --self-host-fonts`), the alab Vite plugin
- * replaces this with self-hosted CSS so no Google request is made.
+ * Only active in development (Vite dev server). In production (`alab build`),
+ * the build step self-hosts the font files, so this component renders nothing.
+ * Gating on `import.meta.env.DEV` ensures the server and client always agree:
+ * both render the links in dev, both render nothing in production — preventing
+ * a hydration mismatch that occurs when the server loads the pre-built dist
+ * (where `import.meta.env.DEV` is `false`) while the client gets live Vite
+ * processing (where it is `true`).
  */
 export function Font(props: FontProps) {
+  // Return nothing in production — self-hosted fonts are injected by the build.
+  // This must be checked before building the URL so the server and client
+  // always produce identical output (both null in prod, both links in dev).
+  if (!import.meta.env.DEV) return null;
+
   const href = buildGoogleFontsUrl(props);
 
   return (

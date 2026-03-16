@@ -1,8 +1,7 @@
-import { useEffect, type HTMLAttributes } from "react";
+import { useEffect, type HTMLAttributes, type ReactNode } from "react";
 
-export interface ScriptProps extends Omit<HTMLAttributes<HTMLScriptElement>, "src"> {
-  /** URL of the external script to load. */
-  src: string;
+/** Props shared by both external-src and inline-children variants. */
+interface ScriptBaseProps extends Omit<HTMLAttributes<HTMLScriptElement>, "src"> {
   /**
    * Loading strategy:
    * - `"beforeInteractive"` — injected into `<head>` during SSR; blocks page rendering.
@@ -13,11 +12,26 @@ export interface ScriptProps extends Omit<HTMLAttributes<HTMLScriptElement>, "sr
    *   Best for low-priority scripts like A/B testing, heatmaps, social embeds.
    */
   strategy?: "beforeInteractive" | "afterInteractive" | "lazyOnload";
-  /** Called once the script has loaded successfully. */
+  /** Called once the script has loaded successfully (external scripts only). */
   onLoad?: () => void;
-  /** Called if the script fails to load. */
+  /** Called if the script fails to load (external scripts only). */
   onError?: () => void;
 }
+
+/** External script variant — `src` is required and `children` must be absent. */
+interface ExternalScriptProps extends ScriptBaseProps {
+  /** URL of the external script to load. */
+  src: string;
+  children?: never;
+}
+
+/** Inline script variant — `children` contains the script body; `src` must be absent. */
+interface InlineScriptProps extends ScriptBaseProps {
+  src?: never;
+  children: ReactNode;
+}
+
+export type ScriptProps = ExternalScriptProps | InlineScriptProps;
 
 /**
  * Load a third-party script with strategy control.
@@ -40,8 +54,35 @@ export function Script({
   strategy = "afterInteractive",
   onLoad,
   onError,
+  children,
   ...rest
 }: ScriptProps) {
+  // ── Inline script: render <script>{children}</script> directly ──────────────
+  // Inline scripts have no loading strategy — they are always rendered as-is.
+  // For SSR (beforeInteractive) they land in the HTML stream; for client
+  // renders they are injected once via useEffect.
+  if (!src) {
+    if (strategy === "beforeInteractive") {
+      if (typeof window !== "undefined") return null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return <script {...(rest as any)}>{children}</script>;
+    }
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useEffect(() => {
+      const el = document.createElement("script");
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      if (typeof children === "string") el.textContent = children;
+      for (const [k, v] of Object.entries(rest)) {
+        if (typeof v === "string") el.setAttribute(k, v);
+      }
+      document.head.appendChild(el);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    return null;
+  }
+
+  // ── External script ─────────────────────────────────────────────────────────
+
   // `beforeInteractive` is handled at SSR time by rendering a real <script> tag.
   // The component returns null on the client to avoid duplicate injection.
   if (strategy === "beforeInteractive") {

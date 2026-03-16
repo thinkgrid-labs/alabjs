@@ -8,7 +8,7 @@ import {
   findLayoutFiles, findErrorFile, findLoadingFile,
   scanDevApiRoutes, matchDevApiRoute,
 } from "../ssr/router-dev.js";
-import { htmlShellBefore, htmlShellAfter } from "../ssr/html.js";
+import { htmlShellBefore, htmlShellAfter, injectIntoFullDocument } from "../ssr/html.js";
 import { generateSitemap } from "../server/sitemap.js";
 import { handleImageRequest } from "../server/image.js";
 import type { MiddlewareModule } from "../server/middleware.js";
@@ -216,6 +216,32 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
           res.setHeader("content-type", "application/json");
           res.end(JSON.stringify({ error: `[alabjs] server function not found: ${fnName}` }));
         }
+        return;
+      }
+
+      // ── /_alabjs/vitals — Core Web Vitals beacon from <Analytics> component ───
+      if (pathname === "/_alabjs/vitals") {
+        if (req.method === "OPTIONS") {
+          res.setHeader("access-control-allow-origin", "*");
+          res.setHeader("access-control-allow-methods", "POST, OPTIONS");
+          res.setHeader("access-control-allow-headers", "content-type");
+          res.statusCode = 204;
+          res.end();
+          return;
+        }
+        if (req.method !== "POST") {
+          res.statusCode = 405;
+          res.setHeader("allow", "POST");
+          res.end();
+          return;
+        }
+        // Silently accept the beacon — dev mode doesn't aggregate metrics.
+        const vitalsBody = await readJsonBody(req);
+        console.debug("[alabjs] vitals beacon:", vitalsBody);
+        res.setHeader("access-control-allow-origin", "*");
+        res.setHeader("content-type", "application/json");
+        res.statusCode = 200;
+        res.end(JSON.stringify({ ok: true }));
         return;
       }
 
@@ -492,19 +518,29 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
 
       // ── Render helper (used for both fresh render + background revalidation) ─
       const revalidateSecs = typeof mod.revalidate === "number" ? mod.revalidate : null;
+      // Detect whether the SSR output is a full document (layout returns <html>).
+      // In that case we inject the alab meta tags and client script directly into
+      // the user-controlled <head>/<body> rather than wrapping in the shell div,
+      // which would produce invalid "html cannot be child of div" nesting.
+      const isFullDocument = ssrEnabled && ssrContent.trimStart().toLowerCase().startsWith("<html");
+      const shellOpts = {
+        paramsJson: JSON.stringify(params),
+        searchParamsJson: JSON.stringify(searchParams),
+        routeFile,
+        layoutsJson,
+        loadingFile,
+        ssr: ssrEnabled,
+        buildId: devBuildId,
+      };
       const renderPageHtml = async (): Promise<string> => {
-        const shellBefore = htmlShellBefore({
-          metadata,
-          paramsJson: JSON.stringify(params),
-          searchParamsJson: JSON.stringify(searchParams),
-          routeFile,
-          layoutsJson,
-          loadingFile,
-          ssr: ssrEnabled,
-          buildId: devBuildId,
-        });
-        const shellAfter = htmlShellAfter({});
-        const rawHtml = `${shellBefore}${ssrContent}${shellAfter}`;
+        let rawHtml: string;
+        if (isFullDocument) {
+          rawHtml = injectIntoFullDocument(ssrContent, shellOpts);
+        } else {
+          const shellBefore = htmlShellBefore({ metadata, headExtra: undefined, ...shellOpts });
+          const shellAfter = htmlShellAfter({});
+          rawHtml = `${shellBefore}${ssrContent}${shellAfter}`;
+        }
         return vite.transformIndexHtml(pathname, rawHtml);
       };
 

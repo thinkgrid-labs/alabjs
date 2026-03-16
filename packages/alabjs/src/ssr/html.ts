@@ -101,6 +101,61 @@ export function htmlShellAfter(opts: { nonce?: string | undefined }): string {
 </html>`;
 }
 
+/**
+ * Build just the alab `<meta>` tags used for client hydration.
+ * Used when the page component renders a full `<html>` document so the tags
+ * can be injected into the user-controlled `<head>` rather than the shell.
+ */
+export function buildAlabMetaTags(opts: Omit<HtmlShellOptions, "metadata" | "headExtra">): string {
+  const { routeFile, ssr, paramsJson, searchParamsJson, layoutsJson, loadingFile, buildId } = opts;
+  return [
+    `<meta name="alabjs-route" content="${escAttr(routeFile)}" />`,
+    `<meta name="alabjs-ssr" content="${ssr ? "true" : "false"}" />`,
+    `<meta name="alabjs-params" content="${escAttr(paramsJson)}" />`,
+    `<meta name="alabjs-search-params" content="${escAttr(searchParamsJson)}" />`,
+    layoutsJson ? `<meta name="alabjs-layouts" content="${escAttr(layoutsJson)}" />` : "",
+    loadingFile ? `<meta name="alabjs-loading" content="${escAttr(loadingFile)}" />` : "",
+    buildId ? `<meta name="alabjs-build-id" content="${escAttr(buildId)}" />` : "",
+    // Signal to the client bootstrap that it must use hydrateRoot(document, …)
+    // instead of mounting into <div id="alabjs-root">.
+    `<meta name="alabjs-full-document" content="true" />`,
+  ].filter(Boolean).join("\n    ");
+}
+
+/**
+ * Inject alab hydration meta tags and the client bootstrap script into a
+ * full-document SSR string (i.e. one whose root element is `<html>`).
+ *
+ * The meta tags are appended before `</head>` and the client script before
+ * `</body>`.  If neither marker is found the strings are appended verbatim.
+ */
+export function injectIntoFullDocument(
+  ssrHtml: string,
+  opts: Omit<HtmlShellOptions, "metadata" | "headExtra">,
+): string {
+  const metaTags = buildAlabMetaTags(opts);
+  const nonceAttr = opts.nonce ? ` nonce="${escAttr(opts.nonce)}"` : "";
+  const clientScript = `<script type="module" src="/@alabjs/client"${nonceAttr}></script>`;
+
+  let result = ssrHtml;
+
+  // Inject meta tags before </head> (case-insensitive).
+  if (/<\/head>/i.test(result)) {
+    result = result.replace(/<\/head>/i, `  ${metaTags}\n  </head>`);
+  } else {
+    result = metaTags + "\n" + result;
+  }
+
+  // Inject client bootstrap script before </body>.
+  if (/<\/body>/i.test(result)) {
+    result = result.replace(/<\/body>/i, `  ${clientScript}\n  </body>`);
+  } else {
+    result = result + "\n" + clientScript;
+  }
+
+  return result;
+}
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function escHtml(s: string): string {
