@@ -496,56 +496,39 @@ async function buildRouteManifest(cwd: string, distDir: string): Promise<RouteMa
 }
 
 /**
- * Build an SSR (Node.js) bundle for every route file listed in `manifest`,
- * outputting compiled modules to `distDir/server/` with the original
- * directory structure preserved.
+ * Compile all SSR route files to `distDir/server/` using esbuild's per-file
+ * transpilation mode.
  *
- * Each page/layout/error/loading/api/server file is compiled to a separate
- * `.js` module that the production server can `import()` at request time.
+ * We use esbuild directly (bundled with Vite) rather than a second viteBuild
+ * call because:
+ *  1. Preserves directory structure via `outbase` without needing
+ *     `preserveModules` (which hangs with some Rolldown versions).
+ *  2. `packages: "external"` externalizes all npm specifiers while inlining
+ *     local relative imports — avoids Node ESM extensionless-import failures.
+ *  3. Much faster: no second Vite startup overhead.
  */
 async function buildSsrBundle(cwd: string, distDir: string, manifest: RouteManifest): Promise<void> {
-  const routeFiles = manifest.routes.map((r) => resolve(cwd, r.file));
+  const entryFiles = manifest.routes.map((r) => resolve(cwd, r.file));
 
   // Include top-level middleware.ts if present.
   const middlewarePath = resolve(cwd, "middleware.ts");
-  if (existsSync(middlewarePath)) routeFiles.push(middlewarePath);
+  if (existsSync(middlewarePath)) entryFiles.push(middlewarePath);
 
-  if (routeFiles.length === 0) return;
+  if (entryFiles.length === 0) return;
 
-  // Rolldown multi-entry input: key = output path without extension, value = absolute source
-  const input: Record<string, string> = {};
-  for (const file of routeFiles) {
-    const key = relative(cwd, file).replace(/\.(tsx?)$/, "");
-    input[key] = file;
-  }
-
-  await viteBuild({
-    root: cwd,
-    plugins: [(await import("alabjs-vite-plugin")).alabPlugin({ mode: "build" })],
-    build: {
-      ssr: true,
-      outDir: resolve(distDir, "server"),
-      emptyOutDir: true,
-      rolldownOptions: {
-        input,
-        external: [
-          "react",
-          "react/jsx-runtime",
-          "react-dom",
-          "react-dom/client",
-          "react-dom/server",
-          "react-dom/server.node",
-          /^alabjs(\/.*)?$/,
-        ],
-        output: {
-          preserveModules: true,
-          // Strip the project root from output paths so files land at
-          // `server/app/posts/page.js` not `server/<absolute-cwd>/app/posts/page.js`.
-          preserveModulesRoot: cwd,
-        },
-      },
-    },
-    logLevel: "warn",
+  const { build: esbuild } = await import("esbuild");
+  await esbuild({
+    entryPoints: entryFiles,
+    outbase: cwd,      // preserve directory structure: app/page.tsx → server/app/page.js
+    outdir: resolve(distDir, "server"),
+    format: "esm",
+    platform: "node",
+    target: "node22",
+    bundle: true,      // bundle local imports (resolves extensionless paths)
+    packages: "external", // keep all npm specifiers (react, alabjs/*…) as-is
+    jsx: "automatic",
+    jsxImportSource: "react",
+    logLevel: "warning",
   });
 
   console.log("  alab  SSR bundle → .alabjs/dist/server");

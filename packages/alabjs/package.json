@@ -96,6 +96,7 @@
   "dependencies": {
     "h3": "^1.15.0",
     "vite": "^8.0.0",
+    "esbuild": "^0.25.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "alabjs-vite-plugin": "workspace:*"

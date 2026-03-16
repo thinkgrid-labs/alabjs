@@ -157,7 +157,14 @@ jobs:
       - name: Publish @alabjs/compiler
         if: ${{ !inputs.dry_run }}
         working-directory: crates/alab-napi
-        run: pnpm publish --access public --provenance --no-git-checks
+        run: |
+          PKG=$(node -e "process.stdout.write(require('./package.json').name)")
+          VERSION=$(node -e "process.stdout.write(require('./package.json').version)")
+          if npm view "${PKG}@${VERSION}" version 2>/dev/null | grep -qF "${VERSION}"; then
+            echo "Already published ${PKG}@${VERSION} — skipping."
+          else
+            pnpm publish --access public --provenance --no-git-checks
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -165,28 +172,56 @@ jobs:
       - name: Publish alabjs-vite-plugin
         if: ${{ !inputs.dry_run }}
         working-directory: packages/alabjs-vite-plugin
-        run: pnpm publish --access public --provenance --no-git-checks
+        run: |
+          PKG=$(node -e "process.stdout.write(require('./package.json').name)")
+          VERSION=$(node -e "process.stdout.write(require('./package.json').version)")
+          if npm view "${PKG}@${VERSION}" version 2>/dev/null | grep -qF "${VERSION}"; then
+            echo "Already published ${PKG}@${VERSION} — skipping."
+          else
+            pnpm publish --access public --provenance --no-git-checks
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish alabjs
         if: ${{ !inputs.dry_run }}
         working-directory: packages/alabjs
-        run: pnpm publish --access public --provenance --no-git-checks
+        run: |
+          PKG=$(node -e "process.stdout.write(require('./package.json').name)")
+          VERSION=$(node -e "process.stdout.write(require('./package.json').version)")
+          if npm view "${PKG}@${VERSION}" version 2>/dev/null | grep -qF "${VERSION}"; then
+            echo "Already published ${PKG}@${VERSION} — skipping."
+          else
+            pnpm publish --access public --provenance --no-git-checks
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish alabjs-sync
         if: ${{ !inputs.dry_run }}
         working-directory: packages/alabjs-sync
-        run: pnpm publish --access public --provenance --no-git-checks
+        run: |
+          PKG=$(node -e "process.stdout.write(require('./package.json').name)")
+          VERSION=$(node -e "process.stdout.write(require('./package.json').version)")
+          if npm view "${PKG}@${VERSION}" version 2>/dev/null | grep -qF "${VERSION}"; then
+            echo "Already published ${PKG}@${VERSION} — skipping."
+          else
+            pnpm publish --access public --provenance --no-git-checks
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish create-alabjs
         if: ${{ !inputs.dry_run }}
         working-directory: packages/create-alabjs
-        run: pnpm publish --access public --provenance --no-git-checks
+        run: |
+          PKG=$(node -e "process.stdout.write(require('./package.json').name)")
+          VERSION=$(node -e "process.stdout.write(require('./package.json').version)")
+          if npm view "${PKG}@${VERSION}" version 2>/dev/null | grep -qF "${VERSION}"; then
+            echo "Already published ${PKG}@${VERSION} — skipping."
+          else
+            pnpm publish --access public --provenance --no-git-checks
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
