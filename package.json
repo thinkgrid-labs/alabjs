@@ -13,7 +13,9 @@
     "build:packages": "pnpm --filter alabjs build && pnpm --filter alabjs-vite-plugin build",
     "dev:basic-ssr": "pnpm build:packages && cd examples/basic-ssr && node ../../packages/alabjs/dist/cli.js dev",
     "dev:dashboard": "pnpm build:packages && cd examples/dashboard-csr && node ../../packages/alabjs/dist/cli.js dev",
-    "version:sync": "node scripts/sync-version.mjs"
+    "version:sync": "node scripts/sync-version.mjs",
+    "test:e2e": "pnpm --filter alabjs-e2e test",
+    "test:e2e:ui": "pnpm --filter alabjs-e2e test:ui"
   },
   "devDependencies": {
     "turbo": "^2.5.0",

@@ -3,3 +3,4 @@ packages:
   - "examples/*"
   - "crates/alab-napi"
   - "docs"
+  - "e2e"

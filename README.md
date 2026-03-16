@@ -1,12 +1,15 @@
-# AlabJS
+# 🔥 AlabJS
 
-> *Filipino: alabjs — blaze, flame, burning passion*
+> *Filipino: alab — blaze, flame, burning passion*
+
+**Type-safe React, enforced by Rust.**
+*Blazing builds. Explicit boundaries. Any host.*
 
 > [!WARNING]
 > **AlabJS is under active development and not yet production-ready.**
 > APIs may change before v1.0. Feel free to explore, contribute, or star the repo.
 
-**AlabJS** is an open-source, full-stack React framework built for developers who want great results without wrestling their tools. It ships production-grade defaults — a Rust compiler, streaming SSR, security headers, image optimization, and Tailwind CSS — so you spend your time building features, not configuring pipelines.
+**AlabJS** is an open-source, full-stack React framework where the Rust compiler enforces server/client boundaries at build time — no accidental leaks, no guessing which code runs where. It ships production-grade defaults (streaming SSR, security headers, image optimization, CDN cache headers, analytics) so you spend your time building features, not configuring pipelines.
 
 ---
 
