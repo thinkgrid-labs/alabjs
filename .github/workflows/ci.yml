@@ -131,8 +131,6 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
-        with:
-          targets: x86_64-pc-windows-msvc
 
       - name: Cache Rust deps
         uses: Swatinem/rust-cache@v2
@@ -143,7 +141,7 @@ jobs:
         run: pnpm install --frozen-lockfile
 
       - name: Build napi binary (Windows)
-        run: cargo build --release --target x86_64-pc-windows-msvc -p alab-napi
+        run: cargo build --release -p alab-napi
 
       - name: Copy napi binary
         run: node scripts/copy-napi-binary.mjs
