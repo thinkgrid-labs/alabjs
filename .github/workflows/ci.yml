@@ -110,7 +110,52 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - run: cargo build --release -p alab-napi
-      - run: bash scripts/copy-napi-binary.sh
+      - run: node scripts/copy-napi-binary.mjs
       - run: pnpm run build:packages
       - run: pnpm install --frozen-lockfile
       - run: pnpm build
+
+  # ─── Windows compatibility ────────────────────────────────────────────────
+  windows-compat:
+    name: Windows compatibility
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+
+      - name: Cache Rust deps
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: windows-x86_64
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Build napi binary (Windows)
+        run: cargo build --release --target x86_64-pc-windows-msvc -p alab-napi
+
+      - name: Copy napi binary
+        run: node scripts/copy-napi-binary.mjs
+
+      - name: Build packages
+        run: pnpm run build:packages
+
+      - name: Re-install (picks up built packages)
+        run: pnpm install --frozen-lockfile
+
+      - name: TypeScript typecheck
+        run: pnpm typecheck
+
+      - name: Unit tests
+        run: pnpm test --filter alabjs --filter alabjs-vite-plugin
