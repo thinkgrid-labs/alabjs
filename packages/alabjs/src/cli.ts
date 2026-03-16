@@ -48,7 +48,9 @@ switch (command) {
     break;
   }
   case "start":
-    await import("./commands/start.js").then((m) => m.start({ cwd }));
+    await import("./commands/start.js").then((m) =>
+      m.start({ cwd, port: Number(values["port"]) }),
+    );
     break;
   case "info":
     await import("./commands/info.js").then((m) => m.info({ cwd }));
