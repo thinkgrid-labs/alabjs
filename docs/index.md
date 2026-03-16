@@ -4,7 +4,7 @@ layout: home
 hero:
   name: "🔥 AlabJS"
   text: "React framework with a Rust core."
-  tagline: 95+ Lighthouse. Zero config. Full-stack TypeScript.
+  tagline: Rust speed. Explicit boundaries. Any host.
   actions:
     - theme: brand
       text: Get Started
