@@ -30,11 +30,11 @@ Set variables in the Railway dashboard under your service → Variables. Railway
 # Railway dashboard variables
 NODE_ENV=production
 PUBLIC_URL=https://my-app.up.railway.app
-DATABASE_URL=${{Postgres.DATABASE_URL}}
+DATABASE_URL=postgres://user:pass@host/db
 ALAB_REVALIDATE_SECRET=your-secret
 ```
 
-Use Railway's reference syntax (`${{service.VAR}}`) to pull credentials from linked services like Postgres or Redis.
+Railway also supports reference variables — in the dashboard you can set a variable's value to point at another service's variable (e.g. linking a Postgres plugin's `DATABASE_URL` directly). See the Railway docs for reference syntax.
 
 ## Custom domain
 
