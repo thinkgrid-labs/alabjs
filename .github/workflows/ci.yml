@@ -156,4 +156,4 @@ jobs:
         run: pnpm typecheck
 
       - name: Unit tests
-        run: pnpm test --filter alabjs --filter alabjs-vite-plugin
+        run: pnpm --filter alabjs test && pnpm --filter alabjs-vite-plugin test
