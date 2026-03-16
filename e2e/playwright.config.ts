@@ -53,7 +53,7 @@ export default defineConfig({
       cwd: EXAMPLE_DIR,
       port: PROD_PORT,
       reuseExistingServer: !process.env["CI"],
-      timeout: 30_000,
+      timeout: process.env["CI"] ? 60_000 : 30_000,
       env: { NODE_ENV: "production" },
     },
   ],
