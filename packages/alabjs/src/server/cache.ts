@@ -28,7 +28,18 @@ interface CacheEntry {
 /** Sentinel value returned when a cache key has no valid entry. */
 const CACHE_MISS: unique symbol = Symbol("alab:cache_miss");
 
-/** Global in-process LRU-style cache. Shared across all server function calls. */
+/**
+ * Global in-process LRU cache. Shared across all server function calls.
+ *
+ * Max size is capped to prevent unbounded memory growth in long-running servers.
+ * When the cap is reached, the oldest entry (by insertion order) is evicted.
+ *
+ * ⚠️  Multi-tenant note: this cache is process-wide and shared across all
+ * requests. In multi-tenant deployments, cache keys MUST include a tenant
+ * identifier (e.g. `tenant:${tenantId}:posts`) to prevent data leakage
+ * between tenants.
+ */
+const _STORE_MAX = 2048;
 const _store = new Map<string, CacheEntry>();
 
 export { CACHE_MISS };
@@ -41,6 +52,9 @@ export function getCached(key: string): unknown | typeof CACHE_MISS {
     _store.delete(key);
     return CACHE_MISS;
   }
+  // Move to end (LRU: mark as recently used)
+  _store.delete(key);
+  _store.set(key, entry);
   return entry.data;
 }
 
@@ -50,6 +64,10 @@ export function setCache(
   data: unknown,
   opts: { ttl: number; tags?: string[] },
 ): void {
+  // Evict oldest entry when at capacity
+  if (_store.size >= _STORE_MAX && !_store.has(key)) {
+    _store.delete(_store.keys().next().value!);
+  }
   _store.set(key, {
     data,
     expires: Date.now() + opts.ttl * 1_000,
@@ -95,6 +113,7 @@ interface PageCacheEntry {
   tags: string[];
 }
 
+const _PAGE_STORE_MAX = 1024;
 const _pageStore = new Map<string, PageCacheEntry>();
 
 /**
@@ -118,6 +137,9 @@ export function getCachedPage(pathname: string): { html: string; stale: boolean 
 
 /** Store a rendered HTML page with a TTL (seconds). */
 export function setCachedPage(pathname: string, html: string, ttl: number, tags: string[] = []): void {
+  if (_pageStore.size >= _PAGE_STORE_MAX && !_pageStore.has(pathname)) {
+    _pageStore.delete(_pageStore.keys().next().value!);
+  }
   _pageStore.set(pathname, { html, expires: Date.now() + ttl * 1_000, ttl, revalidating: false, tags });
 }
 

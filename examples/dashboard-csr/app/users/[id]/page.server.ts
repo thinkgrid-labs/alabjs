@@ -1,7 +1,13 @@
 import { defineServerFn } from "alabjs/server";
 import type { User } from "../page.server";
 
-// In-memory store for demo — replace with DB
+// In-memory store — for demonstration only.
+// ⚠️  Do NOT use this pattern in production:
+//   • State is lost on every server restart.
+//   • Multiple server instances (horizontal scaling) will diverge immediately.
+//   • Concurrent toggleUserStatus calls can interleave without locking,
+//     producing inconsistent state under load.
+// Replace with a database (e.g. Postgres via Drizzle, Prisma, or raw sql).
 const USERS: Record<string, User> = {
   "1": { id: "1", name: "Maria Santos",   email: "maria@example.com",  role: "admin",  status: "active"   },
   "2": { id: "2", name: "Juan Dela Cruz",  email: "juan@example.com",   role: "member", status: "active"   },

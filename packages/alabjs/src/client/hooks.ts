@@ -19,7 +19,15 @@ function _cacheSet(key: string, value: Promise<unknown>): void {
   _promiseCache.set(key, value);
 }
 
-/** Clear the server-side promise cache between SSR renders. Called by alab's dev server. */
+/**
+ * Clear the server-side promise cache between SSR renders.
+ *
+ * @internal — Called by Alab's dev and production SSR entry points before each
+ * `renderToPipeableStream` call. If you build a custom SSR integration, you
+ * MUST call this before rendering each page; failing to do so causes stale
+ * promises from a previous request to be returned by `useServerData`, resulting
+ * in wrong data being served to subsequent visitors.
+ */
 export function _clearALabSSRCache(): void {
   _promiseCache.clear();
 }

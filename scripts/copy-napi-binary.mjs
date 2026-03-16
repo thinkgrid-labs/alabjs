@@ -4,10 +4,12 @@
 
 import { copyFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 const platform = process.platform; // 'darwin' | 'linux' | 'win32'
 const arch = process.arch;         // 'x64' | 'arm64'
-const root = new URL("..", import.meta.url).pathname.replace(/^\/([A-Z]:)/, "$1"); // fix Windows /C:/...
+// fileURLToPath handles Windows paths correctly (e.g. file:///C:/... → C:\...)
+const root = fileURLToPath(new URL("..", import.meta.url));
 
 const TARGET_DIR = resolve(root, "crates/alab-napi");
 

@@ -81,8 +81,12 @@ export async function handleVitalsBeacon(
  * GET /_alabjs/analytics
  *
  * Returns a JSON snapshot of all collected metrics.
- * Protected by Authorization: Bearer <ALAB_ANALYTICS_SECRET>.
+ * Always requires Authorization: Bearer <ALAB_ANALYTICS_SECRET>.
  * Falls back to ALAB_REVALIDATE_SECRET if ALAB_ANALYTICS_SECRET is unset.
+ *
+ * If neither env var is set the endpoint returns 401 — the endpoint is
+ * intentionally closed by default to prevent information leaks in production
+ * deployments that forget to set an analytics secret.
  */
 export function handleAnalyticsDashboard(
   req: IncomingMessage,
@@ -92,15 +96,16 @@ export function handleAnalyticsDashboard(
     process.env["ALAB_ANALYTICS_SECRET"] ??
     process.env["ALAB_REVALIDATE_SECRET"];
 
-  if (secret) {
-    const auth = req.headers["authorization"] ?? "";
-    const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
-    if (token !== secret) {
-      res.statusCode = 401;
-      res.setHeader("content-type", "application/json");
-      res.end(JSON.stringify({ error: "Unauthorized. Set Authorization: Bearer <ALAB_ANALYTICS_SECRET>." }));
-      return;
-    }
+  const auth = req.headers["authorization"] ?? "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+
+  if (!secret || token !== secret) {
+    res.statusCode = 401;
+    res.setHeader("content-type", "application/json");
+    res.end(JSON.stringify({
+      error: "Unauthorized. Set ALAB_ANALYTICS_SECRET and pass Authorization: Bearer <secret>.",
+    }));
+    return;
   }
 
   res.statusCode = 200;

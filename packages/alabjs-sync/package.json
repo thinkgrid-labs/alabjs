@@ -1,6 +1,6 @@
 {
   "name": "alabjs-sync",
-  "version": "0.2.6",
+  "version": "v0.3.0-alpha.1",
   "description": "Local-first sync engine adapters for AlabJS — ElectricSQL, PowerSync, PGlite",
   "keywords": [
     "react",
@@ -62,7 +62,7 @@
   "engines": {
     "node": ">=22"
   },
-   "repository": {
+  "repository": {
     "type": "git",
     "url": "https://github.com/thinkgrid-labs/alabjs.git"
   },

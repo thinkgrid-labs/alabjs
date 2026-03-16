@@ -64,6 +64,9 @@ jobs:
           - host: windows-latest
             target: x86_64-pc-windows-msvc
             build: cargo build --release --target x86_64-pc-windows-msvc -p alab-napi
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            build: cargo build --release --target x86_64-unknown-linux-musl -p alab-napi
 
     steps:
       - uses: actions/checkout@v4
@@ -204,3 +207,6 @@ jobs:
 
       - name: Unit tests
         run: pnpm --filter alabjs test && pnpm --filter alabjs-vite-plugin test
+
+      - name: Build examples (smoke test)
+        run: pnpm build

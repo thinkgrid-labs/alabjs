@@ -90,23 +90,30 @@ test.describe("production — analytics", () => {
 
   test("GET /_alabjs/analytics returns 401 without secret", async ({ request }) => {
     const res = await request.get("/_alabjs/analytics");
-    // 401 when ALAB_ANALYTICS_SECRET is set, 200 when unset (dev convenience)
-    expect([200, 401]).toContain(res.status());
+    // Analytics endpoint is always protected — 401 unless ALAB_ANALYTICS_SECRET is set
+    expect(res.status()).toBe(401);
   });
 
-  test("analytics records vitals and returns snapshot", async ({ request }) => {
+  test("analytics records vitals and returns snapshot when secret is set", async ({ request }) => {
+    const secret = process.env["ALAB_ANALYTICS_SECRET"];
+    if (!secret) {
+      // Skip if no secret configured — endpoint is intentionally closed
+      return;
+    }
+
     // Send a beacon
     await request.post("/_alabjs/vitals", {
       headers: { "content-type": "application/json" },
       data: { name: "FCP", value: 800, route: "/e2e-test" },
     });
 
-    // Read back (no secret set in test environment — open endpoint)
-    const snap = await request.get("/_alabjs/analytics");
-    if (snap.status() === 200) {
-      const body = await snap.json() as { routes: Record<string, { fcp_p75: number | null }> };
-      expect(body.routes["/e2e-test"]?.fcp_p75).toBe(800);
-    }
+    // Read back with valid secret
+    const snap = await request.get("/_alabjs/analytics", {
+      headers: { authorization: `Bearer ${secret}` },
+    });
+    expect(snap.status()).toBe(200);
+    const body = await snap.json() as { routes: Record<string, { fcp_p75: number | null }> };
+    expect(body.routes["/e2e-test"]?.fcp_p75).toBe(800);
   });
 });
 

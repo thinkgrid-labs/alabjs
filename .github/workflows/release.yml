@@ -20,9 +20,38 @@ env:
   RUST_BACKTRACE: 1
 
 jobs:
+  # ─── 0. Gate: run tests before any publish step ───────────────────────────
+  validate:
+    name: Validate (tests must pass before publish)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust deps
+        uses: Swatinem/rust-cache@v2
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Rust tests
+        run: cargo test --workspace
+
+      - name: TypeScript typecheck
+        run: pnpm typecheck
+
   # ─── 1. Build platform-native napi binaries ───────────────────────────────
   build-napi:
     name: Build napi binary (${{ matrix.settings.target }})
+    needs: validate
     runs-on: ${{ matrix.settings.host }}
     strategy:
       fail-fast: false
@@ -44,6 +73,10 @@ jobs:
             target: x86_64-pc-windows-msvc
             pkg: win32-x64-msvc
             binary: alab_napi.dll
+          - host: ubuntu-latest
+            target: x86_64-unknown-linux-musl
+            pkg: linux-x64-musl
+            binary: libalab_napi.so
 
     steps:
       - uses: actions/checkout@v4
@@ -85,7 +118,7 @@ jobs:
       id-token: write
     strategy:
       matrix:
-        pkg: [linux-x64-gnu, darwin-arm64, darwin-x64, win32-x64-msvc]
+        pkg: [linux-x64-gnu, linux-x64-musl, darwin-arm64, darwin-x64, win32-x64-msvc]
     steps:
       - uses: actions/checkout@v4
 
@@ -111,11 +144,17 @@ jobs:
         working-directory: crates/alab-napi/npm/${{ matrix.pkg }}
         run: |
           VERSION=${GITHUB_REF_NAME#v}
+          # Pre-release tags (e.g. v0.3.0-beta.1) publish to the "next" dist-tag.
+          if echo "$VERSION" | grep -qE '\-(alpha|beta|rc|next)'; then
+            NPM_TAG="next"
+          else
+            NPM_TAG="latest"
+          fi
           PKG=$(node -e "process.stdout.write(require('./package.json').name)")
           if npm view "${PKG}@${VERSION}" version 2>/dev/null | grep -qF "${VERSION}"; then
             echo "Already published ${PKG}@${VERSION} — skipping."
           else
-            npm publish --access public --provenance
+            npm publish --access public --provenance --tag "$NPM_TAG"
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -154,6 +193,16 @@ jobs:
       - name: Build TypeScript packages
         run: pnpm run build:packages
 
+      - name: Determine npm dist-tag
+        run: |
+          VERSION="${{ inputs.version }}"
+          if [ -z "$VERSION" ]; then VERSION="${GITHUB_REF_NAME#v}"; fi
+          if echo "$VERSION" | grep -qE '\-(alpha|beta|rc|next)'; then
+            echo "NPM_TAG=next" >> "$GITHUB_ENV"
+          else
+            echo "NPM_TAG=latest" >> "$GITHUB_ENV"
+          fi
+
       - name: Publish @alabjs/compiler
         if: ${{ !inputs.dry_run }}
         working-directory: crates/alab-napi
@@ -163,7 +212,7 @@ jobs:
           if npm view "${PKG}@${VERSION}" version 2>/dev/null | grep -qF "${VERSION}"; then
             echo "Already published ${PKG}@${VERSION} — skipping."
           else
-            pnpm publish --access public --provenance --no-git-checks
+            pnpm publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -178,7 +227,7 @@ jobs:
           if npm view "${PKG}@${VERSION}" version 2>/dev/null | grep -qF "${VERSION}"; then
             echo "Already published ${PKG}@${VERSION} — skipping."
           else
-            pnpm publish --access public --provenance --no-git-checks
+            pnpm publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -192,7 +241,7 @@ jobs:
           if npm view "${PKG}@${VERSION}" version 2>/dev/null | grep -qF "${VERSION}"; then
             echo "Already published ${PKG}@${VERSION} — skipping."
           else
-            pnpm publish --access public --provenance --no-git-checks
+            pnpm publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -206,7 +255,7 @@ jobs:
           if npm view "${PKG}@${VERSION}" version 2>/dev/null | grep -qF "${VERSION}"; then
             echo "Already published ${PKG}@${VERSION} — skipping."
           else
-            pnpm publish --access public --provenance --no-git-checks
+            pnpm publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
@@ -220,7 +269,7 @@ jobs:
           if npm view "${PKG}@${VERSION}" version 2>/dev/null | grep -qF "${VERSION}"; then
             echo "Already published ${PKG}@${VERSION} — skipping."
           else
-            pnpm publish --access public --provenance --no-git-checks
+            pnpm publish --access public --provenance --no-git-checks --tag "$NPM_TAG"
           fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

@@ -117,6 +117,16 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
       res.setHeader("referrer-policy", "strict-origin-when-cross-origin");
       res.setHeader("permissions-policy", "camera=(), microphone=(), geolocation=()");
       res.setHeader("x-permitted-cross-domain-policies", "none");
+      // NOTE: 'unsafe-inline' is required by React's inline event delegation and
+      // Tailwind's runtime style injection. 'unsafe-eval' is required by some
+      // React dev-mode internals and dynamic import().
+      //
+      // ⚠️  Security implication: these directives weaken XSS protection.
+      // In production, override this header in your middleware with a nonce-based
+      // CSP: `script-src 'self' 'nonce-<random>'` and inject the same nonce into
+      // every <script> tag via renderToResponse's headExtra option. The CSRF
+      // double-submit pattern relies on XSS prevention — using 'unsafe-inline'
+      // without a nonce makes the CSRF token readable by injected scripts.
       res.setHeader(
         "content-security-policy",
         [
@@ -142,9 +152,15 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
   // ─── User middleware (middleware.ts compiled to dist/server/middleware.js) ───
   const middlewareModulePath = `${distDir}/server/middleware.js`;
   if (existsSync(middlewareModulePath)) {
+    // Cache the module after first import — avoids redundant dynamic import()
+    // overhead on every request (each import() call re-resolves the module graph).
+    let _middlewareCache: MiddlewareModule | null = null;
     app.use(
       defineEventHandler(async (event) => {
-        const mod = await import(middlewareModulePath) as MiddlewareModule;
+        if (!_middlewareCache) {
+          _middlewareCache = await import(middlewareModulePath) as MiddlewareModule;
+        }
+        const mod = _middlewareCache;
         if (typeof mod.middleware !== "function") return;
         const req = event.node.req;
         const res = event.node.res;

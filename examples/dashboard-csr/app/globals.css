@@ -2,7 +2,7 @@
 
 /* Fade-in on every page load — no browser navigation API, no slide side-effects */
 #alab-root {
-  animation: page-enter 200ms ease-out both;
+  animation: page-enter 220ms ease-out both;
 }
 
 @keyframes page-enter {
