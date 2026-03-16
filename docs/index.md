@@ -3,7 +3,7 @@ layout: home
 
 hero:
   name: "🔥 AlabJS"
-  text: "Type-safe React, enforced by Rust."
+  text: "Type-safe React Framework, enforced by Rust."
   tagline: Blazing builds. Explicit boundaries. Any host.
   actions:
     - theme: brand

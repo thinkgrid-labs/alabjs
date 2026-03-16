@@ -2,7 +2,7 @@
 
 > *Filipino: alab — blaze, flame, burning passion*
 
-**Type-safe React, enforced by Rust.**
+**Type-safe React Framework, enforced by Rust.**
 *Blazing builds. Explicit boundaries. Any host.*
 
 > [!WARNING]
