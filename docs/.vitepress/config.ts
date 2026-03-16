@@ -94,6 +94,13 @@ export default defineConfig({
         ],
       },
       {
+        text: "Migration",
+        items: [
+          { text: "From Next.js", link: "/migration/from-nextjs" },
+          { text: "From TanStack Start", link: "/migration/from-tanstack-start" },
+        ],
+      },
+      {
         text: "Deployment",
         items: [
           { text: "Self-hosted Node.js", link: "/deployment/node" },

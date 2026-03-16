@@ -50,8 +50,8 @@ Call `revalidatePath` to force a specific path out of the cache before its TTL e
 import { defineServerFn } from "alabjs/server";
 import { revalidatePath } from "alabjs/cache";
 
-export const publishPost = defineServerFn(async ({ id }) => {
-  await db.posts.update({ where: { id }, data: { published: true } });
+export const publishPost = defineServerFn(async ({ id }: { id: string }) => {
+  await fetch(`https://api.example.com/posts/${id}/publish`, { method: "POST" });
 
   // Invalidate the blog index and the specific post page
   revalidatePath("/blog");

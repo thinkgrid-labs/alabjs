@@ -3,17 +3,20 @@ title: Data Fetching
 description: Fetch server data in components with useServerData and Suspense.
 ---
 
-AlabJS fetches data through server functions — typed TypeScript functions that run on the server and are automatically called from the client via a type-safe RPC layer. There is no `fetch`, no REST endpoints to define, and no `useEffect` data fetching.
+AlabJS fetches data through server functions — typed TypeScript functions that run on the server and are automatically called from the client via a type-safe RPC layer. There is no `useEffect` data fetching, no manual API wiring.
 
 ## Defining a server function for data
 
 ```ts
 // app/posts/page.server.ts
 import { defineServerFn } from "alabjs/server";
-import { db } from "../../db";
+
+type Post = { id: number; title: string; body: string };
 
 export const getPosts = defineServerFn(async () => {
-  return db.posts.findMany({ orderBy: { createdAt: "desc" } });
+  const res = await fetch("https://api.example.com/posts");
+  if (!res.ok) throw new Error("Failed to fetch posts");
+  return res.json() as Promise<Post[]>;
 });
 ```
 
@@ -51,16 +54,18 @@ function PostList() {
 
 ```ts
 // page.server.ts
-export const getPost = defineServerFn(async ({ slug }: { slug: string }) => {
-  return db.posts.findFirst({ where: { slug } });
+export const getPost = defineServerFn(async ({ id }: { id: string }) => {
+  const res = await fetch(`https://api.example.com/posts/${id}`);
+  if (!res.ok) throw new Error(`Post ${id} not found`);
+  return res.json() as Promise<Post>;
 });
 ```
 
 ```tsx
 // page.tsx
-function Post({ slug }: { slug: string }) {
-  const post = useServerData(getPost, { slug });
-  return <h1>{post?.title}</h1>;
+function Post({ id }: { id: string }) {
+  const post = useServerData(getPost, { id });
+  return <h1>{post.title}</h1>;
 }
 ```
 
@@ -73,14 +78,14 @@ When `export const ssr = true` is set on the page, `useServerData` runs on the s
 export const ssr = true;
 
 export default function PostsPage() {
-  const posts = useServerData(getPosts); // Runs on server during SSR
-  return <ul>{posts.map(...)}</ul>;
+  const posts = useServerData(getPosts); // runs on server during SSR
+  return <ul>{posts.map(p => <li key={p.id}>{p.title}</li>)}</ul>;
 }
 ```
 
 ## Error handling
 
-Errors thrown by server functions during data fetching are caught by the nearest error boundary. Add an `error.tsx` file next to the page to handle them:
+Errors thrown by server functions are caught by the nearest error boundary. Add an `error.tsx` file next to the page:
 
 ```tsx
 // app/posts/error.tsx
@@ -96,34 +101,72 @@ export default function PostsError({ error, reset }: { error: Error; reset: () =
 
 ## Parallel data fetching
 
-Fetch multiple data sets in parallel using `Promise.all` inside a server function, or by calling `useServerData` multiple times in different components within the same `<Suspense>` tree:
+Fetch multiple resources in parallel using `Promise.all` inside a single server function:
 
 ```ts
 // page.server.ts
-export const getPageData = defineServerFn(async ({ id }: { id: string }) => {
-  const [post, comments, related] = await Promise.all([
-    db.posts.findFirst({ where: { id } }),
-    db.comments.findMany({ where: { postId: id } }),
-    db.posts.findMany({ where: { category: "tech" }, take: 5 }),
+export const getPostWithComments = defineServerFn(async ({ id }: { id: string }) => {
+  const [post, comments] = await Promise.all([
+    fetch(`https://api.example.com/posts/${id}`).then(r => r.json()),
+    fetch(`https://api.example.com/posts/${id}/comments`).then(r => r.json()),
   ]);
-  return { post, comments, related };
+  return { post, comments };
+});
+```
+
+Or call `useServerData` in separate components within the same `<Suspense>` tree — React fires both requests concurrently:
+
+```tsx
+function PostPage({ id }: { id: string }) {
+  return (
+    <Suspense fallback={<Skeleton />}>
+      <PostBody id={id} />
+      <CommentList id={id} />
+    </Suspense>
+  );
+}
+```
+
+## Forwarding auth headers
+
+Pass credentials from the incoming request to your API inside the server context:
+
+```ts
+// page.server.ts
+export const getProfile = defineServerFn(async (_input, ctx) => {
+  const res = await fetch("https://api.example.com/me", {
+    headers: {
+      Authorization: ctx.headers["authorization"] ?? "",
+    },
+  });
+  if (res.status === 401) throw new Error("Unauthorized");
+  return res.json();
 });
 ```
 
 ## Caching and revalidation
 
-For pages where data doesn't change on every request, enable ISR:
+For data that doesn't change on every request, cache it at the server function level:
 
-```tsx
-// Cache the rendered HTML for 5 minutes
-export const revalidate = 300;
+```ts
+export const getPosts = defineServerFn(
+  async () => {
+    const res = await fetch("https://api.example.com/posts");
+    return res.json();
+  },
+  { cache: { ttl: 60, tags: ["posts"] } }, // cache 60 seconds
+);
 ```
 
-For server function-level caching, memoize the result inside the function using any in-memory or Redis cache.
+For page-level HTML caching, use ISR:
+
+```tsx
+export const revalidate = 300; // cache rendered HTML for 5 minutes
+```
 
 ## API Reference
 
-### `useServerData<T>(fn: ServerFn<void, T>, ...args): T`
+### `useServerData<T>(fn: ServerFn<void, T>): T`
 ### `useServerData<T, I>(fn: ServerFn<I, T>, input: I): T`
 
 React hook. Calls `fn` with `input` and returns the result. Suspends while pending. Uses React's cache for deduplication within a single render.
@@ -140,6 +183,5 @@ defineServerFn(async (input, ctx) => {
   // ctx.headers: Request headers
   // ctx.params: Route params
   // ctx.searchParams: URL search params
-  // ctx.publicDir: Path to the project's /public directory
 });
 ```

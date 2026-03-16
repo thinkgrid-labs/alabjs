@@ -14,11 +14,13 @@ Server functions are the primary way to run code on the server in AlabJS. They a
 import { defineServerFn } from "alabjs/server";
 
 export const getPosts = defineServerFn(async () => {
-  return db.posts.findAll();
+  const res = await fetch("https://api.example.com/posts");
+  return res.json() as Promise<{ id: number; title: string }[]>;
 });
 
-export const getPost = defineServerFn(async ({ params }) => {
-  return db.posts.findById(params.id);
+export const getPost = defineServerFn(async ({ id }: { id: string }) => {
+  const res = await fetch(`https://api.example.com/posts/${id}`);
+  return res.json() as Promise<{ id: number; title: string; body: string }>;
 });
 ```
 
@@ -28,13 +30,13 @@ export const getPost = defineServerFn(async ({ params }) => {
 
 ```tsx
 // app/posts/page.tsx
-import type { getPosts } from "./page.server";
+import { getPosts } from "./page.server";
 import { useServerData } from "alabjs/client";
 
 export const ssr = true; // render on server for SEO
 
 export default function PostsPage() {
-  const posts = useServerData<typeof getPosts>("getPosts");
+  const posts = useServerData(getPosts);
 
   return (
     <ul>
@@ -49,12 +51,11 @@ The return type of `getPosts` is inferred automatically. No manual type annotati
 ## Mutations: `useMutation`
 
 ```tsx
-import type { createPost } from "./page.server";
+import { createPost } from "./page.server";
 import { useMutation } from "alabjs/client";
 
 export default function NewPostForm() {
-  const { mutate, isPending, error, isSuccess, reset } =
-    useMutation<typeof createPost>("createPost");
+  const { mutate, isPending, error, isSuccess, reset } = useMutation(createPost);
 
   return (
     <form onSubmit={e => {
@@ -74,8 +75,8 @@ export default function NewPostForm() {
 ### Optimistic Updates
 
 ```tsx
-const { mutate, optimisticData } = useMutation<typeof toggleTodo>("toggleTodo", {
-  optimistic: (input) => ({ ...currentTodo, done: input.done }),
+const { mutate, optimisticData } = useMutation(toggleLike, {
+  optimistic: (input) => ({ ...currentPost, liked: input.liked }),
   onError: (_err, rollback) => rollback(),
 });
 ```
@@ -96,15 +97,20 @@ const CreatePostSchema = z.object({
 
 export const createPost = defineServerFn(
   CreatePostSchema,
-  async (_ctx, input) => {
-    return db.posts.create(input);
+  async (input) => {
+    const res = await fetch("https://api.example.com/posts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+    return res.json();
   },
 );
 ```
 
 ```tsx
 // On the client
-const { mutate, zodError, isInvalid } = useMutation<typeof createPost>("createPost");
+const { mutate, zodError, isInvalid } = useMutation(createPost);
 
 // zodError is the structured ZodError object when status === "invalid"
 ```
@@ -115,7 +121,10 @@ Server function results can be cached in-process. Nothing is cached unless you e
 
 ```ts
 export const getPopularPosts = defineServerFn(
-  async () => db.posts.findPopular(),
+  async () => {
+    const res = await fetch("https://api.example.com/posts?sort=popular");
+    return res.json();
+  },
   {
     cache: {
       ttl: 60,            // seconds
@@ -144,7 +153,10 @@ Every server function receives a context object as its first argument:
 ```ts
 export const getUser = defineServerFn(async ({ params, query, headers, method, url }) => {
   const token = headers["authorization"];
-  // ...
+  const res = await fetch("https://api.example.com/me", {
+    headers: { Authorization: token ?? "" },
+  });
+  return res.json();
 });
 ```
 

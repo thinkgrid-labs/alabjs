@@ -47,7 +47,8 @@ SSR pages:
 ```ts
 // app/posts/[id]/page.tsx
 export async function generateMetadata({ id }: { id: string }) {
-  const post = await db.posts.findById(id);
+  const res = await fetch(`https://api.example.com/posts/${id}`);
+  const post = await res.json();
   return {
     title: post.title,
     description: post.excerpt,
@@ -102,7 +103,8 @@ For dynamic routes, export `generateStaticParams`:
 ```ts
 // app/posts/[id]/page.tsx
 export async function generateStaticParams() {
-  const posts = await db.posts.findAll();
+  const res = await fetch("https://api.example.com/posts");
+  const posts = await res.json() as { id: number }[];
   return posts.map(p => ({ id: String(p.id) }));
 }
 ```

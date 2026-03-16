@@ -11,7 +11,6 @@ Mutations are server functions called in response to user actions — form submi
 // app/posts/page.server.ts
 import { defineServerFn } from "alabjs/server";
 import { z } from "zod";
-import { db } from "../../db";
 
 const CreatePostInput = z.object({
   title: z.string().min(1),
@@ -20,7 +19,13 @@ const CreatePostInput = z.object({
 
 export const createPost = defineServerFn(async (input) => {
   const { title, body } = CreatePostInput.parse(input);
-  return db.posts.create({ data: { title, body } });
+  const res = await fetch("https://api.example.com/posts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title, body }),
+  });
+  if (!res.ok) throw new Error("Failed to create post");
+  return res.json() as Promise<{ id: number; title: string }>;
 });
 ```
 
@@ -88,8 +93,12 @@ export const createPost = defineServerFn(async (input) => {
   if (!result.success) {
     return { errors: result.error.flatten().fieldErrors };
   }
-  const post = await db.posts.create({ data: result.data });
-  return { post };
+  const res = await fetch("https://api.example.com/posts", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(result.data),
+  });
+  return { post: await res.json() };
 });
 ```
 
@@ -137,6 +146,19 @@ export function LikeButton({ postId }: { postId: string }) {
     </button>
   );
 }
+```
+
+The mutation server function for the like toggle:
+
+```ts
+// page.server.ts
+export const toggleLike = defineServerFn(async ({ postId, liked }: { postId: string; liked: boolean }) => {
+  const res = await fetch(`https://api.example.com/posts/${postId}/like`, {
+    method: liked ? "POST" : "DELETE",
+  });
+  if (!res.ok) throw new Error("Failed to update like");
+  return res.json();
+});
 ```
 
 ## Offline support

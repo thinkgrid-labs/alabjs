@@ -1,6 +1,6 @@
 {
   "name": "alabjs-vite-plugin",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "Vite plugin that wires AlabJS's Rust compiler into the transform pipeline",
   "license": "MIT",
   "type": "module",
