@@ -24,6 +24,7 @@
  * ```
  */
 
+import { timingSafeEqual } from "node:crypto";
 import { revalidatePath, revalidatePathPrefix, revalidateTag } from "./cache.js";
 import { purgeCdnByTags } from "./cdn.js";
 
@@ -39,11 +40,22 @@ export interface RevalidateBody {
 /** Returns `true` when the request is authorised to call the revalidate endpoint. */
 export function checkRevalidateAuth(authorizationHeader: string | null | undefined): boolean {
   const secret = process.env["ALAB_REVALIDATE_SECRET"];
-  if (!secret) return true; // no secret configured — open endpoint
+  if (!secret) {
+    console.warn(
+      "[alabjs] WARNING: ALAB_REVALIDATE_SECRET is not set. " +
+      "The /_alabjs/revalidate endpoint accepts unauthenticated requests. " +
+      "Set this variable in production.",
+    );
+    return true;
+  }
   const provided = authorizationHeader?.startsWith("Bearer ")
     ? authorizationHeader.slice(7)
     : null;
-  return provided === secret;
+  return (
+    provided !== null &&
+    provided.length === secret.length &&
+    timingSafeEqual(Buffer.from(provided), Buffer.from(secret))
+  );
 }
 
 /**

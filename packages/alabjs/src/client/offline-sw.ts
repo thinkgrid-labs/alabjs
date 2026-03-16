@@ -127,6 +127,11 @@ async function replay() {
       // Still offline — leave in queue
     }
   }
+  // If all items were processed, notify pages the queue is empty.
+  const remaining = await getAllQueued();
+  if (remaining.length === 0) {
+    broadcast({ type: "ALAB_QUEUE_EMPTY" });
+  }
 }
 
 // ─── SW event listeners ───────────────────────────────────────────────────────
@@ -159,7 +164,7 @@ self.addEventListener("fetch", (event: SwFetchEvent) => {
         const fn = new URL(request.url).pathname.replace("/_alabjs/fn/", "");
         const body = await request.text();
         const item: QueuedMutation = {
-          id: `${fn}-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          id: `${fn}-${crypto.randomUUID()}`,
           fn,
           body,
           timestamp: Date.now(),
@@ -184,7 +189,7 @@ self.addEventListener("sync", (event: SwSyncEvent) => {
   }
 });
 
-self.addEventListener("message", (event: ExtendableMessageEvent) => {
+self.addEventListener("message", (event: SwMessageEvent) => {
   if ((event.data as Record<string, unknown>)?.["type"] === "ALAB_REPLAY") {
     event.waitUntil(replay());
   }

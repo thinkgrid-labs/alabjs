@@ -26,7 +26,7 @@ export default defineConfig({
     {
       name: "production",
       use: { ...devices["Desktop Chrome"], baseURL: `http://localhost:${PROD_PORT}` },
-      testMatch: "**/production.spec.ts",
+      testMatch: ["**/production.spec.ts", "**/data-flow.spec.ts"],
       dependencies: ["build"],
     },
     {

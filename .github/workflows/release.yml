@@ -176,6 +176,13 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Publish alabjs-sync
+        if: ${{ !inputs.dry_run }}
+        working-directory: packages/alabjs-sync
+        run: pnpm publish --access public --provenance --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
       - name: Publish create-alabjs
         if: ${{ !inputs.dry_run }}
         working-directory: packages/create-alabjs

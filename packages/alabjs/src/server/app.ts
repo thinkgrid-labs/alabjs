@@ -98,6 +98,23 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
       res.setHeader("referrer-policy", "strict-origin-when-cross-origin");
       res.setHeader("permissions-policy", "camera=(), microphone=(), geolocation=()");
       res.setHeader("x-permitted-cross-domain-policies", "none");
+      res.setHeader(
+        "content-security-policy",
+        [
+          "default-src 'self'",
+          "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+          "style-src 'self' 'unsafe-inline'",
+          "img-src 'self' data: blob: https:",
+          "font-src 'self' data: https:",
+          "connect-src 'self'",
+          "media-src 'self'",
+          "object-src 'none'",
+          "base-uri 'self'",
+          "form-action 'self'",
+          "frame-ancestors 'self'",
+          "upgrade-insecure-requests",
+        ].join("; "),
+      );
       // HSTS — only meaningful over HTTPS; set in production only.
       res.setHeader("strict-transport-security", "max-age=31536000; includeSubDomains");
     }),

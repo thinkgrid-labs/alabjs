@@ -87,6 +87,8 @@ export function invalidateCacheKey(key: string): void {
 interface PageCacheEntry {
   html: string;
   expires: number;
+  /** Original TTL in seconds — used to compute the stale-while-revalidate window. */
+  ttl: number;
   /** Whether a background revalidation is already in flight. */
   revalidating: boolean;
   /** Tags for on-demand invalidation via `revalidateTag`. */
@@ -106,8 +108,8 @@ export function getCachedPage(pathname: string): { html: string; stale: boolean 
   // Still fresh
   if (now <= entry.expires) return { html: entry.html, stale: false };
   // Stale-while-revalidate: serve stale for up to 2× TTL, trigger background regen
-  const ttl = entry.expires - (entry.expires - now); // rough TTL from stored data
-  if (now <= entry.expires + Math.max(ttl * 2, 60_000)) {
+  const swrWindow = Math.max(entry.ttl * 2 * 1_000, 60_000);
+  if (now <= entry.expires + swrWindow) {
     return { html: entry.html, stale: true };
   }
   _pageStore.delete(pathname);
@@ -116,7 +118,7 @@ export function getCachedPage(pathname: string): { html: string; stale: boolean 
 
 /** Store a rendered HTML page with a TTL (seconds). */
 export function setCachedPage(pathname: string, html: string, ttl: number, tags: string[] = []): void {
-  _pageStore.set(pathname, { html, expires: Date.now() + ttl * 1_000, revalidating: false, tags });
+  _pageStore.set(pathname, { html, expires: Date.now() + ttl * 1_000, ttl, revalidating: false, tags });
 }
 
 /** Mark a page as currently being revalidated to prevent concurrent regen. */
