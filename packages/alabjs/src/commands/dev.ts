@@ -71,6 +71,39 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
     ? buildImportMap(userConfig.federation, /* dev= */ true)
     : null;
 
+  // If this app exposes federation modules, build them once at dev startup so
+  // the `/_alabjs/remotes/` endpoint can serve them immediately.
+  // No hot-reloading of exposed modules in dev — restart the dev server after changes.
+  if (userConfig.federation?.exposes && Object.keys(userConfig.federation.exposes).length > 0) {
+    const { name, exposes, shared = [] } = userConfig.federation;
+    const devRemotesDir = resolve(cwd, `.alabjs/dev-remotes/${name}`);
+    try {
+      const { mkdirSync } = await import("node:fs");
+      const { build: viteBuildDev } = await import("vite");
+      mkdirSync(devRemotesDir, { recursive: true });
+
+      const external = ["react", "react/jsx-runtime", "react-dom", "react-dom/client", ...shared];
+      for (const [exposedName, entryRelPath] of Object.entries(exposes)) {
+        const entryAbs = resolve(cwd, entryRelPath.replace(/^\.\//, ""));
+        await viteBuildDev({
+          root: cwd,
+          configFile: false,
+          build: {
+            outDir: devRemotesDir,
+            emptyOutDir: false,
+            lib: { entry: entryAbs, formats: ["es"], fileName: () => `${exposedName}.js` },
+            minify: false,
+            rolldownOptions: { external },
+          },
+          logLevel: "warn",
+        });
+      }
+      console.log(`  alab  federation dev → ${Object.keys(exposes).length} exposed module(s) built`);
+    } catch (err) {
+      console.warn(`  alab  federation: dev build of exposed modules failed: ${String(err)}`);
+    }
+  }
+
   // Per-session build ID for skew protection in dev.
   // A new ID is generated each time the dev server starts so that a browser
   // tab left open across a restart will hard-reload on the next navigation

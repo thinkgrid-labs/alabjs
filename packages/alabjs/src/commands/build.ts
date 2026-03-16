@@ -312,7 +312,7 @@ async function buildFederation(cwd: string, federation: FederationConfig): Promi
   const hasRemotes = Object.keys(remotes).length > 0;
 
   if (hasRemotes || hasExposes) {
-    await buildFederationVendors(cwd, distClientAlab);
+    await buildFederationVendors(cwd, distClientAlab, federation.shared ?? []);
   }
 
   if (hasExposes) {
@@ -331,17 +331,28 @@ async function buildFederation(cwd: string, federation: FederationConfig): Promi
   );
 }
 
-/** Build React + react-dom as standalone ESM vendor files for import map sharing. */
-async function buildFederationVendors(cwd: string, distClientAlab: string): Promise<void> {
+/** Build React + react-dom (and any user `shared` packages) as standalone ESM vendor files. */
+async function buildFederationVendors(
+  cwd: string,
+  distClientAlab: string,
+  extraShared: string[] = [],
+): Promise<void> {
   const vendorDir = resolve(distClientAlab, "vendor");
   mkdirSync(vendorDir, { recursive: true });
 
-  const vendors: Array<{ specifier: string; output: string }> = [
-    { specifier: "react",            output: "react.js" },
+  // Always vendor the React singleton packages.
+  const coreVendors: Array<{ specifier: string; output: string }> = [
+    { specifier: "react",             output: "react.js" },
     { specifier: "react/jsx-runtime", output: "react-jsx-runtime.js" },
-    { specifier: "react-dom",        output: "react-dom.js" },
-    { specifier: "react-dom/client", output: "react-dom-client.js" },
+    { specifier: "react-dom",         output: "react-dom.js" },
+    { specifier: "react-dom/client",  output: "react-dom-client.js" },
   ];
+  // User-declared shared packages (e.g. "date-fns", "zustand").
+  const extraVendors: Array<{ specifier: string; output: string }> = extraShared.map((pkg) => ({
+    specifier: pkg,
+    output: `${pkg.replace(/\//g, "--")}.js`,
+  }));
+  const vendors = [...coreVendors, ...extraVendors];
 
   for (const { specifier, output } of vendors) {
     const virtualId = `\0alabjs-vendor:${specifier}`;

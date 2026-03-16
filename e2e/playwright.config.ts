@@ -36,28 +36,33 @@ export default defineConfig({
   ],
 
   webServer: [
-    {
-      // Only started when the dev project is selected.
-      // Excluded from CI runs via --project=production.
-      name: "dev",
-      command: `node ../../packages/alabjs/dist/cli.js dev --port ${DEV_PORT}`,
-      cwd: EXAMPLE_DIR,
-      port: DEV_PORT,
-      reuseExistingServer: !process.env["CI"],
-      timeout: 60_000,
-      env: { NODE_ENV: "development" },
-    },
+    // The dev webServer is excluded in CI entirely — Playwright starts every
+    // entry in this array unconditionally, so leaving it in would attempt a
+    // cold Rust+TS compile on every CI run and time out.
+    // In local dev it is included so `playwright test --project=dev` works.
+    ...(process.env["CI"]
+      ? []
+      : [
+          {
+            name: "dev",
+            command: `node ../../packages/alabjs/dist/cli.js dev --port ${DEV_PORT}`,
+            cwd: EXAMPLE_DIR,
+            port: DEV_PORT,
+            reuseExistingServer: true,
+            timeout: 60_000,
+            env: { NODE_ENV: "development" },
+          },
+        ]),
     {
       name: "production",
       // Chain build → start so the server is always self-contained.
       // `--skip-typecheck` keeps CI fast (tsc runs separately in the typecheck job).
-      // The build project (via `dependencies`) still runs build.spec.ts to verify
-      // artifacts, but the web server doesn't depend on it — it builds itself.
       command: `node ../../packages/alabjs/dist/cli.js build --skip-typecheck && node ../../packages/alabjs/dist/cli.js start --port ${PROD_PORT}`,
       cwd: EXAMPLE_DIR,
       port: PROD_PORT,
       reuseExistingServer: !process.env["CI"],
-      timeout: process.env["CI"] ? 120_000 : 60_000,
+      // 180 s in CI: alab build (Rolldown SSR + SW bundle) + server cold start.
+      timeout: process.env["CI"] ? 180_000 : 60_000,
       env: { NODE_ENV: "production" },
     },
   ],
