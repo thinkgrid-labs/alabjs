@@ -1,6 +1,6 @@
 {
   "name": "alabjs-sync",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Local-first sync engine adapters for AlabJS — ElectricSQL, PowerSync, PGlite",
   "license": "MIT",
   "type": "module",

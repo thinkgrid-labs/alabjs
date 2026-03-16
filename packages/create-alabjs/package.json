@@ -1,6 +1,6 @@
 {
   "name": "create-alabjs",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "Scaffold a new AlabJS app",
   "license": "MIT",
   "type": "module",

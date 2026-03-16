@@ -1,7 +1,7 @@
 {
   "name": "alabjs-monorepo",
   "private": true,
-  "version": "0.2.5",
+  "version": "0.2.6",
   "description": "AlabJS — full-stack React framework powered by a Rust compiler core",
   "scripts": {
     "dev": "turbo dev",
