@@ -9,3 +9,5 @@ export type {
   CdnCache,
 } from "./types/index.js";
 export { createApp } from "./server/app.js";
+export { defineConfig } from "./config.js";
+export type { AlabConfig, FederationConfig } from "./config.js";

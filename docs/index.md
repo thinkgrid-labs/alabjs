@@ -42,4 +42,8 @@ features:
     details: Stream live updates from any API route with `defineSSEHandler`. Subscribe on the client with the `useSSE` hook — reconnects automatically, no WebSocket needed.
   - title: Offline-first mutations
     details: Service worker queues failed server function calls in IndexedDB and replays them on reconnect. `useOfflineMutations` surfaces queue state and manual replay — zero config required.
+  - title: Microfrontend-ready
+    details: First-class federation via native ESM + import maps — no webpack runtime, no Module Federation. Expose components with `federation.exposes`, consume them with `useFederatedComponent`. React is automatically shared as a singleton across all remotes.
+  - title: Monorepo-native
+    details: The `--cwd` flag targets any app from the workspace root without changing directories. Works with pnpm workspaces and Turbo out of the box — shared component libraries, shared server functions, and per-app environment variables all work as expected.
 ---

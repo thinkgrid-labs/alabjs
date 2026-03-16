@@ -1,7 +1,9 @@
 import { build as viteBuild, type PluginOption } from "vite";
 import { resolve } from "node:path";
 import { spawn, execSync } from "node:child_process";
-import { existsSync, writeFileSync, readFileSync } from "node:fs";
+import { existsSync, writeFileSync, readFileSync, mkdirSync } from "node:fs";
+import { loadUserConfig } from "../config.js";
+import type { FederationConfig } from "../config.js";
 import { preRenderPPRShell, findBuildLayoutFiles, PPR_CACHE_SUBDIR } from "../ssr/ppr.js";
 import type { RouteManifest } from "../router/manifest.js";
 
@@ -177,6 +179,12 @@ export async function build({ cwd, skipTypecheck = false, mode = "ssr", analyze 
   // Output: .alabjs/dist/client/_alabjs/offline-sw.js (served at /_alabjs/offline-sw.js)
   await buildOfflineSw(cwd);
 
+  // Build federation vendor + exposed modules if configured.
+  const userConfig = await loadUserConfig(cwd);
+  if (userConfig.federation) {
+    await buildFederation(cwd, userConfig.federation);
+  }
+
   console.log("\n  alab  build complete → .alabjs/dist");
 }
 
@@ -285,6 +293,143 @@ async function buildPPRShells(distDir: string, cwd: string): Promise<void> {
   if (count > 0) {
     console.log(`  alab  ppr  → ${count} shell${count === 1 ? "" : "s"} written to ${PPR_CACHE_SUBDIR}`);
   }
+}
+
+// ─── Federation build ─────────────────────────────────────────────────────────
+
+/**
+ * Build all federation artefacts after the main SSR bundle:
+ *  1. Vendor ESM chunks for shared React singletons (`/_alabjs/vendor/`)
+ *  2. Exposed component modules (`/_alabjs/remotes/<name>/<ExposedName>.js`)
+ *  3. `federation-config.json` in the dist root (read by `alab start`)
+ *  4. `federation-manifest.json` in the client dir (served at runtime)
+ */
+async function buildFederation(cwd: string, federation: FederationConfig): Promise<void> {
+  const { name, exposes = {}, remotes = {} } = federation;
+  const distClientAlab = resolve(cwd, ".alabjs/dist/client/_alabjs");
+
+  const hasExposes = Object.keys(exposes).length > 0;
+  const hasRemotes = Object.keys(remotes).length > 0;
+
+  if (hasRemotes || hasExposes) {
+    await buildFederationVendors(cwd, distClientAlab);
+  }
+
+  if (hasExposes) {
+    await buildFederationExposes(cwd, distClientAlab, name, exposes, federation.shared ?? []);
+  }
+
+  // Write federation config for the production server (import map generation).
+  writeFileSync(
+    resolve(cwd, ".alabjs/dist/federation-config.json"),
+    JSON.stringify(federation, null, 2),
+    "utf8",
+  );
+
+  console.log(
+    `  alab  federation → ${Object.keys(exposes).length} exposed, ${Object.keys(remotes).length} remote(s)`,
+  );
+}
+
+/** Build React + react-dom as standalone ESM vendor files for import map sharing. */
+async function buildFederationVendors(cwd: string, distClientAlab: string): Promise<void> {
+  const vendorDir = resolve(distClientAlab, "vendor");
+  mkdirSync(vendorDir, { recursive: true });
+
+  const vendors: Array<{ specifier: string; output: string }> = [
+    { specifier: "react",            output: "react.js" },
+    { specifier: "react/jsx-runtime", output: "react-jsx-runtime.js" },
+    { specifier: "react-dom",        output: "react-dom.js" },
+    { specifier: "react-dom/client", output: "react-dom-client.js" },
+  ];
+
+  for (const { specifier, output } of vendors) {
+    const virtualId = `\0alabjs-vendor:${specifier}`;
+    try {
+      await viteBuild({
+        root: cwd,
+        configFile: false,
+        plugins: [{
+          name: "alabjs-federation-vendor",
+          resolveId: (id: string) => id === virtualId ? id : null,
+          load: (id: string) =>
+            id === virtualId
+              ? `export * from "${specifier}"; export { default } from "${specifier}";`
+              : null,
+        }],
+        build: {
+          outDir: vendorDir,
+          emptyOutDir: false,
+          lib: {
+            entry: virtualId,
+            formats: ["es"],
+            fileName: () => output,
+          },
+          minify: true,
+        },
+        logLevel: "warn",
+      });
+    } catch (err) {
+      console.warn(`  alab  federation: failed to build vendor ${specifier}: ${String(err)}`);
+    }
+  }
+}
+
+/** Build each exposed module as an externalized ESM chunk for remote consumption. */
+async function buildFederationExposes(
+  cwd: string,
+  distClientAlab: string,
+  appName: string,
+  exposes: Record<string, string>,
+  shared: string[],
+): Promise<void> {
+  const remotesDir = resolve(distClientAlab, `remotes/${appName}`);
+  mkdirSync(remotesDir, { recursive: true });
+
+  const external = [
+    "react",
+    "react/jsx-runtime",
+    "react-dom",
+    "react-dom/client",
+    ...shared,
+  ];
+
+  for (const [exposedName, entryRelPath] of Object.entries(exposes)) {
+    const entryAbs = resolve(cwd, entryRelPath.replace(/^\.\//, ""));
+    try {
+      await viteBuild({
+        root: cwd,
+        configFile: false,
+        build: {
+          outDir: remotesDir,
+          emptyOutDir: false,
+          lib: {
+            entry: entryAbs,
+            formats: ["es"],
+            fileName: () => `${exposedName}.js`,
+          },
+          minify: true,
+          rolldownOptions: { external },
+        },
+        logLevel: "warn",
+      });
+    } catch (err) {
+      console.warn(`  alab  federation: failed to build exposed "${exposedName}": ${String(err)}`);
+    }
+  }
+
+  // Manifest consumed by host apps discovering what this remote exposes.
+  const manifest = {
+    name: appName,
+    exposes: Object.fromEntries(
+      Object.keys(exposes).map((k) => [k, `/_alabjs/remotes/${appName}/${k}.js`]),
+    ),
+  };
+  writeFileSync(
+    resolve(distClientAlab, "federation-manifest.json"),
+    JSON.stringify(manifest, null, 2),
+    "utf8",
+  );
 }
 
 /** Compile the offline service worker to a standalone iife bundle. */

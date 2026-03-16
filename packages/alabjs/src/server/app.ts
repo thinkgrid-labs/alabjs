@@ -15,6 +15,8 @@ import { checkRevalidateAuth, applyRevalidate } from "./revalidate.js";
 import { applyCdnHeaders, type CdnCache } from "./cdn.js";
 import { getPPRShell, injectBuildIdIntoPPRShell, PPR_CACHE_SUBDIR } from "../ssr/ppr.js";
 import { handleVitalsBeacon, handleAnalyticsDashboard } from "../analytics/handler.js";
+import { buildImportMap } from "../config.js";
+import type { FederationConfig } from "../config.js";
 
 /**
  * Find layout file paths (relative to cwd root) for a given route.file, ordered outermost→innermost.
@@ -85,6 +87,17 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
   try {
     buildId = readFileSync(resolve(distDir, "BUILD_ID"), "utf8").trim() || undefined;
   } catch { /* no BUILD_ID file — skew protection disabled */ }
+
+  // Load federation config written by `alab build`. Used to:
+  //  1. Serve `/_alabjs/federation-manifest.json` (remote discovery)
+  //  2. Inject `<script type="importmap">` into every page (host → remote routing)
+  let federationConfig: FederationConfig | undefined;
+  let importMapJson: string | null = null;
+  try {
+    const fedJson = readFileSync(resolve(distDir, "federation-config.json"), "utf8");
+    federationConfig = JSON.parse(fedJson) as FederationConfig;
+    importMapJson = buildImportMap(federationConfig, /* dev= */ false);
+  } catch { /* no federation config — federation disabled */ }
 
   // Absolute path to the PPR shell cache directory.
   const pprCacheDir = resolve(distDir, "../../", PPR_CACHE_SUBDIR);
@@ -230,6 +243,25 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
   );
 
   // ─── Built-in routes ────────────────────────────────────────────────────────
+
+  // Federation manifest — remote apps can advertise what they expose
+  router.get(
+    "/_alabjs/federation-manifest.json",
+    defineEventHandler((event) => {
+      const res = event.node.res;
+      res.setHeader("content-type", "application/json; charset=utf-8");
+      res.setHeader("access-control-allow-origin", "*");
+      res.setHeader("cache-control", "no-store");
+
+      const manifestPath = resolve(distDir, "client/_alabjs/federation-manifest.json");
+      if (!existsSync(manifestPath)) {
+        res.statusCode = 404;
+        return JSON.stringify({ error: "No federation exposes configured." });
+      }
+      res.statusCode = 200;
+      return readFileSync(manifestPath, "utf8");
+    }),
+  );
 
   // Rust-powered image optimisation — resize + JPEG encode via `alab-napi`
   router.get(
@@ -474,6 +506,7 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
             ssr: ssrEnabled,
             headExtra,
             ...(buildId ? { buildId } : {}),
+            ...(importMapJson ? { importMapJson } : {}),
           });
         } catch (err) {
           // ── error.tsx fallback ────────────────────────────────────────────
@@ -492,6 +525,7 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
                   routeFile: errorRelPath,
                   ssr: true,
                   headExtra,
+                  ...(importMapJson ? { importMapJson } : {}),
                 });
                 return;
               }
@@ -531,6 +565,7 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
               metadata: { title: "404 — Not Found" },
               routeFile: "app/not-found.tsx",
               ssr: true,
+              ...(importMapJson ? { importMapJson } : {}),
             });
             return;
           }

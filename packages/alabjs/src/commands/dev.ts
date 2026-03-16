@@ -1,6 +1,7 @@
 import { createServer } from "vite";
 import { resolve, join } from "node:path";
-import { readdirSync } from "node:fs";
+import { readdirSync, existsSync as fsExistsSync, readFileSync as fsReadFileSync } from "node:fs";
+import { loadUserConfig, buildImportMap } from "../config.js";
 import { Writable } from "node:stream";
 import type { IncomingMessage } from "node:http";
 import {
@@ -62,6 +63,13 @@ async function readJsonBody(req: IncomingMessage): Promise<unknown> {
 
 export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) {
   console.log("  alab  starting dev server...\n");
+
+  // Load optional alabjs.config.ts for federation and other user config.
+  const userConfig = await loadUserConfig(cwd);
+  // In dev: only inject remote scope mappings (react is already in Vite's module graph).
+  const importMapJson = userConfig.federation
+    ? buildImportMap(userConfig.federation, /* dev= */ true)
+    : null;
 
   // Per-session build ID for skew protection in dev.
   // A new ID is generated each time the dev server starts so that a browser
@@ -128,6 +136,46 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
             return;
           }
         }
+      }
+
+      // ── /_alabjs/federation-manifest.json — expose what this app exposes ────────
+      if (pathname === "/_alabjs/federation-manifest.json") {
+        const fed = userConfig.federation;
+        if (!fed?.exposes || Object.keys(fed.exposes).length === 0) {
+          res.statusCode = 404;
+          res.setHeader("content-type", "application/json");
+          res.end(JSON.stringify({ error: "No federation exposes configured." }));
+          return;
+        }
+        const manifest = {
+          name: fed.name,
+          exposes: Object.fromEntries(
+            Object.keys(fed.exposes).map((k) => [k, `/_alabjs/remotes/${fed.name}/${k}.js`]),
+          ),
+        };
+        res.statusCode = 200;
+        res.setHeader("content-type", "application/json; charset=utf-8");
+        res.setHeader("access-control-allow-origin", "*");
+        res.setHeader("cache-control", "no-store");
+        res.end(JSON.stringify(manifest, null, 2));
+        return;
+      }
+
+      // ── /_alabjs/remotes/:name/:module.js — serve pre-built exposed modules ─────
+      if (pathname.startsWith("/_alabjs/remotes/")) {
+        const relPath = pathname.slice("/_alabjs/remotes/".length);
+        const filePath = resolve(cwd, ".alabjs/dev-remotes", relPath);
+        if (fsExistsSync(filePath)) {
+          res.statusCode = 200;
+          res.setHeader("content-type", "application/javascript; charset=utf-8");
+          res.setHeader("access-control-allow-origin", "*");
+          res.setHeader("cache-control", "no-store");
+          res.end(fsReadFileSync(filePath));
+          return;
+        }
+        res.statusCode = 404;
+        res.end("Not found");
+        return;
       }
 
       // ── /_alabjs/__devtools — debug dump of routes + server functions ───────────
@@ -387,7 +435,7 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
                 onError(e) { fail(e); },
               });
             });
-            const shell = htmlShellBefore({ metadata: { title: "404 — Not Found" }, paramsJson: "{}", searchParamsJson: "{}", routeFile: "app/not-found.tsx", ssr: true });
+            const shell = htmlShellBefore({ metadata: { title: "404 — Not Found" }, paramsJson: "{}", searchParamsJson: "{}", routeFile: "app/not-found.tsx", ssr: true, ...(importMapJson ? { importMapJson } : {}) });
             const rawHtml = `${shell}${nfContent}${htmlShellAfter({})}`;
             const html = await vite.transformIndexHtml(pathname, rawHtml);
             res.statusCode = 404;
@@ -535,6 +583,7 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
         loadingFile,
         ssr: ssrEnabled,
         buildId: devBuildId,
+        ...(importMapJson ? { importMapJson } : {}),
       };
       const renderPageHtml = async (): Promise<string> => {
         let rawHtml: string;

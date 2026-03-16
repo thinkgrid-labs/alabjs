@@ -31,6 +31,11 @@ export interface RenderOptions {
   nonce?: string;
   /** Build ID for skew protection (see html.ts). */
   buildId?: string;
+  /**
+   * Serialised import map JSON (`{ imports: { ... } }`).
+   * Injected as `<script type="importmap">` when federation remotes are configured.
+   */
+  importMapJson?: string;
 }
 
 /**
@@ -53,6 +58,7 @@ export function renderToResponse(res: ServerResponse, opts: RenderOptions): void
     headExtra,
     nonce,
     buildId,
+    importMapJson,
   } = opts;
 
   const shellOpts: HtmlShellOptions = {
@@ -66,6 +72,7 @@ export function renderToResponse(res: ServerResponse, opts: RenderOptions): void
     headExtra,
     nonce,
     buildId,
+    importMapJson,
   };
 
   const before = htmlShellBefore(shellOpts);
