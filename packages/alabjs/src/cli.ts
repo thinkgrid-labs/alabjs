@@ -9,6 +9,7 @@
  */
 
 import { parseArgs } from "node:util";
+import { resolve } from "node:path";
 
 const { positionals, values } = parseArgs({
   allowPositionals: true,
@@ -20,11 +21,15 @@ const { positionals, values } = parseArgs({
     analyze: { type: "boolean", default: false },
     watch: { type: "boolean", default: false },
     ui: { type: "boolean", default: false },
+    /** Target a specific app directory — useful in monorepos. e.g. `--cwd apps/marketing` */
+    cwd: { type: "string", short: "C" },
   },
 });
 
 const [command = "dev"] = positionals;
-const cwd = process.cwd();
+// Resolve --cwd relative to wherever the CLI was invoked.
+// Falls back to process.cwd() when omitted (standard single-app behaviour).
+const cwd = values["cwd"] ? resolve(process.cwd(), values["cwd"]) : process.cwd();
 
 switch (command) {
   case "dev":

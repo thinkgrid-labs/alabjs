@@ -139,10 +139,20 @@ Output includes:
 
 ## Global flags
 
-| Flag | Description |
-|---|---|
-| `--help`, `-h` | Show help |
-| `--version`, `-v` | Show version |
+| Flag | Short | Description |
+|---|---|---|
+| `--cwd <path>` | `-C` | Set the project root — useful in monorepos |
+| `--help` | `-h` | Show help |
+| `--version` | `-v` | Show version |
+
+`--cwd` is resolved relative to the directory where the CLI is invoked, so both absolute and relative paths work:
+
+```bash
+# From the monorepo root
+alab dev --cwd apps/marketing
+alab build -C apps/dashboard
+alab start --cwd /absolute/path/to/app
+```
 
 ---
 

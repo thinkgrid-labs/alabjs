@@ -91,6 +91,7 @@ export default defineConfig({
         items: [
           { text: "Building a SPA", link: "/guides/spa" },
           { text: "Full-stack SEO", link: "/guides/fullstack-seo" },
+          { text: "Monorepo Setup", link: "/guides/monorepo" },
         ],
       },
       {

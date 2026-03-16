@@ -37,23 +37,27 @@ export default defineConfig({
 
   webServer: [
     {
+      // Only started when the dev project is selected.
+      // Excluded from CI runs via --project=production.
       name: "dev",
       command: `node ../../packages/alabjs/dist/cli.js dev --port ${DEV_PORT}`,
       cwd: EXAMPLE_DIR,
       port: DEV_PORT,
       reuseExistingServer: !process.env["CI"],
-      timeout: 30_000,
+      timeout: 60_000,
       env: { NODE_ENV: "development" },
     },
     {
       name: "production",
-      // Build first, then start the production server.
-      // The build spec runs before production project via `dependencies`.
-      command: `node ../../packages/alabjs/dist/cli.js start --port ${PROD_PORT}`,
+      // Chain build → start so the server is always self-contained.
+      // `--skip-typecheck` keeps CI fast (tsc runs separately in the typecheck job).
+      // The build project (via `dependencies`) still runs build.spec.ts to verify
+      // artifacts, but the web server doesn't depend on it — it builds itself.
+      command: `node ../../packages/alabjs/dist/cli.js build --skip-typecheck && node ../../packages/alabjs/dist/cli.js start --port ${PROD_PORT}`,
       cwd: EXAMPLE_DIR,
       port: PROD_PORT,
       reuseExistingServer: !process.env["CI"],
-      timeout: process.env["CI"] ? 60_000 : 30_000,
+      timeout: process.env["CI"] ? 120_000 : 60_000,
       env: { NODE_ENV: "production" },
     },
   ],
