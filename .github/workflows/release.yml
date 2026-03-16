@@ -11,6 +11,10 @@ on:
         description: "Dry run (build binaries but do not publish)"
         type: boolean
         default: false
+      version:
+        description: "Version to publish (e.g. 0.2.2) — required for dry-run without a tag"
+        type: string
+        required: false
 
 env:
   RUST_BACKTRACE: 1
@@ -139,10 +143,13 @@ jobs:
 
       - name: Set versions
         run: |
-          VERSION=${GITHUB_REF_NAME#v}
-          pnpm -r exec npm version $VERSION --no-git-tag-version --allow-same-version
-          cd crates/alab-napi
-          npm version $VERSION --no-git-tag-version --allow-same-version
+          # Use explicit version input (dry-run) or strip v from the git tag
+          VERSION="${{ inputs.version }}"
+          if [ -z "$VERSION" ]; then
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          echo "Publishing version: $VERSION"
+          node scripts/sync-version.mjs "$VERSION"
 
       - name: Build TypeScript packages
         run: pnpm run build:packages
@@ -150,30 +157,29 @@ jobs:
       - name: Publish @alabjs/compiler
         if: ${{ !inputs.dry_run }}
         working-directory: crates/alab-napi
-        run: |
-          pnpm run prepublishOnly
-          npm publish --access public --provenance
+        run: pnpm publish --access public --provenance --no-git-checks
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      # vite-plugin must be published before alabjs (alabjs depends on it)
+      - name: Publish alabjs-vite-plugin
+        if: ${{ !inputs.dry_run }}
+        working-directory: packages/alabjs-vite-plugin
+        run: pnpm publish --access public --provenance --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish alabjs
         if: ${{ !inputs.dry_run }}
         working-directory: packages/alabjs
-        run: npm publish --access public --provenance
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Publish alabjs-vite-plugin
-        if: ${{ !inputs.dry_run }}
-        working-directory: packages/alabjs-vite-plugin
-        run: npm publish --access public --provenance
+        run: pnpm publish --access public --provenance --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Publish create-alabjs
         if: ${{ !inputs.dry_run }}
         working-directory: packages/create-alabjs
-        run: npm publish --access public --provenance
+        run: pnpm publish --access public --provenance --no-git-checks
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 

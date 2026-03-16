@@ -10,7 +10,8 @@
  *  - Cargo.toml  (workspace [workspace.package] version)
  *
  * Usage:
- *   pnpm version:sync
+ *   pnpm version:sync              # reads version from root package.json
+ *   node scripts/sync-version.mjs 0.3.0   # sets explicit version
  */
 
 import { readFileSync, writeFileSync, readdirSync, statSync } from "node:fs";
@@ -21,9 +22,17 @@ const root = dirname(fileURLToPath(import.meta.url)) + "/..";
 
 // ── Read the canonical version ───────────────────────────────────────────────
 
+// Accept an explicit version as a CLI argument (used by release.yml)
+const cliVersion = process.argv[2];
 const rootPkg = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
-const version = rootPkg.version;
+const version = cliVersion ?? rootPkg.version;
 if (!version) throw new Error("No version field in root package.json");
+
+// If an explicit version was passed, also update the root package.json
+if (cliVersion) {
+  rootPkg.version = cliVersion;
+  writeFileSync(resolve(root, "package.json"), JSON.stringify(rootPkg, null, 2) + "\n", "utf8");
+}
 console.log(`Syncing version → ${version}`);
 
 // ── JS packages ──────────────────────────────────────────────────────────────
