@@ -1,6 +1,6 @@
 {
   "name": "alabjs",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "AlabJS — full-stack React framework powered by a Rust compiler",
   "keywords": [
     "react",
