@@ -82,7 +82,7 @@
     "alab": "./dist/cli.js"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && tsc -p tsconfig.sw.json",
     "dev": "tsc -p tsconfig.json --watch",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",

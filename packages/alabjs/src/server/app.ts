@@ -2,6 +2,7 @@ import { createApp as createH3App, createRouter, defineEventHandler, getQuery, r
 import { createServer } from "node:http";
 import { resolve, dirname, join, extname } from "node:path";
 import { existsSync, createReadStream, statSync, readFileSync } from "node:fs";
+import { createGzip, createBrotliCompress } from "node:zlib";
 import { toNodeListener } from "h3";
 import type { RouteManifest } from "../router/manifest.js";
 import { renderToResponse } from "../ssr/render.js";
@@ -207,21 +208,61 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
       const contentType = MIME_TYPES[ext];
       if (!contentType) return; // skip extensionless paths (page routes)
 
+      const acceptEncoding = (req.headers["accept-encoding"] ?? "") as string;
+      const useBrotli = acceptEncoding.includes("br");
+      const useGzip  = !useBrotli && acceptEncoding.includes("gzip");
+
+      /** Stream a file with optional brotli/gzip compression and ETag 304 support. */
+      function serveFile(
+        filePath: string,
+        fileSize: number,
+        mtimeMs: number,
+        cacheControl: string,
+        mime: string,
+      ): null {
+        // ETag from file size + mtime — both already known from the caller's stat().
+        const etag = `"${fileSize.toString(36)}-${mtimeMs.toString(36)}"`;
+        res.setHeader("etag", etag);
+        res.setHeader("vary", "Accept-Encoding");
+
+        if (req.headers["if-none-match"] === etag) {
+          res.statusCode = 304;
+          res.end();
+          return null;
+        }
+
+        res.setHeader("content-type", mime);
+        res.setHeader("cache-control", cacheControl);
+
+        if (req.method === "HEAD") { res.end(); return null; }
+
+        const stream = createReadStream(filePath);
+        if (useBrotli) {
+          res.setHeader("content-encoding", "br");
+          stream.pipe(createBrotliCompress()).pipe(res);
+        } else if (useGzip) {
+          res.setHeader("content-encoding", "gzip");
+          stream.pipe(createGzip()).pipe(res);
+        } else {
+          res.setHeader("content-length", fileSize);
+          stream.pipe(res);
+        }
+        return null;
+      }
+
       // 1. Built client assets (JS chunks, CSS, source maps)
       const clientCandidate = join(clientDir, relPath);
       if (existsSync(clientCandidate)) {
         const stat = statSync(clientCandidate);
         if (stat.isFile()) {
-          res.setHeader("content-type", contentType);
-          res.setHeader("content-length", stat.size);
-          // Immutable cache for hashed assets; short TTL for others
           const isHashed = /\.[a-f0-9]{8,}\.[a-z]+$/.test(relPath);
-          res.setHeader("cache-control", isHashed
-            ? "public, max-age=31536000, immutable"
-            : "public, max-age=3600");
-          if (req.method === "HEAD") { res.end(); return null; }
-          createReadStream(clientCandidate).pipe(res);
-          return null;
+          return serveFile(
+            clientCandidate,
+            stat.size,
+            stat.mtimeMs,
+            isHashed ? "public, max-age=31536000, immutable" : "public, max-age=3600",
+            contentType,
+          );
         }
       }
 
@@ -230,12 +271,7 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
       if (existsSync(publicCandidate)) {
         const stat = statSync(publicCandidate);
         if (stat.isFile()) {
-          res.setHeader("content-type", contentType);
-          res.setHeader("content-length", stat.size);
-          res.setHeader("cache-control", "public, max-age=3600");
-          if (req.method === "HEAD") { res.end(); return null; }
-          createReadStream(publicCandidate).pipe(res);
-          return null;
+          return serveFile(publicCandidate, stat.size, stat.mtimeMs, "public, max-age=3600", contentType);
         }
       }
       return undefined;

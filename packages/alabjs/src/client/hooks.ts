@@ -6,8 +6,18 @@ import type { ServerFn, InferServerOutput, RouteParams, InferServerPath } from "
 //   re-renders after Suspense resolution return the same promise object, which
 //   is required for renderToPipeableStream to correctly resolve Suspense.
 // • On the CLIENT: intentionally persists for the session to avoid redundant
-//   network round-trips on subsequent re-renders.
+//   network round-trips on subsequent re-renders. Capped at 256 entries (LRU)
+//   to prevent unbounded growth in long-lived SPAs.
+const _CACHE_MAX = 256;
 const _promiseCache = new Map<string, Promise<unknown>>();
+
+function _cacheSet(key: string, value: Promise<unknown>): void {
+  if (_promiseCache.size >= _CACHE_MAX) {
+    // Map preserves insertion order — delete the oldest entry.
+    _promiseCache.delete(_promiseCache.keys().next().value!);
+  }
+  _promiseCache.set(key, value);
+}
 
 /** Clear the server-side promise cache between SSR renders. Called by alab's dev server. */
 export function _clearALabSSRCache(): void {
@@ -56,7 +66,7 @@ export function useServerData<T extends ServerFn<any, any, any>>(
       if (!r.ok) throw new Error(`[alabjs] server data fetch failed: ${r.status} ${r.statusText} — ${url}`);
       return r.json() as Promise<InferServerOutput<T>>;
     });
-    _promiseCache.set(url, promise);
+    _cacheSet(url, promise);
   }
 
   return use(promise);
