@@ -516,6 +516,26 @@ async function buildSsrBundle(cwd: string, distDir: string, manifest: RouteManif
 
   if (entryFiles.length === 0) return;
 
+  // Build the import.meta.env replacement object for esbuild.
+  // Node.js never defines import.meta.env (it's a Vite-only concept), so if
+  // we leave it undefined the compiled server modules throw at runtime on any
+  // reference to import.meta.env.*. We mirror exactly what Vite inlines for
+  // the client build: standard constants + ALAB_PUBLIC_* / VITE_* vars.
+  const publicEnv: Record<string, string> = {};
+  for (const [key, val] of Object.entries(process.env)) {
+    if (key.startsWith("ALAB_PUBLIC_") || key.startsWith("VITE_")) {
+      publicEnv[key] = val ?? "";
+    }
+  }
+  const metaEnv = {
+    PROD: true,
+    DEV: false,
+    SSR: true,
+    MODE: "production",
+    BASE_URL: "/",
+    ...publicEnv,
+  };
+
   const { build: esbuild } = await import("esbuild");
   await esbuild({
     entryPoints: entryFiles,
@@ -529,6 +549,11 @@ async function buildSsrBundle(cwd: string, distDir: string, manifest: RouteManif
     jsx: "automatic",
     jsxImportSource: "react",
     logLevel: "warning",
+    define: {
+      // Replace the entire import.meta.env expression so property accesses,
+      // destructuring, and optional-chaining all resolve correctly at runtime.
+      "import.meta.env": JSON.stringify(metaEnv),
+    },
   });
 
   console.log("  alab  SSR bundle → .alabjs/dist/server");

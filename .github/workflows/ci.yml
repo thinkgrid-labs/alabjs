@@ -163,7 +163,7 @@ jobs:
           echo $! > /tmp/alab-server.pid
           for i in $(seq 1 30); do
             sleep 2
-            if curl -sf http://127.0.0.1:3101/ > /dev/null 2>&1; then
+            if curl -s --max-time 2 http://127.0.0.1:3101/ > /dev/null 2>&1; then
               echo "Server ready after $((i * 2))s"
               exit 0
             fi
