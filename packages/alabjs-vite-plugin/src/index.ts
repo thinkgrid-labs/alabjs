@@ -42,6 +42,15 @@ export function alabPlugin(options: AlabPluginOptions = {}): Plugin[] {
     name: "alabjs",
     enforce: "pre",
 
+    config() {
+      return {
+        // ALAB_PUBLIC_* vars are inlined into the client bundle via import.meta.env.
+        // VITE_* is kept for backwards-compatibility with vanilla Vite projects.
+        // Everything else (ALAB_REVALIDATE_SECRET, ALAB_CDN, etc.) stays server-only.
+        envPrefix: ["VITE_", "ALAB_PUBLIC_"],
+      };
+    },
+
     async buildStart() {
       try {
         // CJS module imported via ESM dynamic import — functions land on .default

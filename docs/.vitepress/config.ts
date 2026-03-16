@@ -48,6 +48,7 @@ export default defineConfig({
           { text: "SSR & CSR", link: "/ssr-csr" },
           { text: "Data Fetching", link: "/data-fetching" },
           { text: "Mutations", link: "/mutations" },
+          { text: "Environment Variables", link: "/env-variables" },
         ],
       },
       {
@@ -56,6 +57,7 @@ export default defineConfig({
           { text: "Partial Prerendering", link: "/ppr" },
           { text: "CDN Cache Headers", link: "/cdn-cache" },
           { text: "Skew Protection", link: "/skew-protection" },
+          { text: "Analytics", link: "/analytics" },
         ],
       },
       {

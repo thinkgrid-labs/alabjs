@@ -14,6 +14,7 @@ import type { PageMetadata } from "../types/index.js";
 import { checkRevalidateAuth, applyRevalidate } from "./revalidate.js";
 import { applyCdnHeaders, type CdnCache } from "./cdn.js";
 import { getPPRShell, injectBuildIdIntoPPRShell, PPR_CACHE_SUBDIR } from "../ssr/ppr.js";
+import { handleVitalsBeacon, handleAnalyticsDashboard } from "../analytics/handler.js";
 
 /**
  * Find layout file paths (relative to cwd root) for a given route.file, ordered outermost→innermost.
@@ -240,6 +241,23 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
         return JSON.stringify({ error: result.error });
       }
       return JSON.stringify(result);
+    }),
+  );
+
+  // Core Web Vitals beacon — receives POST from <Analytics> component
+  router.post(
+    "/_alabjs/vitals",
+    defineEventHandler((event) => {
+      return handleVitalsBeacon(event.node.req, event.node.res);
+    }),
+  );
+
+  // Analytics dashboard — GET aggregated per-route stats
+  router.get(
+    "/_alabjs/analytics",
+    defineEventHandler((event) => {
+      handleAnalyticsDashboard(event.node.req, event.node.res);
+      return null;
     }),
   );
 

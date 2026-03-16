@@ -32,4 +32,8 @@ features:
     details: Export `cdnCache` to emit `Cache-Control`, `CDN-Cache-Control`, and `Surrogate-Control` headers automatically. Works with Cloudflare, Fastly, or any standard CDN.
   - title: Skew Protection
     details: Build ID stamped at compile time (git SHA → Rust FNV-1a hash). Client detects stale JS bundles and hard-reloads automatically — zero stale-bundle errors in production.
+  - title: Built-in Analytics
+    details: Drop `<Analytics />` into your layout. Real user Core Web Vitals (LCP, CLS, INP, TTFB, FCP) aggregated per route — p75, no third-party scripts, no data leaving your server.
+  - title: Safe environment variables
+    details: Prefix with `ALAB_PUBLIC_` to expose a variable to the browser. Everything else is server-only — secrets can never be accidentally bundled into client code.
 ---

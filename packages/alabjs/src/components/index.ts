@@ -9,3 +9,5 @@ export { Font } from "./Font.js";
 export type { FontProps } from "./Font.js";
 export { Dynamic, PPRShellProvider } from "./Dynamic.js";
 export type { DynamicProps } from "./Dynamic.js";
+export { Analytics } from "./Analytics.js";
+export type { AnalyticsProps } from "./Analytics.js";

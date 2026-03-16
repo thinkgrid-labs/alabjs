@@ -61,6 +61,10 @@
       "import": "./dist/server/cache.js",
       "types": "./dist/server/cache.d.ts"
     },
+    "./analytics": {
+      "import": "./dist/analytics/store.js",
+      "types": "./dist/analytics/store.d.ts"
+    },
     "./adapters/cloudflare": {
       "import": "./dist/adapters/cloudflare.js",
       "types": "./dist/adapters/cloudflare.d.ts"
