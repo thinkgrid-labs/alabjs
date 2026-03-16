@@ -63,9 +63,9 @@ export default defineConfig({
       cwd: EXAMPLE_DIR,
       port: PROD_PORT,
       reuseExistingServer: !process.env["CI"],
-      // CI: just server start (build already done) — 30 s is plenty.
+      // CI: just server start (build already done) — 60 s covers slow runners.
       // Local: build + start in one command — allow 60 s.
-      timeout: process.env["CI"] ? 30_000 : 60_000,
+      timeout: 60_000,
       env: { NODE_ENV: "production" },
     },
   ],
