@@ -91,7 +91,11 @@ export default defineConfig({
         text: "Deployment",
         items: [
           { text: "Self-hosted Node.js", link: "/deployment/node" },
+          { text: "Bun", link: "/deployment/bun" },
           { text: "Cloudflare Workers", link: "/deployment/cloudflare" },
+          { text: "Deno Deploy", link: "/deployment/deno" },
+          { text: "Railway", link: "/deployment/railway" },
+          { text: "Fly.io", link: "/deployment/fly" },
         ],
       },
     ],

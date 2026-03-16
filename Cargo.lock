@@ -19,7 +19,7 @@ dependencies = [
 
 [[package]]
 name = "alab-compiler"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "image",
  "oxc_allocator",
@@ -38,7 +38,7 @@ dependencies = [
 
 [[package]]
 name = "alab-napi"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "alab-compiler",
  "alab-router",
@@ -51,7 +51,7 @@ dependencies = [
 
 [[package]]
 name = "alab-router"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "regex",
  "serde",
