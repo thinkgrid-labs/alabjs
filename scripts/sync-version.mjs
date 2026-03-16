@@ -25,7 +25,8 @@ const root = dirname(fileURLToPath(import.meta.url)) + "/..";
 // Accept an explicit version as a CLI argument (used by release.yml)
 const cliVersion = process.argv[2];
 const rootPkg = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
-const version = cliVersion ?? rootPkg.version;
+// Strip leading 'v' — git tags have it (v0.3.0-alpha.1) but npm and Cargo do not accept it.
+const version = (cliVersion ?? rootPkg.version ?? "").replace(/^v/, "");
 if (!version) throw new Error("No version field in root package.json");
 
 // If an explicit version was passed, also update the root package.json

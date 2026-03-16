@@ -1,6 +1,6 @@
 {
   "name": "@alabjs/compiler-darwin-x64",
-  "version": "v0.3.0-alpha.1",
+  "version": "0.3.0-alpha.1",
   "description": "AlabJS compiler binary for darwin-x64",
   "license": "MIT",
   "main": "alab-napi.darwin-x64.node",
