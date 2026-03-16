@@ -152,6 +152,34 @@ jobs:
         env:
           NODE_ENV: production
 
+      # Start the server manually so that its stdout/stderr is captured in CI
+      # logs (Playwright's webServer buffers all output, hiding crash messages).
+      # playwright.config.ts uses reuseExistingServer:true so Playwright will
+      # detect this already-running process instead of launching a new one.
+      - name: Start production server
+        run: |
+          node ../../packages/alabjs/dist/cli.js start --port 3101 \
+            > /tmp/alab-server.log 2>&1 &
+          echo $! > /tmp/alab-server.pid
+          for i in $(seq 1 30); do
+            sleep 2
+            if curl -sf http://127.0.0.1:3101/ > /dev/null 2>&1; then
+              echo "Server ready after $((i * 2))s"
+              exit 0
+            fi
+            if ! kill -0 "$(cat /tmp/alab-server.pid)" 2>/dev/null; then
+              echo "ERROR: server process exited. Output:"
+              cat /tmp/alab-server.log
+              exit 1
+            fi
+          done
+          echo "ERROR: server not ready after 60s. Output:"
+          cat /tmp/alab-server.log
+          exit 1
+        working-directory: examples/basic-ssr
+        env:
+          NODE_ENV: production
+
       - name: Run E2E tests (production project)
         run: pnpm --filter alabjs-e2e test:production
         env:

@@ -65,7 +65,10 @@ export default defineConfig({
       // Node ≥ 17 maps to ::1 first; binding to 0.0.0.0 + checking 127.0.0.1
       // avoids IPv4/IPv6 mismatch on GitHub Actions Ubuntu runners).
       url: `http://127.0.0.1:${PROD_PORT}/`,
-      reuseExistingServer: !process.env["CI"],
+      // In CI the server is pre-started by the ci.yml "Start production server"
+      // step — always reuse so Playwright doesn't try to launch a second copy.
+      // Locally, reuse any running server or start one fresh via the command.
+      reuseExistingServer: true,
       // CI: just server start (build already done) — 60 s covers slow runners.
       // Local: build + start in one command — allow 60 s.
       timeout: 60_000,
