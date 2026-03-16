@@ -43,8 +43,9 @@ test.describe("alab build", () => {
       routes: Array<{ path: string; kind: string }>;
     };
     expect(manifest.routes.length).toBeGreaterThan(0);
-    // Home page must be in the manifest
-    const home = manifest.routes.find((r) => r.path === "/");
+    // Home page must be in the manifest as a page route.
+    // (Layouts also resolve to "/" — find the page specifically.)
+    const home = manifest.routes.find((r) => r.path === "/" && r.kind === "page");
     expect(home).toBeDefined();
     expect(home?.kind).toBe("page");
   });

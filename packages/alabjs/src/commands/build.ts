@@ -253,7 +253,8 @@ async function buildPPRShells(distDir: string, cwd: string): Promise<void> {
   let count = 0;
 
   for (const route of pageRoutes) {
-    const modulePath = resolve(distDir, "server", route.file);
+    // esbuild compiles .tsx/.ts → .js; use the compiled path.
+    const modulePath = resolve(distDir, "server", route.file.replace(/\.(tsx?)$/, ".js"));
     if (!existsSync(modulePath)) continue;
 
     // Dynamic import — module is compiled ESM, importable by Node directly.
