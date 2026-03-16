@@ -73,11 +73,6 @@ jobs:
             target: x86_64-pc-windows-msvc
             pkg: win32-x64-msvc
             binary: alab_napi.dll
-          - host: ubuntu-latest
-            target: x86_64-unknown-linux-musl
-            pkg: linux-x64-musl
-            binary: libalab_napi.so
-
     steps:
       - uses: actions/checkout@v4
 
@@ -118,7 +113,7 @@ jobs:
       id-token: write
     strategy:
       matrix:
-        pkg: [linux-x64-gnu, linux-x64-musl, darwin-arm64, darwin-x64, win32-x64-msvc]
+        pkg: [linux-x64-gnu, darwin-arm64, darwin-x64, win32-x64-msvc]
     steps:
       - uses: actions/checkout@v4
 
