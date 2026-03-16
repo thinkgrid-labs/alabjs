@@ -640,7 +640,7 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
   return {
     listen(port = 3000) {
       const server = createServer(toNodeListener(app));
-      server.listen(port, () => {
+      server.listen(port, "0.0.0.0", () => {
         console.log(`  alab  ready at http://localhost:${port}`);
       });
     },
