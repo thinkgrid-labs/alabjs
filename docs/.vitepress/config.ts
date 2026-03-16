@@ -52,6 +52,12 @@ export default defineConfig({
         ],
       },
       {
+        text: "Tooling",
+        items: [
+          { text: "Dev Tools", link: "/devtools" },
+        ],
+      },
+      {
         text: "Performance",
         items: [
           { text: "Partial Prerendering", link: "/ppr" },

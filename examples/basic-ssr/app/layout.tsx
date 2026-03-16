@@ -1,4 +1,5 @@
 import { AlabProvider } from "alabjs/client";
+import { Analytics } from "alabjs/components";
 import type { ReactNode } from "react";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
@@ -19,6 +20,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
           <a href="/posts">Posts</a>
         </nav>
         <AlabProvider fallback={<p>Loading…</p>}>{children}</AlabProvider>
+        <Analytics />
       </body>
     </html>
   );

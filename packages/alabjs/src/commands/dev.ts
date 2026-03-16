@@ -130,6 +130,42 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
         }
       }
 
+      // ── /_alabjs/__devtools — debug dump of routes + server functions ───────────
+      if (pathname === "/_alabjs/__devtools") {
+        const devRoutes = scanDevRoutes(appDir);
+        const apiRoutes = scanDevApiRoutes(appDir);
+        const serverFiles = findServerFiles(appDir);
+        const serverFns: string[] = [];
+        for (const file of serverFiles) {
+          try {
+            const mod = await vite.ssrLoadModule(file);
+            const relFile = file.replace(cwd + "/", "");
+            for (const key of Object.keys(mod)) {
+              if (typeof mod[key] === "function") serverFns.push(`${relFile}#${key}`);
+            }
+          } catch { /* skip files that fail to load */ }
+        }
+        res.statusCode = 200;
+        res.setHeader("content-type", "application/json; charset=utf-8");
+        res.setHeader("cache-control", "no-store");
+        res.end(JSON.stringify({
+          routes: devRoutes.map((r) => ({
+            pattern: r.pattern.source,
+            file: r.file.replace(cwd + "/", ""),
+            ssr: r.ssr,
+            params: r.paramNames,
+          })),
+          apiRoutes: apiRoutes.map((r) => ({
+            pattern: r.pattern.source,
+            file: r.file.replace(cwd + "/", ""),
+            params: r.paramNames,
+          })),
+          serverFunctions: serverFns,
+          buildId: devBuildId,
+        }, null, 2));
+        return;
+      }
+
       // ── /_alabjs/data/:fnName — GET data from a defineServerFn (useServerData) ─
       // ── /_alabjs/fn/:fnName  — POST mutation via defineServerFn stub ───────────
       if (pathname.startsWith("/_alabjs/data/") || pathname.startsWith("/_alabjs/fn/")) {

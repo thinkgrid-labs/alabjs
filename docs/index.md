@@ -36,4 +36,6 @@ features:
     details: Drop `<Analytics />` into your layout. Real user Core Web Vitals (LCP, CLS, INP, TTFB, FCP) aggregated per route — p75, no third-party scripts, no data leaving your server.
   - title: Safe environment variables
     details: Prefix with `ALAB_PUBLIC_` to expose a variable to the browser. Everything else is server-only — secrets can never be accidentally bundled into client code.
+  - title: Built-in dev tools
+    details: Floating toolbar in `alab dev` shows the current route, render mode, server/client boundary tree, active params, and layout chain. Zero footprint in production.
 ---

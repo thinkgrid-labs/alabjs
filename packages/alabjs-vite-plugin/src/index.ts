@@ -1,6 +1,7 @@
 import type { Plugin } from "vite";
 import type { AlabNapi } from "./napi.js";
 import { parseErrorLocation, formatBoundaryError } from "./overlay.js";
+import { devToolbarScript } from "./devtools.js";
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 
@@ -284,7 +285,9 @@ if (import.meta.env.DEV) {
       // Inject the react-refresh preamble only in dev (SSR has no window).
       if (ctx.server == null) return html; // production build — skip
       const preambleTag = `<script type="module">\n${REACT_REFRESH_PREAMBLE}</script>`;
-      return html.replace(/(<head[^>]*>)/i, `$1\n${preambleTag}`);
+      const withPreamble = html.replace(/(<head[^>]*>)/i, `$1\n${preambleTag}`);
+      // Inject the dev toolbar before </body> so it has access to meta tags.
+      return withPreamble.replace(/<\/body>/i, `${devToolbarScript()}\n</body>`);
     },
 
     async transform(

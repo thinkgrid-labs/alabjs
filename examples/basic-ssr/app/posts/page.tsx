@@ -1,13 +1,21 @@
 import { useServerData } from "alabjs/client";
-import { Link } from "alabjs/components";
+import { Link, Dynamic } from "alabjs/components";
 import type { getPosts } from "./page.server";
 import { Nav } from "../nav";
-import type { PageMetadata } from "alabjs";
+import type { PageMetadata, CdnCache } from "alabjs";
 
 export const ssr = true;
 
-// Cache the rendered HTML for 60 s — stale-while-revalidate in background
-export const revalidate = 60;
+// PPR: pre-render the static shell (Nav + heading) at build time.
+// The posts list streams in per-request inside <Dynamic>.
+export const ppr = true;
+
+// Cache the static shell at the CDN edge for 5 minutes.
+export const cdnCache: CdnCache = {
+  maxAge: 300,
+  swr: 60,
+  tags: ["posts"],
+};
 
 export const metadata: PageMetadata = {
   title: "Posts — AlabJS",
@@ -25,6 +33,20 @@ export const metadata: PageMetadata = {
   },
 };
 
+function PostsSkeleton() {
+  return (
+    <div className="flex flex-col gap-4 animate-pulse">
+      {[...Array(3)].map((_, i) => (
+        <div key={i} className="rounded-xl border border-zinc-200 bg-white p-6 shadow-sm">
+          <div className="h-3 w-24 bg-zinc-100 rounded mb-3" />
+          <div className="h-5 w-3/4 bg-zinc-200 rounded mb-2" />
+          <div className="h-3 w-full bg-zinc-100 rounded" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export default function PostsPage() {
   const posts = useServerData<typeof getPosts>("getPosts");
 
@@ -34,6 +56,8 @@ export default function PostsPage() {
       <main className="max-w-3xl mx-auto px-6 py-14">
         <h1 className="text-3xl font-extrabold tracking-tight text-zinc-900 mb-2">Posts</h1>
         <p className="text-zinc-400 text-sm mb-10">Thoughts on Rust, React, and building fast.</p>
+        {/* Dynamic: excluded from the pre-rendered static shell, streams in per-request */}
+        <Dynamic id="posts-list" fallback={<PostsSkeleton />}>
         <div className="flex flex-col gap-4">
           {posts.map((post, i) => (
             <Link
@@ -60,6 +84,7 @@ export default function PostsPage() {
             </Link>
           ))}
         </div>
+        </Dynamic>
       </main>
     </div>
   );

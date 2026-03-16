@@ -1,8 +1,18 @@
 import { Image } from "alabjs/components";
 import { Nav } from "./nav";
-import type { PageMetadata } from "alabjs";
+import type { PageMetadata, CdnCache } from "alabjs";
 
 export const ssr = true;
+
+// Public homepage — cache at the CDN edge for 10 minutes.
+// ALAB_PUBLIC_* vars are safe to use in client components (inlined at build time).
+const siteName = import.meta.env.ALAB_PUBLIC_SITE_NAME ?? "AlabJS";
+
+export const cdnCache: CdnCache = {
+  maxAge: 600,
+  swr: 60,
+  tags: ["homepage"],
+};
 
 export const metadata: PageMetadata = {
   title: "AlabJS — Build with intensity",
@@ -34,7 +44,7 @@ export default function HomePage() {
           <span>🔥</span> Full-stack React
         </div>
         <h1 className="text-5xl font-extrabold tracking-tight text-zinc-900 mb-4 leading-tight">
-          Build with <span className="text-orange-500">alabjs</span>.
+          Build with <span className="text-orange-500">{siteName.toLowerCase()}</span>.
         </h1>
         <p className="text-lg text-zinc-500 mb-3 max-w-xl">
           <em className="not-italic font-semibold text-zinc-700">AlabJS</em> — Filipino for{" "}

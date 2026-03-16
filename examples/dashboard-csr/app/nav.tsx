@@ -1,5 +1,7 @@
 import { Link } from "alabjs/components";
 
+const appName = import.meta.env.ALAB_PUBLIC_APP_NAME ?? "alab";
+
 export function Sidebar() {
   return (
     <aside className="w-56 min-h-screen bg-zinc-900 flex flex-col flex-shrink-0">
@@ -7,7 +9,7 @@ export function Sidebar() {
       <div className="px-5 py-5 border-b border-zinc-800">
         <div className="flex items-center gap-2">
           <span className="text-xl">🔥</span>
-          <span className="text-white font-bold text-base tracking-tight">alab</span>
+          <span className="text-white font-bold text-base tracking-tight">{appName}</span>
           <span className="ml-auto text-[10px] font-semibold bg-orange-500/20 text-orange-400 border border-orange-500/30 rounded px-1.5 py-0.5">
             BETA
           </span>
