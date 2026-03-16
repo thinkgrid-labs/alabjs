@@ -1,4 +1,4 @@
-export { Image, generateBlurPlaceholder } from "./Image.js";
+export { Image } from "./Image.js";
 export type { ImageProps } from "./Image.js";
 export { Link } from "./Link.js";
 export type { LinkProps } from "./Link.js";

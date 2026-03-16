@@ -53,6 +53,10 @@
       "import": "./dist/components/index.js",
       "types": "./dist/components/index.d.ts"
     },
+    "./components/server": {
+      "import": "./dist/components/ImageServer.js",
+      "types": "./dist/components/ImageServer.d.ts"
+    },
     "./middleware": {
       "import": "./dist/server/middleware.js",
       "types": "./dist/server/middleware.d.ts"
