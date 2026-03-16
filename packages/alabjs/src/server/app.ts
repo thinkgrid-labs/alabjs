@@ -1,7 +1,7 @@
 import { createApp as createH3App, createRouter, defineEventHandler, getQuery, readBody } from "h3";
 import { createServer } from "node:http";
 import { resolve, dirname, join, extname } from "node:path";
-import { existsSync, createReadStream, statSync } from "node:fs";
+import { existsSync, createReadStream, statSync, readFileSync } from "node:fs";
 import { toNodeListener } from "h3";
 import type { RouteManifest } from "../router/manifest.js";
 import { renderToResponse } from "../ssr/render.js";
@@ -12,6 +12,8 @@ import type { MiddlewareModule } from "./middleware.js";
 import { runMiddleware } from "./middleware.js";
 import type { PageMetadata } from "../types/index.js";
 import { checkRevalidateAuth, applyRevalidate } from "./revalidate.js";
+import { applyCdnHeaders, type CdnCache } from "./cdn.js";
+import { getPPRShell, injectBuildIdIntoPPRShell, PPR_CACHE_SUBDIR } from "../ssr/ppr.js";
 
 /**
  * Find layout file paths (relative to cwd root) for a given route.file, ordered outermost→innermost.
@@ -74,6 +76,17 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
   const app = createH3App();
   const router = createRouter();
   const publicDir = resolve(distDir, "../../public");
+
+  // Load the build ID written by `alab build` for skew protection.
+  // If the file is absent (first-run / non-standard setup) skew detection
+  // is silently disabled — existing behaviour is unchanged.
+  let buildId: string | undefined;
+  try {
+    buildId = readFileSync(resolve(distDir, "BUILD_ID"), "utf8").trim() || undefined;
+  } catch { /* no BUILD_ID file — skew protection disabled */ }
+
+  // Absolute path to the PPR shell cache directory.
+  const pprCacheDir = resolve(distDir, "../../", PPR_CACHE_SUBDIR);
 
   // ─── Global middleware ───────────────────────────────────────────────────────
   app.use(
@@ -319,12 +332,14 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
       defineEventHandler(async (event) => {
         const res = event.node.res;
 
-        // HTML pages must not be cached by intermediaries — they contain
-        // user-specific CSRF tokens and may reflect auth state.
-        res.setHeader("cache-control", "no-store");
-
-        // Set CSRF cookie so the client can send it on mutations.
-        const csrfToken = setCsrfCookie(event);
+        // Skew protection: tell the client which build this server is running.
+        if (buildId) {
+          res.setHeader("x-alab-build-id", buildId);
+          const clientBuildId = event.node.req.headers["x-alab-build-id"];
+          if (clientBuildId && clientBuildId !== buildId) {
+            res.setHeader("x-alab-revalidate", "1");
+          }
+        }
 
         const rawParams = (event.context.params ?? {}) as Record<string, string>;
         const params = rawParams;
@@ -342,6 +357,8 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
           metadata?: PageMetadata;
           generateMetadata?: (params: Record<string, string>) => PageMetadata | Promise<PageMetadata>;
           ssr?: boolean;
+          cdnCache?: CdnCache;
+          ppr?: boolean;
         };
 
         const Page = mod.default;
@@ -349,6 +366,31 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
           res.statusCode = 500;
           res.end(`[alabjs] Page has no default export: ${route.file}`);
           return;
+        }
+
+        // ── PPR: serve pre-rendered static shell ──────────────────────────────
+        // Pages with `export const ppr = true` get a static HTML shell built
+        // at `alab build` time. Serve it instantly with a long CDN TTL so the
+        // static portion is edge-cached. Dynamic sections (`<Dynamic>`) render
+        // their fallback in the shell and are filled in client-side via React
+        // hydration, or server-side via Suspense streaming on direct hits.
+        if (mod.ppr === true) {
+          let shell = getPPRShell(route.path, pprCacheDir);
+          if (shell !== null) {
+            // Inject the per-build skew-protection tag into the pre-rendered HTML.
+            if (buildId) shell = injectBuildIdIntoPPRShell(shell, buildId);
+
+            res.statusCode = 200;
+            res.setHeader("content-type", "text/html; charset=utf-8");
+            // Long CDN TTL: static shell doesn't change until the next build.
+            res.setHeader("cache-control", "public, s-maxage=3600, stale-while-revalidate=86400");
+            res.setHeader("x-alab-ppr", "shell");
+            if (buildId) res.setHeader("x-alab-build-id", buildId);
+            res.end(shell);
+            return;
+          }
+          // Shell not found — fall through to normal SSR and warn once.
+          console.warn(`[alabjs] ppr: no pre-rendered shell for ${route.path} — run \`alab build\` to generate it. Falling back to SSR.`);
         }
 
         // Support both static metadata and dynamic generateMetadata (production fix)
@@ -369,8 +411,20 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
         const layoutsJson = JSON.stringify(layoutRelPaths);
         const loadingFile = findProdLoadingFile(route.file, distDir) ?? undefined;
 
-        // Inject CSRF token into the HTML head so client JS can read it.
-        const headExtra = `<meta name="csrf-token" content="${csrfToken.replace(/"/g, "&quot;")}" />`;
+        // ── Cache-control + CSRF ──────────────────────────────────────────────
+        // Pages that export `cdnCache` are public, edge-cacheable pages.
+        // They get CDN headers instead of `no-store`, and CSRF tokens are
+        // omitted — a shared cache would deliver the same token to every
+        // visitor, defeating CSRF protection.
+        let headExtra = "";
+        if (mod.cdnCache) {
+          applyCdnHeaders(res, mod.cdnCache);
+        } else {
+          // Private page: must not be cached by intermediaries.
+          res.setHeader("cache-control", "no-store");
+          const csrfToken = setCsrfCookie(event);
+          headExtra = `<meta name="csrf-token" content="${csrfToken.replace(/"/g, "&quot;")}" />`;
+        }
 
         try {
           renderToResponse(res, {
@@ -384,6 +438,7 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
             loadingFile,
             ssr: ssrEnabled,
             headExtra,
+            ...(buildId ? { buildId } : {}),
           });
         } catch (err) {
           // ── error.tsx fallback ────────────────────────────────────────────

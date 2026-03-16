@@ -14,4 +14,9 @@ export interface AlabNapi {
   extractServerFns(source: string, filename: string): string;
   /** Returns an ES module stub replacing the real handler in client bundles. */
   serverFnStub(name: string, endpoint: string): string;
+  /**
+   * FNV-1a 64-bit hash of `content`, returned as a 16-char lowercase hex string.
+   * Used by the build pipeline to derive a content-addressed build ID.
+   */
+  hashBuildId(content: string): string;
 }

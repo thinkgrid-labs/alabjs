@@ -25,6 +25,7 @@
  */
 
 import { revalidatePath, revalidatePathPrefix, revalidateTag } from "./cache.js";
+import { purgeCdnByTags } from "./cdn.js";
 
 export interface RevalidateBody {
   /** Purge a single cached page path. */
@@ -64,7 +65,12 @@ export function applyRevalidate(
 
   if (path) revalidatePath(path);
   if (prefix) revalidatePathPrefix(prefix);
-  if (tags?.length) revalidateTag({ tags });
+  if (tags?.length) {
+    revalidateTag({ tags });
+    // Fire-and-forget: CDN purge is best-effort. In-process cache is already
+    // cleared above, so a CDN miss will just hit the origin and re-warm the edge.
+    void purgeCdnByTags(tags);
+  }
 
   return {
     revalidated: true,

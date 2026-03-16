@@ -7,3 +7,5 @@ export { Script } from "./Script.js";
 export type { ScriptProps } from "./Script.js";
 export { Font } from "./Font.js";
 export type { FontProps } from "./Font.js";
+export { Dynamic, PPRShellProvider } from "./Dynamic.js";
+export type { DynamicProps } from "./Dynamic.js";

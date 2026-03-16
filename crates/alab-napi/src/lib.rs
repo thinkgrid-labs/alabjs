@@ -103,6 +103,29 @@ pub fn extract_server_fns(source: String, filename: String) -> napi::Result<Stri
         .map_err(|e| napi::Error::from_reason(e.to_string()))
 }
 
+/// Compute a 64-bit FNV-1a hash of `content` and return it as a 16-character
+/// lowercase hex string.
+///
+/// Used by the build pipeline to derive a stable, content-addressed build ID
+/// for skew protection. Passing the route-manifest JSON (which changes whenever
+/// routes or page exports change) produces a ID that:
+///   - is identical across process restarts for the same build output, and
+///   - changes whenever the build output changes.
+///
+/// FNV-1a is chosen for its zero-dependency, pure-Rust implementation and
+/// sub-microsecond performance on typical manifest payloads.
+#[napi]
+pub fn hash_build_id(content: String) -> String {
+    const FNV_OFFSET: u64 = 14_695_981_039_346_656_037;
+    const FNV_PRIME: u64 = 1_099_511_628_211;
+    let mut hash = FNV_OFFSET;
+    for byte in content.bytes() {
+        hash ^= u64::from(byte);
+        hash = hash.wrapping_mul(FNV_PRIME);
+    }
+    format!("{hash:016x}")
+}
+
 /// Generate a client-side stub for a single server function.
 ///
 /// Used by the Vite plugin during client builds to replace the real handler

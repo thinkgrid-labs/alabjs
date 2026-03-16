@@ -18,6 +18,13 @@ export interface HtmlShellOptions {
   headExtra?: string | undefined;
   /** Nonce for CSP inline scripts (optional). */
   nonce?: string | undefined;
+  /**
+   * Build ID for skew protection.
+   * Injected as `<meta name="alabjs-build-id">` so the client SPA router can
+   * detect a deployment change mid-session and trigger a hard reload instead
+   * of swapping components in-place with mismatched JS chunks.
+   */
+  buildId?: string | undefined;
 }
 
 /** Build the opening HTML fragment — everything up to and including `<div id="alabjs-root">`. */
@@ -31,6 +38,7 @@ export function htmlShellBefore(opts: HtmlShellOptions): string {
     layoutsJson,
     loadingFile,
     headExtra = "",
+    buildId,
   } = opts;
 
   const titleTag = metadata.title
@@ -76,6 +84,7 @@ export function htmlShellBefore(opts: HtmlShellOptions): string {
     <meta name="alabjs-search-params" content="${escAttr(searchParamsJson)}" />
     ${layoutsJson ? `<meta name="alabjs-layouts" content="${escAttr(layoutsJson)}" />` : ""}
     ${loadingFile ? `<meta name="alabjs-loading" content="${escAttr(loadingFile)}" />` : ""}
+    ${buildId ? `<meta name="alabjs-build-id" content="${escAttr(buildId)}" />` : ""}
     <link rel="stylesheet" href="/app/globals.css" />
     ${headExtra}
   </head>

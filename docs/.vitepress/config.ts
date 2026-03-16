@@ -51,6 +51,14 @@ export default defineConfig({
         ],
       },
       {
+        text: "Performance",
+        items: [
+          { text: "Partial Prerendering", link: "/ppr" },
+          { text: "CDN Cache Headers", link: "/cdn-cache" },
+          { text: "Skew Protection", link: "/skew-protection" },
+        ],
+      },
+      {
         text: "Components",
         items: [
           { text: "Image", link: "/image" },

@@ -63,6 +63,12 @@ async function readJsonBody(req: IncomingMessage): Promise<unknown> {
 export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) {
   console.log("  alab  starting dev server...\n");
 
+  // Per-session build ID for skew protection in dev.
+  // A new ID is generated each time the dev server starts so that a browser
+  // tab left open across a restart will hard-reload on the next navigation
+  // rather than silently rendering with stale JS.
+  const devBuildId = `dev-${Date.now().toString(36)}`;
+
   const appDir = resolve(cwd, "app");
 
   const vite = await createServer({
@@ -459,6 +465,7 @@ export async function dev({ cwd, port = 3000, host = "localhost" }: DevOptions) 
           layoutsJson,
           loadingFile,
           ssr: ssrEnabled,
+          buildId: devBuildId,
         });
         const shellAfter = htmlShellAfter({});
         const rawHtml = `${shellBefore}${ssrContent}${shellAfter}`;

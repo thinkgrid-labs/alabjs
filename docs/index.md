@@ -26,4 +26,10 @@ features:
     details: Define `defineServerFn` in `.server.ts` files. The Rust compiler strips them from the browser bundle and generates type-safe fetch stubs.
   - title: Built-in image optimization
     details: The `<Image>` component converts to WebP, generates responsive `srcset`, and lazy-loads by default — powered by the same Rust binary.
+  - title: Partial Prerendering (PPR)
+    details: Export `ppr = true` to serve a CDN-cached static shell instantly. `<Dynamic>` boundaries stream per-request content in behind it — no full page reload needed.
+  - title: CDN Cache Headers
+    details: Export `cdnCache` to emit `Cache-Control`, `CDN-Cache-Control`, and `Surrogate-Control` headers automatically. Works with Cloudflare, Fastly, or any standard CDN.
+  - title: Skew Protection
+    details: Build ID stamped at compile time (git SHA → Rust FNV-1a hash). Client detects stale JS bundles and hard-reloads automatically — zero stale-bundle errors in production.
 ---

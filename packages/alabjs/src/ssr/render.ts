@@ -29,6 +29,8 @@ export interface RenderOptions {
   headExtra?: string;
   /** CSP nonce (optional). */
   nonce?: string;
+  /** Build ID for skew protection (see html.ts). */
+  buildId?: string;
 }
 
 /**
@@ -50,6 +52,7 @@ export function renderToResponse(res: ServerResponse, opts: RenderOptions): void
     ssr,
     headExtra,
     nonce,
+    buildId,
   } = opts;
 
   const shellOpts: HtmlShellOptions = {
@@ -62,6 +65,7 @@ export function renderToResponse(res: ServerResponse, opts: RenderOptions): void
     ssr,
     headExtra,
     nonce,
+    buildId,
   };
 
   const before = htmlShellBefore(shellOpts);

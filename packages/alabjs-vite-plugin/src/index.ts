@@ -45,7 +45,7 @@ export function alabPlugin(options: AlabPluginOptions = {}): Plugin[] {
     async buildStart() {
       try {
         // CJS module imported via ESM dynamic import — functions land on .default
-        const mod = await import("@alabjs/compiler") as { default?: AlabNapi } & AlabNapi;
+        const mod = await import("@alabjs/compiler") as unknown as { default?: AlabNapi } & AlabNapi;
         napi = (mod.default ?? mod) as AlabNapi;
       } catch {
         this.warn(
@@ -117,6 +117,9 @@ const params = JSON.parse(meta("alabjs-params") || "{}");
 const searchParams = JSON.parse(meta("alabjs-search-params") || "{}");
 const layoutFiles = JSON.parse(meta("alabjs-layouts") || "[]");
 const loadingFile = meta("alabjs-loading") || null;
+// Capture the build ID stamped into this page at render time.
+// Used by __alabjs_navigate to detect a deployment change mid-session.
+const currentBuildId = meta("alabjs-build-id");
 
 if (routeFile) {
   const app = await buildApp(routeFile, layoutFiles, loadingFile, params, searchParams);
@@ -136,8 +139,22 @@ if (routeFile) {
 /** SPA navigation — fetch target page and swap React root in-place. */
 window.__alabjs_navigate = async (href) => {
   try {
-    const res = await fetch(href, { headers: { "x-alabjs-prefetch": "1" } });
+    // Send our build ID so the server can set x-alab-revalidate: 1 if it has
+    // been redeployed since this page was loaded.
+    const fetchHeaders = { "x-alabjs-prefetch": "1" };
+    if (currentBuildId) fetchHeaders["x-alab-build-id"] = currentBuildId;
+
+    const res = await fetch(href, { headers: fetchHeaders });
     if (!res.ok) { window.location.href = href; return; }
+
+    // Server-side skew signal: the server is running a different build.
+    // Hard-reload so the browser fetches fresh JS chunks instead of reusing
+    // the stale bundle already in memory.
+    if (res.headers.get("x-alab-revalidate") === "1") {
+      window.location.href = href;
+      return;
+    }
+
     const html = await res.text();
 
     const parser = new DOMParser();
@@ -149,6 +166,15 @@ window.__alabjs_navigate = async (href) => {
     const newSearchParams = JSON.parse(newMeta("alabjs-search-params") || "{}");
     const newLayoutFiles = JSON.parse(newMeta("alabjs-layouts") || "[]");
     const newLoadingFile = newMeta("alabjs-loading") || null;
+
+    // Client-side skew signal: the fetched page embeds a different build ID.
+    // This catches cases where the response came from a CDN/cache that strips
+    // custom headers but still serves fresh HTML.
+    const newBuildId = newMeta("alabjs-build-id");
+    if (currentBuildId && newBuildId && newBuildId !== currentBuildId) {
+      window.location.href = href;
+      return;
+    }
 
     // Update document title
     const newTitle = doc.querySelector("title")?.textContent;

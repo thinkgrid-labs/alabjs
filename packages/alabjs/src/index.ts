@@ -6,5 +6,6 @@ export type {
   PageMetadata,
   GenerateMetadata,
   RouteParams,
+  CdnCache,
 } from "./types/index.js";
 export { createApp } from "./server/app.js";

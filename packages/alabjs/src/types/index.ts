@@ -145,3 +145,26 @@ export type GenerateMetadata<Path extends string = string> = (props: {
   readonly params: RouteParams<Path>;
   readonly searchParams: Readonly<Record<string, string | readonly string[]>>;
 }) => Promise<PageMetadata> | PageMetadata;
+
+// ─── CDN cache ─────────────────────────────────────────────────────────────────
+
+/**
+ * Export `cdnCache` from a page to let any CDN or shared proxy cache it at
+ * the edge — no Vercel required.
+ *
+ * @example
+ * // app/posts/[id]/page.tsx
+ * import type { CdnCache } from "alabjs";
+ *
+ * export const cdnCache: CdnCache = {
+ *   maxAge: 60,          // CDN keeps the page for 60 s
+ *   swr: 30,             // serve stale for 30 s while revalidating
+ *   tags: ["posts", "post:42"],  // invalidate via /_alabjs/revalidate
+ * };
+ *
+ * @remarks
+ * CDN-cached pages are **public pages** — Alab skips CSRF token injection for
+ * them because a shared cache would hand the same token to every visitor.
+ * Do not use `cdnCache` on pages that contain user-specific state.
+ */
+export type { CdnCache } from "../server/cdn.js";

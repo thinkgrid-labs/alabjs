@@ -1,7 +1,9 @@
 import { build as viteBuild, type PluginOption } from "vite";
 import { resolve } from "node:path";
-import { spawn } from "node:child_process";
-import { existsSync, writeFileSync } from "node:fs";
+import { spawn, execSync } from "node:child_process";
+import { existsSync, writeFileSync, readFileSync } from "node:fs";
+import { preRenderPPRShell, findBuildLayoutFiles, PPR_CACHE_SUBDIR } from "../ssr/ppr.js";
+import type { RouteManifest } from "../router/manifest.js";
 
 interface BuildOptions {
   cwd: string;
@@ -165,11 +167,124 @@ export async function build({ cwd, skipTypecheck = false, mode = "ssr", analyze 
 
   await Promise.all(tasks);
 
+  // Write a stable build ID for skew protection (must run after Vite so the
+  // route-manifest.json is in place for the content-hash fallback path).
+  const distDir = resolve(cwd, ".alabjs/dist");
+  await writeBuildId(distDir, cwd);
+  await buildPPRShells(distDir, cwd);
+
   // Bundle the offline service worker as a separate iife chunk.
   // Output: .alabjs/dist/client/_alabjs/offline-sw.js (served at /_alabjs/offline-sw.js)
   await buildOfflineSw(cwd);
 
   console.log("\n  alab  build complete → .alabjs/dist");
+}
+
+/**
+ * Generate a stable build ID and write it to `.alabjs/dist/BUILD_ID`.
+ *
+ * Strategy (in priority order):
+ *  1. Git short SHA — deterministic, human-readable, zero CPU cost.
+ *  2. Rust FNV-1a hash of the route-manifest JSON via `@alabjs/compiler`
+ *     (napi binary) — content-addressed, no git required.
+ *  3. Base-36 millisecond timestamp — last resort when both git and napi
+ *     are unavailable (e.g. first-time contributor without Rust toolchain).
+ */
+async function writeBuildId(distDir: string, cwd: string): Promise<void> {
+  let buildId: string;
+
+  // 1. Git SHA (preferred — zero cost, guaranteed unique per commit)
+  try {
+    buildId = execSync("git rev-parse --short HEAD", { cwd, encoding: "utf8" }).trim();
+  } catch {
+    // 2. Rust FNV-1a hash of the route manifest (content-addressed)
+    try {
+      const manifestPath = resolve(distDir, "route-manifest.json");
+      const manifestContent = readFileSync(manifestPath, "utf8");
+      type NapiWithHash = { hashBuildId(s: string): string };
+      const mod = await import("@alabjs/compiler") as unknown as { default?: NapiWithHash } & NapiWithHash;
+      const napi: NapiWithHash = (mod.default ?? mod) as NapiWithHash;
+      if (typeof napi.hashBuildId === "function") {
+        buildId = napi.hashBuildId(manifestContent);
+      } else {
+        throw new Error("hashBuildId not available");
+      }
+    } catch {
+      // 3. Timestamp fallback
+      buildId = Date.now().toString(36);
+    }
+  }
+
+  writeFileSync(resolve(distDir, "BUILD_ID"), buildId, "utf8");
+  console.log(`  alab  build ID → ${buildId}`);
+}
+
+/**
+ * Pre-render static HTML shells for every page that exports `ppr = true`.
+ *
+ * Runs AFTER the Vite SSR bundle so compiled page modules are available in
+ * `.alabjs/dist/server/`. Each shell is saved to `.alabjs/ppr-cache/`.
+ */
+async function buildPPRShells(distDir: string, cwd: string): Promise<void> {
+  const manifestPath = resolve(distDir, "route-manifest.json");
+  if (!existsSync(manifestPath)) return;
+
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as RouteManifest;
+  const pageRoutes = manifest.routes.filter((r) => r.kind === "page");
+  const pprCacheDir = resolve(cwd, PPR_CACHE_SUBDIR);
+  let count = 0;
+
+  for (const route of pageRoutes) {
+    const modulePath = resolve(distDir, "server", route.file);
+    if (!existsSync(modulePath)) continue;
+
+    // Dynamic import — module is compiled ESM, importable by Node directly.
+    const mod = await import(modulePath) as {
+      default?: unknown;
+      ppr?: unknown;
+      metadata?: Record<string, unknown>;
+    };
+
+    if (mod.ppr !== true) continue;
+    if (typeof mod.default !== "function") {
+      console.warn(`  alab  ppr: ${route.file} has no default export — skipping.`);
+      continue;
+    }
+
+    // Load layout modules (outermost → innermost).
+    const layoutPaths = findBuildLayoutFiles(route.file, distDir);
+    const layoutMods = await Promise.all(
+      layoutPaths.map((p) => import(resolve(distDir, "server", p))),
+    );
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const layouts = layoutMods.map((m: any) => m.default).filter((c: unknown) => typeof c === "function");
+
+    try {
+      await preRenderPPRShell({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        Page: mod.default as any,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        layouts: layouts as any[],
+        shellOpts: {
+          metadata: (mod.metadata as never) ?? {},
+          paramsJson: "{}",
+          searchParamsJson: "{}",
+          routeFile: route.file,
+          ssr: true,
+        },
+        pprCacheDir,
+        routePath: route.path,
+      });
+      count++;
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`  alab  ppr: failed to pre-render ${route.path}: ${msg}`);
+    }
+  }
+
+  if (count > 0) {
+    console.log(`  alab  ppr  → ${count} shell${count === 1 ? "" : "s"} written to ${PPR_CACHE_SUBDIR}`);
+  }
 }
 
 /** Compile the offline service worker to a standalone iife bundle. */
