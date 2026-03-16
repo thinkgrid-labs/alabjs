@@ -61,7 +61,10 @@ export default defineConfig({
         ? `node ../../packages/alabjs/dist/cli.js start --port ${PROD_PORT}`
         : `node ../../packages/alabjs/dist/cli.js build --skip-typecheck && node ../../packages/alabjs/dist/cli.js start --port ${PROD_PORT}`,
       cwd: EXAMPLE_DIR,
-      port: PROD_PORT,
+      // Use url (explicit IPv4) instead of port (resolves `localhost` which on
+      // Node ≥ 17 maps to ::1 first; binding to 0.0.0.0 + checking 127.0.0.1
+      // avoids IPv4/IPv6 mismatch on GitHub Actions Ubuntu runners).
+      url: `http://127.0.0.1:${PROD_PORT}/`,
       reuseExistingServer: !process.env["CI"],
       // CI: just server start (build already done) — 60 s covers slow runners.
       // Local: build + start in one command — allow 60 s.
