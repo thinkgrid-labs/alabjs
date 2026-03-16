@@ -55,14 +55,17 @@ export default defineConfig({
         ]),
     {
       name: "production",
-      // Chain build → start so the server is always self-contained.
-      // `--skip-typecheck` keeps CI fast (tsc runs separately in the typecheck job).
-      command: `node ../../packages/alabjs/dist/cli.js build --skip-typecheck && node ../../packages/alabjs/dist/cli.js start --port ${PROD_PORT}`,
+      // In CI the example is pre-built by the e2e job (see ci.yml) so we only
+      // need to start the server. Locally we build + start in one command.
+      command: process.env["CI"]
+        ? `node ../../packages/alabjs/dist/cli.js start --port ${PROD_PORT}`
+        : `node ../../packages/alabjs/dist/cli.js build --skip-typecheck && node ../../packages/alabjs/dist/cli.js start --port ${PROD_PORT}`,
       cwd: EXAMPLE_DIR,
       port: PROD_PORT,
       reuseExistingServer: !process.env["CI"],
-      // 180 s in CI: alab build (Rolldown SSR + SW bundle) + server cold start.
-      timeout: process.env["CI"] ? 180_000 : 60_000,
+      // CI: just server start (build already done) — 30 s is plenty.
+      // Local: build + start in one command — allow 60 s.
+      timeout: process.env["CI"] ? 30_000 : 60_000,
       env: { NODE_ENV: "production" },
     },
   ],

@@ -552,7 +552,10 @@ async function buildOfflineSw(cwd: string): Promise<void> {
           fileName: () => "offline-sw.js",
         },
         minify: true,
-        rolldownOptions: { output: { inlineDynamicImports: true } },
+        // Note: do NOT set rolldownOptions.output.inlineDynamicImports here.
+        // iife format sets codeSplitting:false which already implies
+        // inlineDynamicImports:true in Rolldown. Setting it explicitly
+        // produces a warning that can cause the build to stall in Rolldown/Vite 8+.
       },
     });
   } catch (err) {

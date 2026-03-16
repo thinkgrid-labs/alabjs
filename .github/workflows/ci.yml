@@ -144,10 +144,14 @@ jobs:
       - name: Install Playwright browsers
         run: pnpm --filter alabjs-e2e exec playwright install chromium --with-deps
 
-      # Only runs the production project:
-      #   - Skips the dev web server (cold-compiles Rust+TS, too slow for CI).
-      #   - The production webServer command chains `alab build && alab start`,
-      #     so the example is always built before the server binds the port.
+      # Pre-build the example so playwright's webServer only needs to `alab start`
+      # (not build + start), keeping the 30s server-start timeout achievable.
+      - name: Pre-build basic-ssr example
+        run: node packages/alabjs/dist/cli.js build --skip-typecheck
+        working-directory: examples/basic-ssr
+        env:
+          NODE_ENV: production
+
       - name: Run E2E tests (production project)
         run: pnpm --filter alabjs-e2e test:production
         env:
