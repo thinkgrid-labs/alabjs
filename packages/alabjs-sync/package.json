@@ -1,6 +1,6 @@
 {
   "name": "alabjs-sync",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Local-first sync engine adapters for AlabJS — ElectricSQL, PowerSync, PGlite",
   "license": "MIT",
   "type": "module",
@@ -32,9 +32,15 @@
     "react": "^19.0.0"
   },
   "peerDependenciesMeta": {
-    "@electric-sql/pglite": { "optional": true },
-    "@electric-sql/client": { "optional": true },
-    "@powersync/web": { "optional": true }
+    "@electric-sql/pglite": {
+      "optional": true
+    },
+    "@electric-sql/client": {
+      "optional": true
+    },
+    "@powersync/web": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/react": "^19.1.0",

@@ -1,6 +1,6 @@
 {
   "name": "@alabjs/compiler",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "AlabJS Rust compiler core — napi-rs native addon",
   "license": "MIT",
   "main": "index.js",
