@@ -38,4 +38,8 @@ features:
     details: Prefix with `ALAB_PUBLIC_` to expose a variable to the browser. Everything else is server-only — secrets can never be accidentally bundled into client code.
   - title: Built-in dev tools
     details: Floating toolbar in `alab dev` shows the current route, render mode, server/client boundary tree, active params, and layout chain. Zero footprint in production.
+  - title: Server-Sent Events
+    details: Stream live updates from any API route with `defineSSEHandler`. Subscribe on the client with the `useSSE` hook — reconnects automatically, no WebSocket needed.
+  - title: Offline-first mutations
+    details: Service worker queues failed server function calls in IndexedDB and replays them on reconnect. `useOfflineMutations` surfaces queue state and manual replay — zero config required.
 ---
