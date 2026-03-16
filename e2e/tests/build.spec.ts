@@ -15,6 +15,11 @@ const pprCache = resolve(EXAMPLE_DIR, ".alabjs/ppr-cache");
 
 test.describe("alab build", () => {
   test.beforeAll(() => {
+    // In CI the example is pre-built by the ci.yml pre-build step before
+    // Playwright runs — skip rebuilding here to avoid redundant typecheck
+    // overhead that can exceed the 120s execSync timeout on slow runners.
+    // Locally, run the full build so this spec is self-contained.
+    if (process.env["CI"]) return;
     run(`node ${CLI} build`, { timeout: 120_000 });
   });
 
