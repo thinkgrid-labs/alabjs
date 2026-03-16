@@ -8,7 +8,7 @@ interface StartOptions {
 }
 
 export async function start({ cwd, port = 3000 }: StartOptions) {
-  const manifestPath = resolve(cwd, ".alabjs/route-manifest.json");
+  const manifestPath = resolve(cwd, ".alabjs/dist/route-manifest.json");
 
   let manifest: RouteManifest;
   try {

@@ -1,5 +1,5 @@
 import { build as viteBuild, type PluginOption } from "vite";
-import { resolve } from "node:path";
+import { resolve, relative, isAbsolute } from "node:path";
 import { spawn, execSync } from "node:child_process";
 import { existsSync, writeFileSync, readFileSync, mkdirSync } from "node:fs";
 import { loadUserConfig } from "../config.js";
@@ -169,9 +169,19 @@ export async function build({ cwd, skipTypecheck = false, mode = "ssr", analyze 
 
   await Promise.all(tasks);
 
-  // Write a stable build ID for skew protection (must run after Vite so the
-  // route-manifest.json is in place for the content-hash fallback path).
   const distDir = resolve(cwd, ".alabjs/dist");
+
+  // Scan the app/ directory with the Rust router, normalize paths, and write
+  // route-manifest.json. Must run before writeBuildId (hash) and buildPPRShells.
+  const manifest = await buildRouteManifest(cwd, distDir);
+
+  // Compile all app pages, layouts, and server functions to .alabjs/dist/server/.
+  // Must run after buildRouteManifest so we have the entry list, and before
+  // buildPPRShells which imports the compiled modules.
+  await buildSsrBundle(cwd, distDir, manifest);
+
+  // Write a stable build ID for skew protection (must run after the route
+  // manifest is in place for the content-hash fallback path).
   await writeBuildId(distDir, cwd);
   await buildPPRShells(distDir, cwd);
 
@@ -441,6 +451,104 @@ async function buildFederationExposes(
     JSON.stringify(manifest, null, 2),
     "utf8",
   );
+}
+
+/**
+ * Scan `app/` with the Rust router napi, normalize absolute file paths to
+ * cwd-relative, and write `route-manifest.json` to `distDir`.
+ *
+ * Returns the in-memory manifest so callers can use it immediately without
+ * reading the file back from disk.
+ */
+async function buildRouteManifest(cwd: string, distDir: string): Promise<RouteManifest> {
+  const appDir = resolve(cwd, "app");
+  let manifest: RouteManifest = { routes: [] };
+
+  try {
+    type NapiRoutes = { buildRoutes(appDir: string): string };
+    const mod = await import("@alabjs/compiler") as unknown as { default?: NapiRoutes } & NapiRoutes;
+    const napi = (mod.default ?? mod) as NapiRoutes;
+    const json = napi.buildRoutes(appDir);
+    manifest = JSON.parse(json) as RouteManifest;
+
+    // The Rust scanner stores absolute paths; normalize to cwd-relative so the
+    // production server can construct `distDir/server/<file>` paths correctly.
+    for (const route of manifest.routes) {
+      if (isAbsolute(route.file)) {
+        route.file = relative(cwd, route.file);
+      }
+    }
+  } catch {
+    console.warn(
+      "  alab  warning: Rust compiler unavailable — route manifest will be empty.\n" +
+      "         Run `cargo build --release -p alab-napi && bash scripts/copy-napi-binary.sh`.",
+    );
+  }
+
+  mkdirSync(distDir, { recursive: true });
+  writeFileSync(resolve(distDir, "route-manifest.json"), JSON.stringify(manifest, null, 2), "utf8");
+
+  const pages = manifest.routes.filter((r) => r.kind === "page").length;
+  const apis  = manifest.routes.filter((r) => r.kind === "api").length;
+  console.log(`  alab  routes → ${pages} page(s), ${apis} api route(s)`);
+
+  return manifest;
+}
+
+/**
+ * Build an SSR (Node.js) bundle for every route file listed in `manifest`,
+ * outputting compiled modules to `distDir/server/` with the original
+ * directory structure preserved.
+ *
+ * Each page/layout/error/loading/api/server file is compiled to a separate
+ * `.js` module that the production server can `import()` at request time.
+ */
+async function buildSsrBundle(cwd: string, distDir: string, manifest: RouteManifest): Promise<void> {
+  const routeFiles = manifest.routes.map((r) => resolve(cwd, r.file));
+
+  // Include top-level middleware.ts if present.
+  const middlewarePath = resolve(cwd, "middleware.ts");
+  if (existsSync(middlewarePath)) routeFiles.push(middlewarePath);
+
+  if (routeFiles.length === 0) return;
+
+  // Rolldown multi-entry input: key = output path without extension, value = absolute source
+  const input: Record<string, string> = {};
+  for (const file of routeFiles) {
+    const key = relative(cwd, file).replace(/\.(tsx?)$/, "");
+    input[key] = file;
+  }
+
+  await viteBuild({
+    root: cwd,
+    plugins: [(await import("alabjs-vite-plugin")).alabPlugin({ mode: "build" })],
+    build: {
+      ssr: true,
+      outDir: resolve(distDir, "server"),
+      emptyOutDir: true,
+      rolldownOptions: {
+        input,
+        external: [
+          "react",
+          "react/jsx-runtime",
+          "react-dom",
+          "react-dom/client",
+          "react-dom/server",
+          "react-dom/server.node",
+          /^alabjs(\/.*)?$/,
+        ],
+        output: {
+          preserveModules: true,
+          // Strip the project root from output paths so files land at
+          // `server/app/posts/page.js` not `server/<absolute-cwd>/app/posts/page.js`.
+          preserveModulesRoot: cwd,
+        },
+      },
+    },
+    logLevel: "warn",
+  });
+
+  console.log("  alab  SSR bundle → .alabjs/dist/server");
 }
 
 /** Compile the offline service worker to a standalone iife bundle. */

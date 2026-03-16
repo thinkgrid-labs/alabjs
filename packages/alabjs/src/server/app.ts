@@ -23,6 +23,11 @@ import type { FederationConfig } from "../config.js";
  * Find layout file paths (relative to cwd root) for a given route.file, ordered outermost→innermost.
  * Checks the compiled dist directory for the existence of each layout.
  */
+/** Convert a TypeScript source path to its compiled .js equivalent. */
+function toJsPath(p: string): string {
+  return p.replace(/\.(tsx?)$/, ".js");
+}
+
 function findProdLayoutFiles(routeFile: string, distDir: string): string[] {
   // routeFile is like "app/users/[id]/page.tsx"
   const pageDir = dirname(routeFile);
@@ -30,7 +35,7 @@ function findProdLayoutFiles(routeFile: string, distDir: string): string[] {
   const layouts: string[] = [];
   for (let i = 1; i <= parts.length; i++) {
     const dir = parts.slice(0, i).join("/");
-    const layoutRelPath = `${dir}/layout.tsx`;
+    const layoutRelPath = `${dir}/layout.js`;
     if (existsSync(join(distDir, "server", layoutRelPath))) {
       layouts.push(layoutRelPath);
     }
@@ -44,7 +49,7 @@ function findProdLayoutFiles(routeFile: string, distDir: string): string[] {
 function findProdErrorFile(routeFile: string, distDir: string): string | null {
   let dir = dirname(routeFile);
   while (dir.length > 0 && dir !== ".") {
-    const candidate = `${dir}/error.tsx`;
+    const candidate = `${dir}/error.js`;
     if (existsSync(join(distDir, "server", candidate))) return candidate;
     const parent = dirname(dir);
     if (parent === dir) break;
@@ -56,7 +61,7 @@ function findProdErrorFile(routeFile: string, distDir: string): string | null {
 function findProdLoadingFile(routeFile: string, distDir: string): string | null {
   let dir = dirname(routeFile);
   while (dir.length > 0 && dir !== ".") {
-    const candidate = `${dir}/loading.tsx`;
+    const candidate = `${dir}/loading.js`;
     if (existsSync(join(distDir, "server", candidate))) return candidate;
     const parent = dirname(dir);
     if (parent === dir) break;
@@ -134,8 +139,8 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
     }),
   );
 
-  // ─── User middleware (middleware.ts compiled to dist/server/middleware.ts) ───
-  const middlewareModulePath = `${distDir}/server/middleware.ts`;
+  // ─── User middleware (middleware.ts compiled to dist/server/middleware.js) ───
+  const middlewareModulePath = `${distDir}/server/middleware.js`;
   if (existsSync(middlewareModulePath)) {
     app.use(
       defineEventHandler(async (event) => {
@@ -365,7 +370,7 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
     if (route.kind !== "api") continue;
 
     const h3ApiPath = route.path.replace(/\[([^\]]+)\]/g, ":$1");
-    const apiModulePath = `${distDir}/server/${route.file}`;
+    const apiModulePath = `${distDir}/server/${toJsPath(route.file)}`;
 
     for (const method of ["get", "post", "put", "patch", "delete", "head"] as const) {
       router[method](
@@ -454,7 +459,7 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
         }
 
         // Dynamically import the compiled page module from the dist directory.
-        const pageModulePath = `${distDir}/server/${route.file}`;
+        const pageModulePath = `${distDir}/server/${toJsPath(route.file)}`;
         const mod = await import(pageModulePath) as {
           default?: unknown;
           metadata?: PageMetadata;
@@ -507,7 +512,7 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
         // ── Layouts ──────────────────────────────────────────────────────────
         const layoutRelPaths = findProdLayoutFiles(route.file, distDir);
         const layoutMods = await Promise.all(
-          layoutRelPaths.map((p) => import(`${distDir}/server/${p}`)),
+          layoutRelPaths.map((p) => import(`${distDir}/server/${toJsPath(p)}`)),
         );
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const layouts = layoutMods.map((m: any) => m.default).filter((c: unknown): c is any => typeof c === "function");
@@ -550,7 +555,7 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
           if (errorRelPath) {
             try {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              const errorMod = await import(`${distDir}/server/${errorRelPath}`) as any;
+              const errorMod = await import(`${distDir}/server/${toJsPath(errorRelPath)}`) as any;
               const ErrorPage = errorMod.default;
               if (typeof ErrorPage === "function") {
                 renderToResponse(res, {
@@ -582,7 +587,7 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
   app.use(router);
 
   // ─── 404 / not-found fallback ────────────────────────────────────────────────
-  const notFoundPath = `${distDir}/server/app/not-found.tsx`;
+  const notFoundPath = `${distDir}/server/app/not-found.js`;
   app.use(
     defineEventHandler(async (event) => {
       const res = event.node.res;
