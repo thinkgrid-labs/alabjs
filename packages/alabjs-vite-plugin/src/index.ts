@@ -13,6 +13,11 @@ interface AlabPluginOptions {
 
 const VIRTUAL_CLIENT_ID = "/@alabjs/client";
 const VIRTUAL_REFRESH_ID = "/@react-refresh";
+// In production builds the Rust compiler still emits jsxDEV calls (from
+// react/jsx-dev-runtime), but React's production bundle exports jsxDEV=void 0.
+// This virtual shim re-exports the production jsx/jsxs functions under the
+// dev names so production builds work without changing the Rust compiler.
+const VIRTUAL_JSX_DEV_SHIM_ID = "\0@alabjs/jsx-dev-shim";
 
 // Resolve react-refresh from the plugin's own node_modules so consumers
 // don't need to install it. We alias the package root (not runtime directly)
@@ -45,12 +50,18 @@ window.__vite_plugin_react_preamble_installed__ = true;
  */
 export function alabPlugin(options: AlabPluginOptions = {}): Plugin[] {
   let napi: AlabNapi | null = null;
+  // true when running `vite serve` (dev), false during `vite build` (production).
+  let isDev = true;
 
   const corePlugin: Plugin = {
     name: "alabjs",
     enforce: "pre",
 
-    config() {
+    configResolved(config) {
+      isDev = config.command === "serve";
+    },
+
+    config(_cfg, env) {
       return {
         // ALAB_PUBLIC_* vars are inlined into the client bundle via import.meta.env.
         // VITE_* is kept for backwards-compatibility with vanilla Vite projects.
@@ -60,7 +71,15 @@ export function alabPlugin(options: AlabPluginOptions = {}): Plugin[] {
         // to install it. optimizeDeps.include ensures Vite pre-bundles it as
         // proper ESM (CJS→ESM interop), giving us a valid `default` export.
         resolve: {
-          alias: { "react-refresh": REACT_REFRESH_PKG_DIR },
+          alias: {
+            "react-refresh": REACT_REFRESH_PKG_DIR,
+            // In production the Rust compiler still emits jsxDEV calls but React's
+            // production bundle exports jsxDEV=void 0. Map the import to a virtual
+            // shim that re-exports the production jsx/jsxs functions under the dev names.
+            ...(env.command === "build"
+              ? { "react/jsx-dev-runtime": VIRTUAL_JSX_DEV_SHIM_ID }
+              : {}),
+          },
         },
         optimizeDeps: {
           include: ["react-refresh"],
@@ -84,10 +103,11 @@ export function alabPlugin(options: AlabPluginOptions = {}): Plugin[] {
     resolveId(id): string | null {
       if (id === VIRTUAL_CLIENT_ID) return VIRTUAL_CLIENT_ID;
       if (id === VIRTUAL_REFRESH_ID) return VIRTUAL_REFRESH_ID;
+      if (id === VIRTUAL_JSX_DEV_SHIM_ID) return VIRTUAL_JSX_DEV_SHIM_ID;
       return null;
     },
 
-    load(id): string | null {
+    async load(id): Promise<string | null> {
       if (id === VIRTUAL_REFRESH_ID) {
         // Re-export the react-refresh runtime so the preamble can import it.
         // Use bare specifier so Vite's dep optimizer (pre-bundler) handles the
@@ -95,7 +115,56 @@ export function alabPlugin(options: AlabPluginOptions = {}): Plugin[] {
         // the plugin's own copy, so consumers don't need it installed.
         return `export { default } from "react-refresh/runtime";\n`;
       }
+      if (id === VIRTUAL_JSX_DEV_SHIM_ID) {
+        // Production shim: the Rust compiler always emits jsxDEV/jsxsDEV calls
+        // (oxc_transformer uses the dev JSX transform). React's production build
+        // exports jsxDEV=void 0 from react/jsx-dev-runtime, causing a runtime error.
+        // Re-export the production jsx/jsxs functions under the dev names so
+        // production bundles render correctly.
+        return `export { jsx as jsxDEV, jsxs as jsxsDEV, Fragment } from "react/jsx-runtime";\n`;
+      }
       if (id !== VIRTUAL_CLIENT_ID) return null;
+
+      // Scan app/ for page, layout, and loading files.
+      // We generate statically-analyzable import() calls (no @vite-ignore) so
+      // Rolldown can create proper code-split chunks at build time and the
+      // browser can fetch them in production.
+      const cwd = process.cwd();
+      const appDir = cwd + "/app";
+      const { readdirSync } = await import("node:fs");
+      const { join: pathJoin } = await import("node:path");
+
+      function scanFiles(dir: string, names: string[], base: string): string[] {
+        const results: string[] = [];
+        let entries;
+        try { entries = readdirSync(dir, { withFileTypes: true }); } catch { return results; }
+        for (const entry of entries) {
+          const full = pathJoin(dir, entry.name);
+          if (entry.isDirectory()) {
+            results.push(...scanFiles(full, names, base));
+          } else if (names.includes(entry.name)) {
+            results.push(full.slice(base.length + 1).replace(/\\/g, "/"));
+          }
+        }
+        return results;
+      }
+
+      const PAGE_NAMES = ["page.tsx", "page.ts", "page.jsx", "page.js"];
+      const LAYOUT_NAMES = ["layout.tsx", "layout.ts", "layout.jsx", "layout.js"];
+      const LOADING_NAMES = ["loading.tsx", "loading.ts", "loading.jsx", "loading.js"];
+
+      const pageFiles = scanFiles(appDir, PAGE_NAMES, cwd);
+      const layoutFiles = scanFiles(appDir, LAYOUT_NAMES, cwd);
+      const loadingFiles = scanFiles(appDir, LOADING_NAMES, cwd);
+
+      function makeEntry(f: string): string {
+        // Static import() — Rolldown analyzes these and creates code-split chunks.
+        return `  ${JSON.stringify(f)}: () => import(${JSON.stringify("/" + f)})`;
+      }
+
+      const pagesMap = pageFiles.map(makeEntry).join(",\n");
+      const layoutsMap = layoutFiles.map(makeEntry).join(",\n");
+      const loadingMap = loadingFiles.map(makeEntry).join(",\n");
 
       // This module is injected into every page as `<script type="module" src="/@alabjs/client">`.
       // It reads the route metadata embedded in <meta> tags by the SSR renderer and
@@ -108,25 +177,47 @@ import { hydrateRoot, createRoot } from "react-dom/client";
 import { AlabProvider } from "alabjs/client";
 import { ErrorBoundary } from "alabjs/components";
 
+// Statically-analyzable import maps — Rolldown creates code-split chunks from these.
+// Keys are cwd-relative source paths matching the alabjs-route / alabjs-layouts meta values.
+const PAGES = {
+${pagesMap}
+};
+const LAYOUT_MODS = {
+${layoutsMap}
+};
+const LOADING_MODS = {
+${loadingMap}
+};
+
 const meta = (name) => document.querySelector(\`meta[name="\${name}"]\`)?.getAttribute("content") ?? "";
 
 /** Load a page module, its layout modules, and optional loading fallback. */
 async function buildApp(routeFile, layoutFiles, loadingFile, params, searchParams) {
-  const mod = await import(/* @vite-ignore */ "/" + routeFile);
+  // Normalize .js extension to .tsx for lookups (server meta may store compiled paths).
+  const norm = (p) => LAYOUT_MODS[p] ? p : p.replace(/\\.js$/, ".tsx");
+
+  const pageFn = PAGES[routeFile];
+  if (!pageFn) return null;
+  const mod = await pageFn();
   const Page = mod.default;
   if (!Page) return null;
 
-  const layoutMods = await Promise.all(layoutFiles.map(f => import(/* @vite-ignore */ "/" + f)));
+  const layoutMods = await Promise.all(
+    layoutFiles.map(f => { const fn = LAYOUT_MODS[norm(f)]; return fn ? fn() : Promise.resolve({}); })
+  );
   const layouts = layoutMods.map(m => m.default).filter(Boolean);
 
   // Loading fallback: import loading.tsx if present
   let loadingEl = null;
   if (loadingFile) {
-    try {
-      const lMod = await import(/* @vite-ignore */ "/" + loadingFile);
-      const Loading = lMod.default;
-      if (Loading) loadingEl = createElement(Loading, {});
-    } catch {}
+    const lFn = LOADING_MODS[norm(loadingFile)];
+    if (lFn) {
+      try {
+        const lMod = await lFn();
+        const Loading = lMod.default;
+        if (Loading) loadingEl = createElement(Loading, {});
+      } catch {}
+    }
   }
 
   let el = createElement(Page, { params, searchParams });
@@ -367,9 +458,9 @@ if (import.meta.env.DEV) {
       // Compile TypeScript/TSX with the Rust compiler.
       // Catch errors and attach source location so Vite's overlay shows
       // the exact line/column instead of a raw stack trace.
-      const minify = options.mode === "build";
+      const minify = !isDev;
       // Emit source maps in dev mode so browser devtools map to original TS/TSX.
-      const sourceMap = !minify;
+      const sourceMap = isDev;
       let outputJson: string;
       try {
         outputJson = napi.compileSource(code, id, minify, sourceMap);
@@ -382,12 +473,12 @@ if (import.meta.env.DEV) {
 
       let finalCode = output.code;
 
-      // In dev mode, append the react-refresh HMR accept footer to TSX files.
-      // This tells Vite the module self-accepts so hot updates stay component-
-      // level instead of propagating to a full page reload.
-      // The $RefreshReg$ / $RefreshSig$ calls are already emitted by the Rust
-      // compiler (oxc_transformer::enable_all includes the react-refresh pass).
-      if (!minify && /\.tsx$/.test(id)) {
+      if (isDev && /\.tsx$/.test(id)) {
+        // In dev mode, append the react-refresh HMR accept footer to TSX files.
+        // This tells Vite the module self-accepts so hot updates stay component-
+        // level instead of propagating to a full page reload.
+        // The $RefreshReg$ / $RefreshSig$ calls are already emitted by the Rust
+        // compiler (oxc_transformer::enable_all includes the react-refresh pass).
         finalCode +=
           `\nimport __RefreshRuntime__ from "${VIRTUAL_REFRESH_ID}";` +
           `\nif (import.meta.hot) {` +

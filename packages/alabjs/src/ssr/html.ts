@@ -104,7 +104,22 @@ export function htmlShellBefore(opts: HtmlShellOptions): string {
 /** Build the closing HTML fragment — everything after the SSR content. */
 export function htmlShellAfter(opts: { nonce?: string | undefined }): string {
   const nonceAttr = opts.nonce ? ` nonce="${escAttr(opts.nonce)}"` : "";
+  // The Rust compiler (oxc_transformer::enable_all) always emits $RefreshReg$ /
+  // $RefreshSig$ calls into TSX files, even in production builds. These are
+  // React Fast Refresh globals that only exist when the dev preamble is injected.
+  // In production there is no preamble, so the calls throw ReferenceError which
+  // silently aborts module loading and prevents React from mounting.
+  //
+  // A classic (non-module) <script> executes synchronously during HTML parsing,
+  // before any <script type="module"> is evaluated (modules are always deferred).
+  // Defining no-op shims here guarantees they exist before any page chunk runs.
+  const refreshShim = `<script${nonceAttr}>` +
+    `if(typeof $RefreshReg$==="undefined"){` +
+    `window.$RefreshReg$=function(){};` +
+    `window.$RefreshSig$=function(){return function(x){return x};}` +
+    `}</script>`;
   return `</div>
+    ${refreshShim}
     <script type="module" src="/@alabjs/client"${nonceAttr}></script>
   </body>
 </html>`;

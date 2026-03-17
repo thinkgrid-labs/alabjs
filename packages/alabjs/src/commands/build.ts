@@ -152,7 +152,10 @@ export async function build({ cwd, skipTypecheck = false, mode = "ssr", analyze 
         ...(visualizerPlugin ? [visualizerPlugin] : []),
       ],
       build: {
-        outDir: resolve(cwd, ".alabjs/dist"),
+        // Output client assets to .alabjs/dist/client/ so the production server's
+        // static handler (which serves from distDir/client/) can find them.
+        outDir: resolve(cwd, ".alabjs/dist/client"),
+        manifest: true,
         ssrManifest: true,
         rolldownOptions: {
           // In SSR mode, we don't use an index.html as the entry point.
@@ -295,7 +298,10 @@ async function buildPPRShells(distDir: string, cwd: string): Promise<void> {
             paramsJson: "{}",
             searchParamsJson: "{}",
             routeFile: route.file,
-            ssr: true,
+            // PPR shells are static snapshots — client mounts via CSR (createRoot)
+            // rather than hydration to avoid mismatches with the pre-rendered HTML.
+            ssr: false,
+            layoutsJson: JSON.stringify(layoutPaths.map(p => p.replace(/\.js$/, ".tsx"))),
           },
           pprCacheDir,
           routePath: route.path,

@@ -50,14 +50,17 @@ function toJsPath(p: string): string {
 
 function findProdLayoutFiles(routeFile: string, distDir: string): string[] {
   // routeFile is like "app/users/[id]/page.tsx"
+  // Returns source paths (e.g. "app/layout.tsx") so the client bootstrap can look
+  // them up in LAYOUT_MODS by their original source key.  The import() call in
+  // app.ts uses toJsPath() to convert back to the compiled .js path.
   const pageDir = dirname(routeFile);
   const parts = pageDir.split("/");
   const layouts: string[] = [];
   for (let i = 1; i <= parts.length; i++) {
     const dir = parts.slice(0, i).join("/");
-    const layoutRelPath = `${dir}/layout.js`;
-    if (existsSync(join(distDir, "server", layoutRelPath))) {
-      layouts.push(layoutRelPath);
+    const compiledPath = `${dir}/layout.js`;
+    if (existsSync(join(distDir, "server", compiledPath))) {
+      layouts.push(`${dir}/layout.tsx`);
     }
   }
   return layouts;
@@ -81,8 +84,8 @@ function findProdErrorFile(routeFile: string, distDir: string): string | null {
 function findProdLoadingFile(routeFile: string, distDir: string): string | null {
   let dir = dirname(routeFile);
   while (dir.length > 0 && dir !== ".") {
-    const candidate = `${dir}/loading.js`;
-    if (existsSync(join(distDir, "server", candidate))) return candidate;
+    const compiled = `${dir}/loading.js`;
+    if (existsSync(join(distDir, "server", compiled))) return `${dir}/loading.tsx`;
     const parent = dirname(dir);
     if (parent === dir) break;
     dir = parent;
@@ -113,6 +116,21 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
   try {
     buildId = readFileSync(resolve(distDir, "BUILD_ID"), "utf8").trim() || undefined;
   } catch { /* no BUILD_ID file — skew protection disabled */ }
+
+  // Resolve the compiled client entry file path by reading the Vite manifest.
+  // /@alabjs/client is a virtual module at build time; at runtime the server
+  // must redirect requests for it to the hashed asset file.
+  // The manifest key is a relative path ending in "@alabjs/client" (not "/@alabjs/client").
+  let clientEntryPath = "";
+  try {
+    const viteManifest = JSON.parse(
+      readFileSync(resolve(distDir, "client/.vite/manifest.json"), "utf8"),
+    ) as Record<string, { file?: string; isEntry?: boolean; src?: string }>;
+    const entry = Object.values(viteManifest).find(
+      (e) => e.isEntry && e.src?.endsWith("@alabjs/client"),
+    );
+    if (entry?.file) clientEntryPath = "/" + entry.file;
+  } catch { /* manifest absent — /@alabjs/client will 404 */ }
 
   // Load federation config written by `alab build`. Used to:
   //  1. Serve `/_alabjs/federation-manifest.json` (remote discovery)
@@ -161,7 +179,6 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
           "base-uri 'self'",
           "form-action 'self'",
           "frame-ancestors 'self'",
-          "upgrade-insecure-requests",
         ].join("; "),
       );
       // HSTS — only meaningful over HTTPS; set in production only.
@@ -234,7 +251,7 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
   };
 
   app.use(
-    defineEventHandler((event) => {
+    defineEventHandler(async (event) => {
       const req = event.node.req;
       const res = event.node.res;
       if (req.method !== "GET" && req.method !== "HEAD") return;
@@ -245,22 +262,42 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
       try { relPath = decodeURIComponent(rawPath); } catch { return; }
       if (relPath.includes("..")) return;
 
-      const ext = extname(relPath).toLowerCase();
-      const contentType = MIME_TYPES[ext];
-      if (!contentType) return; // skip extensionless paths (page routes)
-
       const acceptEncoding = (req.headers["accept-encoding"] ?? "") as string;
       const useBrotli = acceptEncoding.includes("br");
       const useGzip  = !useBrotli && acceptEncoding.includes("gzip");
 
-      /** Stream a file with optional brotli/gzip compression and ETag 304 support. */
+      // Virtual client entry — redirect to the hashed asset file resolved at startup.
+      // A 302 redirect (not direct serve) is critical: relative imports in the bundle
+      // (e.g. "./components-HASH.js") must resolve against the real asset URL
+      // (/assets/client-HASH.js), not the virtual path (/@alabjs/client).
+      if (relPath === "/@alabjs/client") {
+        if (clientEntryPath) {
+          res.writeHead(302, { Location: clientEntryPath });
+        } else {
+          res.statusCode = 404;
+        }
+        res.end();
+        return;
+      }
+
+      const ext = extname(relPath).toLowerCase();
+      const contentType = MIME_TYPES[ext];
+      if (!contentType) return; // skip extensionless paths (page routes)
+
+      /** Stream a file with optional brotli/gzip compression and ETag 304 support.
+       *
+       * Returns a Promise that resolves when the response is fully sent. The
+       * h3 handler awaits this promise so h3 knows the response is complete
+       * before considering the next middleware. This avoids h3 passing the
+       * request to the router (which would 404) while the async pipe is running.
+       */
       function serveFile(
         filePath: string,
         fileSize: number,
         mtimeMs: number,
         cacheControl: string,
         mime: string,
-      ): null {
+      ): Promise<void> {
         // ETag from file size + mtime — both already known from the caller's stat().
         const etag = `"${fileSize.toString(36)}-${mtimeMs.toString(36)}"`;
         res.setHeader("etag", etag);
@@ -269,26 +306,29 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
         if (req.headers["if-none-match"] === etag) {
           res.statusCode = 304;
           res.end();
-          return null;
+          return Promise.resolve();
         }
 
         res.setHeader("content-type", mime);
         res.setHeader("cache-control", cacheControl);
 
-        if (req.method === "HEAD") { res.end(); return null; }
+        if (req.method === "HEAD") { res.end(); return Promise.resolve(); }
 
-        const stream = createReadStream(filePath);
-        if (useBrotli) {
-          res.setHeader("content-encoding", "br");
-          stream.pipe(createBrotliCompress()).pipe(res);
-        } else if (useGzip) {
-          res.setHeader("content-encoding", "gzip");
-          stream.pipe(createGzip()).pipe(res);
-        } else {
-          res.setHeader("content-length", fileSize);
-          stream.pipe(res);
-        }
-        return null;
+        return new Promise<void>((resolve, reject) => {
+          const fileStream = createReadStream(filePath);
+          res.on("finish", resolve);
+          res.on("error", reject);
+          if (useBrotli) {
+            res.setHeader("content-encoding", "br");
+            fileStream.pipe(createBrotliCompress()).pipe(res);
+          } else if (useGzip) {
+            res.setHeader("content-encoding", "gzip");
+            fileStream.pipe(createGzip()).pipe(res);
+          } else {
+            res.setHeader("content-length", fileSize);
+            fileStream.pipe(res);
+          }
+        });
       }
 
       // 1. Built client assets (JS chunks, CSS, source maps)
@@ -297,13 +337,14 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
         const stat = statSync(clientCandidate);
         if (stat.isFile()) {
           const isHashed = /\.[a-f0-9]{8,}\.[a-z]+$/.test(relPath);
-          return serveFile(
+          await serveFile(
             clientCandidate,
             stat.size,
             stat.mtimeMs,
             isHashed ? "public, max-age=31536000, immutable" : "public, max-age=3600",
             contentType,
           );
+          return;
         }
       }
 
@@ -312,10 +353,10 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
       if (existsSync(publicCandidate)) {
         const stat = statSync(publicCandidate);
         if (stat.isFile()) {
-          return serveFile(publicCandidate, stat.size, stat.mtimeMs, "public, max-age=3600", contentType);
+          await serveFile(publicCandidate, stat.size, stat.mtimeMs, "public, max-age=3600", contentType);
+          return;
         }
       }
-      return undefined;
     }),
   );
 
@@ -580,7 +621,7 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
         const mod = await import(pageModulePath) as {
           default?: unknown;
           metadata?: PageMetadata;
-          generateMetadata?: (params: Record<string, string>) => PageMetadata | Promise<PageMetadata>;
+          generateMetadata?: (props: { params: Record<string, string>; searchParams: Record<string, string> }) => PageMetadata | Promise<PageMetadata>;
           ssr?: boolean;
           cdnCache?: CdnCache;
           ppr?: boolean;
@@ -621,7 +662,7 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
         // Support both static metadata and dynamic generateMetadata (production fix)
         const metadata: PageMetadata =
           typeof mod.generateMetadata === "function"
-            ? await mod.generateMetadata(params)
+            ? await mod.generateMetadata({ params, searchParams })
             : (mod.metadata ?? {});
 
         const ssrEnabled = mod.ssr === true;
