@@ -1,7 +1,7 @@
 import { createApp as createH3App, createRouter, defineEventHandler, getQuery, readBody } from "h3";
 import { createServer } from "node:http";
 import { resolve, dirname, join, extname } from "node:path";
-import { existsSync, createReadStream, statSync, readFileSync } from "node:fs";
+import { existsSync, createReadStream, statSync, readFileSync, readdirSync } from "node:fs";
 import { createGzip, createBrotliCompress } from "node:zlib";
 import { toNodeListener } from "h3";
 import type { RouteManifest } from "../router/manifest.js";
@@ -18,6 +18,26 @@ import { getPPRShell, injectBuildIdIntoPPRShell, PPR_CACHE_SUBDIR } from "../ssr
 import { handleVitalsBeacon, handleAnalyticsDashboard } from "../analytics/handler.js";
 import { buildImportMap } from "../config.js";
 import type { FederationConfig } from "../config.js";
+
+/** Walk dist/server recursively and collect all *.server.js paths (compiled server functions). */
+function findDistServerFiles(distDir: string): string[] {
+  const serverDir = join(distDir, "server");
+  const results: string[] = [];
+  function walk(dir: string) {
+    try {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const fullPath = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(fullPath);
+        } else if (entry.isFile() && entry.name.endsWith(".server.js")) {
+          results.push(fullPath);
+        }
+      }
+    } catch { /* not readable */ }
+  }
+  walk(serverDir);
+  return results;
+}
 
 /**
  * Find layout file paths (relative to cwd root) for a given route.file, ordered outermost→innermost.
@@ -367,6 +387,87 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
     }),
   );
 
+  // ─── Server function endpoints ──────────────────────────────────────────────
+  // GET  /_alabjs/data/:fn  — used by useServerData (query params as input)
+  // POST /_alabjs/fn/:fn    — used by useMutation (JSON body as input)
+  //
+  // Both scan all *.server.js files in dist/server for the named export.
+  // Module results are NOT cached — the module cache is Node's own require cache.
+
+  async function callServerFn(
+    fnName: string,
+    ctx: { params: Record<string, string>; query: Record<string, string>; headers: Record<string, string | string[] | undefined>; method: string; url: string },
+    input: unknown,
+    res: import("node:http").ServerResponse,
+  ): Promise<void> {
+    const serverFiles = findDistServerFiles(distDir);
+    for (const file of serverFiles) {
+      const mod = await import(file) as Record<string, unknown>;
+      if (typeof mod[fnName] === "function") {
+        try {
+          const result = await (mod[fnName] as (c: unknown, i: unknown) => Promise<unknown>)(ctx, input);
+          res.statusCode = 200;
+          res.setHeader("content-type", "application/json");
+          res.end(JSON.stringify(result));
+        } catch (err) {
+          const zodError = (err as Record<string, unknown>)?.["zodError"];
+          if (zodError) {
+            res.statusCode = 422;
+            res.setHeader("content-type", "application/json");
+            res.end(JSON.stringify({ zodError }));
+          } else {
+            const msg = err instanceof Error ? err.message : String(err);
+            console.error(`[alabjs] server fn "${fnName}" threw:`, err);
+            res.statusCode = 500;
+            res.setHeader("content-type", "application/json");
+            res.end(JSON.stringify({ error: msg }));
+          }
+        }
+        return;
+      }
+    }
+    res.statusCode = 404;
+    res.setHeader("content-type", "application/json");
+    res.end(JSON.stringify({ error: `[alabjs] server function not found: ${fnName}` }));
+  }
+
+  router.get(
+    "/_alabjs/data/:fn",
+    defineEventHandler(async (event) => {
+      const fnName = event.context.params?.["fn"] ?? "";
+      const req = event.node.req;
+      const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+      const query = Object.fromEntries(url.searchParams.entries());
+      const ctx = {
+        params: query,
+        query,
+        headers: req.headers as Record<string, string>,
+        method: "GET",
+        url: req.url ?? "/",
+      };
+      await callServerFn(fnName, ctx, Object.keys(query).length ? query : undefined, event.node.res);
+    }),
+  );
+
+  router.post(
+    "/_alabjs/fn/:fn",
+    defineEventHandler(async (event) => {
+      const fnName = event.context.params?.["fn"] ?? "";
+      const req = event.node.req;
+      const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+      const query = Object.fromEntries(url.searchParams.entries());
+      const body = await readBody(event);
+      const ctx = {
+        params: query,
+        query,
+        headers: req.headers as Record<string, string>,
+        method: "POST",
+        url: req.url ?? "/",
+      };
+      await callServerFn(fnName, ctx, body, event.node.res);
+    }),
+  );
+
   // Auto sitemap.xml from route manifest
   router.get(
     "/sitemap.xml",
@@ -639,6 +740,9 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
 
   return {
     listen(port = 3000) {
+      // Make the server's base URL available to useServerData during SSR so it
+      // can construct an absolute URL for its internal loop-back fetch.
+      process.env["ALAB_ORIGIN"] = `http://127.0.0.1:${port}`;
       const server = createServer(toNodeListener(app));
       server.listen(port, "0.0.0.0", () => {
         console.log(`  alab  ready at http://localhost:${port}`);

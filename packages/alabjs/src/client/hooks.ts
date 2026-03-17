@@ -194,9 +194,18 @@ export function useMutation<T extends ServerFn<any, any, any>>(
     startTransition(() => {
       void (async () => {
         try {
+          // Read the CSRF token from the cookie (set by the server on any SSR
+          // page response) and echo it as x-csrf-token for double-submit protection.
+          const csrfToken =
+            typeof document !== "undefined"
+              ? document.cookie.match(/alab-csrf=([^;]+)/)?.[1] ?? ""
+              : "";
           const r = await fetch(`/_alabjs/fn/${fnName}`, {
             method: "POST",
-            headers: { "content-type": "application/json" },
+            headers: {
+              "content-type": "application/json",
+              ...(csrfToken ? { "x-csrf-token": csrfToken } : {}),
+            },
             body: JSON.stringify(input),
           });
 

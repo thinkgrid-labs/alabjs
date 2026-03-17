@@ -20,11 +20,10 @@ test.describe("data-flow — SSR", () => {
     expect(res.status()).toBe(200);
     const html = await res.text();
 
-    // Content is present in the raw HTML response — not deferred to the client
+    // Static heading is in the pre-rendered PPR shell
     expect(html).toContain("Posts");
-    expect(html).toContain('href="/posts/');
-    // React SSR marker is present (confirms renderToPipeableStream ran)
-    expect(html).toContain('data-reactroot');
+    // PPR: dynamic post list is a placeholder hole — links stream in after hydration
+    expect(html).toContain('data-ppr-hole');
   });
 
   test("post detail page HTML contains post content before JS executes", async ({ request }) => {
@@ -37,7 +36,9 @@ test.describe("data-flow — SSR", () => {
   });
 
   test("SSR page includes CSRF meta tag for client use", async ({ request }) => {
-    const res = await request.get("/posts");
+    // /posts is a PPR page (CDN-cached static shell) — no CSRF meta tag.
+    // Use a private SSR page (/posts/1) which sets CSRF on every response.
+    const res = await request.get("/posts/1");
     const html = await res.text();
     expect(html).toContain('name="csrf-token"');
   });
@@ -93,7 +94,9 @@ test.describe("data-flow — hydration", () => {
 
 test.describe("data-flow — mutation", () => {
   test("getPosts server function returns a non-empty array", async ({ page }) => {
-    await page.goto("/");
+    // Navigate to a private SSR page so the server sets the CSRF cookie.
+    // /posts is CDN-cached (no CSRF); /posts/1 is private SSR.
+    await page.goto("/posts/1");
     // Read the CSRF token the server injected into the page (cookie is not HttpOnly)
     const csrfToken = await page.evaluate(
       () => document.cookie.match(/alab-csrf=([^;]+)/)?.[1] ?? "",
@@ -115,7 +118,7 @@ test.describe("data-flow — mutation", () => {
   });
 
   test("getPost server function returns the correct post", async ({ page }) => {
-    await page.goto("/");
+    await page.goto("/posts/1");
     const csrfToken = await page.evaluate(
       () => document.cookie.match(/alab-csrf=([^;]+)/)?.[1] ?? "",
     );
@@ -134,9 +137,16 @@ test.describe("data-flow — mutation", () => {
     expect(typeof post.title).toBe("string");
   });
 
-  test("unknown server function returns 404", async ({ request }) => {
-    const res = await request.post("/_alabjs/fn/__nonexistent", {
-      headers: { "content-type": "application/json" },
+  test("unknown server function returns 404", async ({ page }) => {
+    await page.goto("/posts/1");
+    const csrfToken = await page.evaluate(
+      () => document.cookie.match(/alab-csrf=([^;]+)/)?.[1] ?? "",
+    );
+    const res = await page.request.post("/_alabjs/fn/__nonexistent", {
+      headers: {
+        "content-type": "application/json",
+        ...(csrfToken ? { "x-csrf-token": csrfToken } : {}),
+      },
       data: {},
     });
     expect(res.status()).toBe(404);
@@ -174,12 +184,13 @@ test.describe("data-flow — stale-while-revalidate", () => {
       data: { path: "/posts" },
     });
 
-    // After purge the server must generate a fresh response (not serve nothing)
+    // After purge the server must generate a fresh response (not serve nothing).
+    // /posts is a PPR page: the static shell is served — dynamic content loads
+    // client-side. Check that the shell is valid, not that it contains post links.
     const res = await request.get("/posts");
     expect(res.status()).toBe(200);
     const html = await res.text();
     expect(html).toContain("Posts");
-    expect(html).toContain('href="/posts/');
   });
 
   test("revalidateTag purges all pages carrying the matching tag", async ({ request }) => {

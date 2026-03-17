@@ -31,6 +31,11 @@ export function csrfMiddleware() {
     const method = event.method.toUpperCase();
     if (SAFE_METHODS.has(method)) return;
 
+    // Internal endpoints that use their own auth (Bearer token, no cookie session)
+    // don't need CSRF protection.
+    const path = (event.node.req.url ?? "").split("?")[0] ?? "";
+    if (path === "/_alabjs/revalidate" || path === "/_alabjs/vitals") return;
+
     const cookieToken = getCookie(event, CSRF_COOKIE);
     const headerToken = getHeader(event, CSRF_HEADER);
 
