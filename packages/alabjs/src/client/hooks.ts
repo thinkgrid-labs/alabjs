@@ -56,6 +56,17 @@ export function useServerData<T extends ServerFn<any, any, any>>(
   fnName: string,
   params?: RouteParams<InferServerPath<T>>,
 ): InferServerOutput<T> {
+  // During PPR build-time pre-rendering there is no server running, so we
+  // must not make network calls.  Return an empty array so the component can
+  // render its static shell; data-dependent children should be inside
+  // <Dynamic> which renders a placeholder hole in PPR mode anyway.
+  if (
+    typeof process !== "undefined" &&
+    process.env["ALAB_PPR_PRERENDER"] === "1"
+  ) {
+    return [] as unknown as InferServerOutput<T>;
+  }
+
   const searchParams = params
     ? new URLSearchParams(params as Record<string, string>).toString()
     : "";

@@ -158,7 +158,8 @@ export function findBuildLayoutFiles(routeFile: string, distDir: string): string
   const layouts: string[] = [];
   for (let i = 1; i <= parts.length; i++) {
     const dir = parts.slice(0, i).join("/");
-    const candidate = `${dir}/layout.tsx`;
+    // esbuild compiles layout.tsx → layout.js in the dist/server tree.
+    const candidate = `${dir}/layout.js`;
     if (existsSync(join(distDir, "server", candidate))) {
       layouts.push(candidate);
     }

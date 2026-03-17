@@ -1,5 +1,6 @@
 import { build as viteBuild, type PluginOption } from "vite";
 import { resolve, relative, isAbsolute } from "node:path";
+import { pathToFileURL } from "node:url";
 import { spawn, execSync } from "node:child_process";
 import { existsSync, writeFileSync, readFileSync, mkdirSync } from "node:fs";
 import { loadUserConfig } from "../config.js";
@@ -252,53 +253,61 @@ async function buildPPRShells(distDir: string, cwd: string): Promise<void> {
   const pprCacheDir = resolve(cwd, PPR_CACHE_SUBDIR);
   let count = 0;
 
-  for (const route of pageRoutes) {
-    // esbuild compiles .tsx/.ts → .js; use the compiled path.
-    const modulePath = resolve(distDir, "server", route.file.replace(/\.(tsx?)$/, ".js"));
-    if (!existsSync(modulePath)) continue;
+  // Signal to useServerData that it must not make network calls — return
+  // empty placeholders instead so components can render their static shell.
+  process.env["ALAB_PPR_PRERENDER"] = "1";
 
-    // Dynamic import — module is compiled ESM, importable by Node directly.
-    const mod = await import(modulePath) as {
-      default?: unknown;
-      ppr?: unknown;
-      metadata?: Record<string, unknown>;
-    };
+  try {
+    for (const route of pageRoutes) {
+      // esbuild compiles .tsx/.ts → .js; use the compiled path.
+      const modulePath = resolve(distDir, "server", route.file.replace(/\.(tsx?)$/, ".js"));
+      if (!existsSync(modulePath)) continue;
 
-    if (mod.ppr !== true) continue;
-    if (typeof mod.default !== "function") {
-      console.warn(`  alab  ppr: ${route.file} has no default export — skipping.`);
-      continue;
+      // Dynamic import — on Windows absolute paths need a file:// URL.
+      const mod = await import(pathToFileURL(modulePath).href) as {
+        default?: unknown;
+        ppr?: unknown;
+        metadata?: Record<string, unknown>;
+      };
+
+      if (mod.ppr !== true) continue;
+      if (typeof mod.default !== "function") {
+        console.warn(`  alab  ppr: ${route.file} has no default export — skipping.`);
+        continue;
+      }
+
+      // Load layout modules (outermost → innermost).
+      const layoutPaths = findBuildLayoutFiles(route.file, distDir);
+      const layoutMods = await Promise.all(
+        layoutPaths.map((p) => import(pathToFileURL(resolve(distDir, "server", p)).href)),
+      );
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const layouts = layoutMods.map((m: any) => m.default).filter((c: unknown) => typeof c === "function");
+
+      try {
+        await preRenderPPRShell({
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          Page: mod.default as any,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          layouts: layouts as any[],
+          shellOpts: {
+            metadata: (mod.metadata as never) ?? {},
+            paramsJson: "{}",
+            searchParamsJson: "{}",
+            routeFile: route.file,
+            ssr: true,
+          },
+          pprCacheDir,
+          routePath: route.path,
+        });
+        count++;
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        console.warn(`  alab  ppr: failed to pre-render ${route.path}: ${msg}`);
+      }
     }
-
-    // Load layout modules (outermost → innermost).
-    const layoutPaths = findBuildLayoutFiles(route.file, distDir);
-    const layoutMods = await Promise.all(
-      layoutPaths.map((p) => import(resolve(distDir, "server", p))),
-    );
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const layouts = layoutMods.map((m: any) => m.default).filter((c: unknown) => typeof c === "function");
-
-    try {
-      await preRenderPPRShell({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        Page: mod.default as any,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        layouts: layouts as any[],
-        shellOpts: {
-          metadata: (mod.metadata as never) ?? {},
-          paramsJson: "{}",
-          searchParamsJson: "{}",
-          routeFile: route.file,
-          ssr: true,
-        },
-        pprCacheDir,
-        routePath: route.path,
-      });
-      count++;
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`  alab  ppr: failed to pre-render ${route.path}: ${msg}`);
-    }
+  } finally {
+    delete process.env["ALAB_PPR_PRERENDER"];
   }
 
   if (count > 0) {
