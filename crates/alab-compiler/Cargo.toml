@@ -16,6 +16,8 @@ oxc_sourcemap.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
+regex.workspace = true
+walkdir.workspace = true
 image.workspace = true
 # native WebP via libwebp-sys — same pattern as snapbolt-core (not in workspace because optional)
 webp = { version = "0.3", optional = true }

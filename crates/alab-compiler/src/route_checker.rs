@@ -350,6 +350,7 @@ fn jsx_element_name_str(name: &JSXElementName) -> String {
                 JSXMemberExpressionObject::MemberExpression(inner) => {
                     inner.property.name.as_str().to_string()
                 }
+                JSXMemberExpressionObject::ThisExpression(_) => "this".to_string(),
             };
             format!("{}.{}", obj, mem.property.name.as_str())
         }
