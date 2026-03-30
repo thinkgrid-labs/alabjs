@@ -2,7 +2,7 @@
 layout: home
 
 hero:
-  name: "🔥 AlabJS"
+  name: "AlabJS"
   text: "Full-stack React, with a Rust core."
   tagline: Sensible defaults. Explicit boundaries. Any host.
   actions:
