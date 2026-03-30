@@ -104,6 +104,34 @@ importers:
         specifier: ^19.1.0
         version: 19.2.3(@types/react@19.2.14)
 
+  examples/live-dashboard:
+    dependencies:
+      '@tailwindcss/vite':
+        specifier: ^4.1.0
+        version: 4.2.1(vite@8.0.0(@types/node@24.12.0)(jiti@2.6.1))
+      alabjs:
+        specifier: workspace:*
+        version: link:../../packages/alabjs
+      alabjs-vite-plugin:
+        specifier: workspace:*
+        version: link:../../packages/alabjs-vite-plugin
+      react:
+        specifier: ^19.1.0
+        version: 19.2.4
+      react-dom:
+        specifier: ^19.1.0
+        version: 19.2.4(react@19.2.4)
+      tailwindcss:
+        specifier: ^4.1.0
+        version: 4.2.1
+    devDependencies:
+      '@types/react':
+        specifier: ^19.1.0
+        version: 19.2.14
+      '@types/react-dom':
+        specifier: ^19.1.0
+        version: 19.2.3(@types/react@19.2.14)
+
   packages/alabjs:
     dependencies:
       alabjs-vite-plugin:
