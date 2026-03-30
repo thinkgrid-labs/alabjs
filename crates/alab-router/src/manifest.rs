@@ -16,6 +16,8 @@ pub enum RouteKind {
     Loading,
     /// An HTTP API route handler (`route.ts` / `route.tsx`)
     Api,
+    /// A live component (`*.live.tsx` / `*.live.ts` or `"use live"` directive)
+    Live,
 }
 
 /// A single entry in the route manifest.

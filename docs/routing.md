@@ -144,6 +144,49 @@ export const config = {
 };
 ```
 
+## Live Routes
+
+Name a file `*.live.tsx` to create a server-rendered real-time component at that path. Live files are scanned alongside page routes and included in the route manifest.
+
+```
+app/
+  stock-ticker.live.tsx     ← live component, served via /_alabjs/live/<id>
+  page.tsx                  ← regular page
+```
+
+Live components export `liveInterval` (seconds) and/or `liveTags` to control when the server pushes new HTML. See [Live Components](/live-components) for the full guide.
+
+---
+
+## Type-Safe Navigation
+
+AlabJS generates a `AlabRoutes` TypeScript union from the route manifest at build time. Add `.alabjs/routes.d.ts` to your `tsconfig.json` to enable compile-time checks on every link.
+
+```json
+// tsconfig.json
+{
+  "include": ["app", ".alabjs/routes.d.ts"]
+}
+```
+
+```tsx
+import { RouteLink } from "alabjs/components";
+import { navigate } from "alabjs/router";
+
+// ✅ known static path
+<RouteLink to="/about">About</RouteLink>
+
+// ✅ known dynamic path — template literal
+<RouteLink to={`/posts/${post.id}`}>Read post</RouteLink>
+
+// ✗ build error: "/abuot" is not assignable to AlabRoutes
+<RouteLink to="/abuot">Typo</RouteLink>
+```
+
+The Rust route checker also walks all `.tsx`/`.ts` source files and validates every `<RouteLink to>`, `<Link href>`, and `navigate()` string literal against the manifest. Unknown paths fail the build with the file path, character offset, and a close-match suggestion.
+
+---
+
 ## i18n Routing
 
 ```ts

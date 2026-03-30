@@ -60,10 +60,11 @@ pub fn scan_routes(app_dir: &str) -> RouteManifest {
     routes.sort_by_key(|r| match r.kind {
         RouteKind::Layout => 0,
         RouteKind::Page => 1,
-        RouteKind::Api => 2,
-        RouteKind::Server => 3,
-        RouteKind::Error => 4,
-        RouteKind::Loading => 5,
+        RouteKind::Live => 2,
+        RouteKind::Api => 3,
+        RouteKind::Server => 4,
+        RouteKind::Error => 5,
+        RouteKind::Loading => 6,
     });
 
     // Detect duplicate URL paths for the same route kind.
@@ -95,6 +96,8 @@ fn classify_file(name: &str) -> Option<RouteKind> {
         Some(RouteKind::Page)
     } else if name.ends_with(".server.ts") || name.ends_with(".server.tsx") {
         Some(RouteKind::Server)
+    } else if name.ends_with(".live.tsx") || name.ends_with(".live.ts") {
+        Some(RouteKind::Live)
     } else if name == "layout.tsx" {
         Some(RouteKind::Layout)
     } else if name == "error.tsx" {
@@ -142,6 +145,8 @@ fn is_route_filename(name: &str) -> bool {
         || name.ends_with(".page.tsx")
         || name.ends_with(".server.ts")
         || name.ends_with(".server.tsx")
+        || name.ends_with(".live.tsx")
+        || name.ends_with(".live.ts")
 }
 
 /// Extract dynamic param names from a URL path like `/users/[id]/posts/[slug]`.

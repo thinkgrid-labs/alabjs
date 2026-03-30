@@ -18,6 +18,9 @@ import { getPPRShell, injectBuildIdIntoPPRShell, PPR_CACHE_SUBDIR } from "../ssr
 import { handleVitalsBeacon, handleAnalyticsDashboard } from "../analytics/handler.js";
 import { buildImportMap } from "../config.js";
 import type { FederationConfig } from "../config.js";
+import { registerLiveComponent } from "../live/registry.js";
+import { renderLiveFragment, hashFragment } from "../live/renderer.js";
+import { subscribeToTag } from "../live/broadcaster.js";
 
 /** Walk dist/server recursively and collect all *.server.js paths (compiled server functions). */
 function findDistServerFiles(distDir: string): string[] {
@@ -37,6 +40,47 @@ function findDistServerFiles(distDir: string): string[] {
   }
   walk(serverDir);
   return results;
+}
+
+/** Walk dist/server recursively and register all *.live.js modules. */
+async function registerAllLiveComponents(distDir: string): Promise<void> {
+  const serverDir = join(distDir, "server");
+  const files: string[] = [];
+
+  function walk(dir: string) {
+    try {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        const fullPath = join(dir, entry.name);
+        if (entry.isDirectory()) {
+          walk(fullPath);
+        } else if (entry.isFile() && entry.name.endsWith(".live.js")) {
+          files.push(fullPath);
+        }
+      }
+    } catch { /* not readable */ }
+  }
+  walk(serverDir);
+
+  for (const filePath of files) {
+    try {
+      const mod = await import(filePath) as {
+        liveId?: string;
+        liveInterval?: number;
+        liveTags?: (props: unknown) => string[];
+      };
+      // liveId is stamped by the Vite plugin (hash of source path).
+      // Fall back to a hash of the file path itself.
+      const id = mod.liveId ?? filePath.replace(/[^a-z0-9]/gi, "").slice(-16);
+      registerLiveComponent({
+        id,
+        modulePath: filePath,
+        ...(typeof mod.liveInterval === "number" ? { liveInterval: mod.liveInterval } : {}),
+        ...(typeof mod.liveTags === "function" ? { liveTags: mod.liveTags } : {}),
+      });
+    } catch (err) {
+      console.warn(`[alabjs] live: failed to register ${filePath}:`, err);
+    }
+  }
 }
 
 /**
@@ -146,6 +190,11 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
   // Absolute path to the PPR shell cache directory.
   const pprCacheDir = resolve(distDir, "../../", PPR_CACHE_SUBDIR);
 
+  // Register live components at startup (non-blocking — failures are warned, not thrown).
+  registerAllLiveComponents(distDir).catch((err) => {
+    console.warn("[alabjs] live: component registration failed:", err);
+  });
+
   // ─── Global middleware ───────────────────────────────────────────────────────
   app.use(
     defineEventHandler((event) => {
@@ -165,6 +214,30 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
       // every <script> tag via renderToResponse's headExtra option. The CSRF
       // double-submit pattern relies on XSS prevention — using 'unsafe-inline'
       // without a nonce makes the CSRF token readable by injected scripts.
+      //
+      // NOTE: 'upgrade-insecure-requests' is intentionally omitted from the
+      // default CSP. That directive tells browsers to silently rewrite http://
+      // sub-resource URLs to https://, which breaks any app served over plain
+      // HTTP (local dev, internal tooling, HTTP-only staging servers) because
+      // the browser will refuse to load scripts and stylesheets redirected from
+      // the virtual /@alabjs/client path.
+      //
+      // Add it in your own middleware when you are certain every environment
+      // runs behind HTTPS:
+      //
+      //   // middleware.ts
+      //   export async function middleware(req: Request) {
+      //     const isHttps = req.headers.get("x-forwarded-proto") === "https"
+      //                  || new URL(req.url).protocol === "https:";
+      //     if (isHttps) {
+      //       // Append the directive to whatever CSP the framework already set.
+      //       const existing = res.headers.get("content-security-policy") ?? "";
+      //       res.headers.set(
+      //         "content-security-policy",
+      //         existing + "; upgrade-insecure-requests",
+      //       );
+      //     }
+      //   }
       res.setHeader(
         "content-security-policy",
         [
@@ -424,6 +497,92 @@ export function createApp(manifest: RouteManifest, distDir: string): AlabApp {
     "/_alabjs/analytics",
     defineEventHandler((event) => {
       handleAnalyticsDashboard(event.node.req, event.node.res);
+      return null;
+    }),
+  );
+
+  // ─── Live component SSE endpoint ────────────────────────────────────────────
+  // GET /_alabjs/live/:id?props=<base64-json>
+  //
+  // Opens a persistent SSE stream for a live component. On connect:
+  //   1. Renders the component immediately and sends the first fragment.
+  //   2. Sets up an interval (if liveInterval is set) to re-render and push.
+  //   3. Subscribes to tag broadcasts (if liveTags is set).
+  //   4. On client disconnect: clears interval + unsubscribes tags.
+  router.get(
+    "/_alabjs/live/:id",
+    defineEventHandler(async (event) => {
+      const req = event.node.req;
+      const res = event.node.res;
+
+      const id = (event.context.params?.["id"] ?? "") as string;
+      const { getLiveComponent } = await import("../live/registry.js");
+      const entry = getLiveComponent(id);
+
+      if (!entry) {
+        res.statusCode = 404;
+        res.setHeader("content-type", "application/json");
+        res.end(JSON.stringify({ error: `[alabjs] live component not found: ${id}` }));
+        return;
+      }
+
+      // Parse props from base64-encoded JSON query param.
+      let props: unknown = {};
+      try {
+        const url = new URL(req.url ?? "/", `http://${req.headers.host ?? "localhost"}`);
+        const raw = url.searchParams.get("props");
+        if (raw) props = JSON.parse(Buffer.from(raw, "base64").toString("utf8"));
+      } catch { /* malformed props — use empty object */ }
+
+      // SSE headers.
+      res.statusCode = 200;
+      res.setHeader("content-type", "text/event-stream; charset=utf-8");
+      res.setHeader("cache-control", "no-cache, no-transform");
+      res.setHeader("connection", "keep-alive");
+      res.setHeader("x-accel-buffering", "no"); // disable nginx buffering
+
+      let lastHash = "";
+      let closed = false;
+
+      async function pushFragment(): Promise<void> {
+        if (closed) return;
+        try {
+          const html = await renderLiveFragment(entry!.modulePath, props);
+          const hash = hashFragment(html);
+          if (hash === lastHash) return; // no-op — output unchanged
+          lastHash = hash;
+          res.write(`data: ${html}\n\n`);
+        } catch (err) {
+          console.error(`[alabjs] live render error (${id}):`, err);
+        }
+      }
+
+      // Send initial fragment immediately.
+      await pushFragment();
+
+      // Interval-based polling.
+      let intervalHandle: ReturnType<typeof setInterval> | null = null;
+      if (entry.liveInterval && entry.liveInterval > 0) {
+        intervalHandle = setInterval(() => { void pushFragment(); }, entry.liveInterval);
+      }
+
+      // Tag-based subscriptions.
+      const unsubFns: Array<() => void> = [];
+      if (entry.liveTags) {
+        const tags = entry.liveTags(props);
+        for (const tag of tags) {
+          unsubFns.push(subscribeToTag(tag, () => { void pushFragment(); }));
+        }
+      }
+
+      // Cleanup on disconnect.
+      req.on("close", () => {
+        closed = true;
+        if (intervalHandle) clearInterval(intervalHandle);
+        for (const unsub of unsubFns) unsub();
+      });
+
+      // Return null so h3 does not try to end the response — SSE keeps it open.
       return null;
     }),
   );

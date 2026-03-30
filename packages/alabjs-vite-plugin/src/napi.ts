@@ -19,4 +19,17 @@ export interface AlabNapi {
    * Used by the build pipeline to derive a content-addressed build ID.
    */
   hashBuildId(content: string): string;
+  /**
+   * Detect a `"use live"` or `"use client"` directive at the top of a source file.
+   * Returns JSON: `{ kind: "use_live" | "use_client" | "none", offset: number }`.
+   * Only inspects the first statement — O(1) per file.
+   */
+  detectDirective(source: string, filename: string): string;
+  /**
+   * Walk `appDir` and validate all RouteLink/Link/navigate path references
+   * against the compiled route manifest.
+   * Returns JSON: `Array<{ file, offset, kind, path, suggestion? }>`.
+   * An empty array means no violations.
+   */
+  checkRouteRefs(appDir: string, manifestJson: string): string;
 }

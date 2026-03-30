@@ -7,6 +7,8 @@ use alab_compiler::{
     optimize_buffer, OptimizeOptions, OutputFormat,
     extract_server_fns as alab_extract_server_fns,
     server_fn_client_stub as alab_server_fn_client_stub,
+    detect_directive as alab_detect_directive,
+    check_route_refs as alab_check_route_refs,
 };
 use alab_router::scan_routes;
 
@@ -138,4 +140,31 @@ pub fn hash_build_id(content: String) -> String {
 #[napi]
 pub fn server_fn_stub(name: String, endpoint: String) -> String {
     alab_server_fn_client_stub(&name, &endpoint)
+}
+
+/// Walk `app_dir` and validate all `<RouteLink to>`, `<Link href>`, and `navigate()`
+/// path references against the compiled route manifest.
+///
+/// Returns a JSON array of `RouteViolation` objects:
+/// `{ file, offset, kind: "unknown_path" | "literal_segment", path, suggestion? }[]`
+/// An empty array means no violations — the build can proceed.
+#[napi]
+pub fn check_route_refs(app_dir: String, manifest_json: String) -> napi::Result<String> {
+    let violations = alab_check_route_refs(&app_dir, &manifest_json);
+    serde_json::to_string(&violations)
+        .map_err(|e| napi::Error::from_reason(e.to_string()))
+}
+
+/// Detect a `"use live"` or `"use client"` directive at the top of a source file.
+///
+/// Only the very first statement / prologue directive is inspected — O(1) per file.
+/// Returns a JSON string `{ kind: "use_live" | "use_client" | "none", offset: number }`.
+///
+/// The Vite plugin calls this in the `transform` hook to decide whether to emit
+/// a live component stub (client build) or compile the file normally (server build).
+#[napi]
+pub fn detect_directive(source: String, filename: String) -> napi::Result<String> {
+    let info = alab_detect_directive(&source, &filename);
+    serde_json::to_string(&info)
+        .map_err(|e| napi::Error::from_reason(e.to_string()))
 }

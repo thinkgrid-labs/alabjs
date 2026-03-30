@@ -5,9 +5,11 @@ description: What AlabJS is, why it exists, and when to use it.
 
 # Introduction
 
-**AlabJS** is an open-source, full-stack React framework designed around one idea: the right defaults should be the easy defaults.
+**AlabJS** is an open-source, full-stack React framework built around one principle: the right defaults should be the easy defaults.
 
-Every AlabJS app starts at 95+ Lighthouse, has security headers set, streams real HTML from the server, and compiles with a Rust-powered compiler — without writing a single line of configuration.
+Security headers, code splitting, image optimization, and a Rust-powered compiler are on from the first command — not configuration you add later when something breaks in production.
+
+> **New in v0.2** — [Live Components](/live-components): server-rendered HTML fragments delivered over SSE, no client state required. Auto-generated [`AlabRoutes`](/concepts#6-alabroutes-type-safe-navigation) type checked at build time by the Rust route checker.
 
 ## The Name
 
@@ -17,80 +19,91 @@ Every AlabJS app starts at 95+ Lighthouse, has security headers set, streams rea
 
 Modern React development has a hidden tax. The tools that promise to make things easier — SSR frameworks, bundlers, image pipelines — each come with their own configuration files, plugin ecosystems, and deployment opinions. By the time you have a production-ready app, you have spent days configuring things that should have just worked.
 
-At the same time, the performance bar keeps rising. Users expect instant page loads, perfect Lighthouse scores, and offline capability. Developers are expected to know when to SSR, when to CSR, how to split bundles, when to cache, and how to stay secure — and to get all of it right, every time.
-
-AlabJS exists because **the right defaults should be the easy defaults**. You should not have to be an expert in bundling, SSR, caching, and security to ship a fast, safe, well-optimized app. That knowledge should live in the framework.
+AlabJS exists because **the right defaults should be the easy defaults**. You should not have to be an expert in bundling, SSR, caching, and security to ship a fast, safe, well-optimized app. That knowledge should live in the framework, not in your config files.
 
 ## Philosophy
 
 ### Explicit over magic
 
-In AlabJS, clarity is a feature. SSR, caching, and ISR are explicit choices per route — not assumed defaults you have to fight to disable. Server-only code lives in `.server.ts` files, and the Rust compiler enforces that boundary at build time. Cross it and you get a clear error before anything ships.
+In AlabJS, clarity is a feature. SSR, caching, and ISR are explicit choices per route — not assumed defaults you have to fight to disable. Server-only code lives in `.server.ts` files, and the Rust compiler enforces that boundary at build time. Cross it and you get a clear error before anything ships. Live components follow the same rule — the component code only ever runs on the server.
 
-### Standardized and runtime-agnostic
+### Standards-based and runtime-agnostic
 
-AlabJS is built on web standards. The core server is a plain H3 handler that works with `Request` and `Response` objects. Whether it's Node.js, Cloudflare Workers, Deno, or Bun — if it speaks HTTP, AlabJS runs on it. No proprietary infrastructure required.
+AlabJS is built on web platform standards. The core server is a plain H3 handler that works with `Request` and `Response` objects. Whether the runtime is Node.js, Cloudflare Workers, Deno, or Bun — if it speaks HTTP, AlabJS runs on it without proprietary infrastructure.
 
-### Performance as a baseline
+### Good performance by default
 
-Most frameworks give you the tools to be fast. AlabJS makes fast the only option. The compiler is built on **oxc** (Rust, open source), making it 50–100× faster than legacy tools. Streaming SSR, image optimization, and security headers are active from the first byte — not optional plugins.
+AlabJS cannot write fast code for you, but it removes the common reasons code is slow by accident. The compiler is built on **oxc** (Rust, open source), which is significantly faster than Webpack-era tools. Code splitting, image lazy-loading, and security headers are active without configuration. SSR, PPR, and CDN caching are available when you need them.
 
-### Developer joy through correctness
+### Developer experience through correctness
 
-A great developer experience isn't just hot-reloading. It's a framework that catches your mistakes before they reach the user. Types flow from `defineServerFn` directly into React components without manual sync. The Rust compiler validates your architecture as you build, turning runtime surprises into build-time to-dos.
+A good developer experience is not just hot-reloading. It is a framework that catches mistakes before they reach users. Return types flow from `defineServerFn` directly into React components. The Rust compiler validates every `<RouteLink to>` and `navigate()` call against the route manifest — dead links are build errors, not runtime 404s.
 
-## What Problem It Solves
+## What Problems It Solves
 
-**Configuration sprawl.** Most React setups require a bundler config, a TypeScript config, a PostCSS config, a Tailwind config, and deployment configuration on top. AlabJS has zero required config files. One command creates a working app.
+**Configuration sprawl.** Most React setups require a bundler config, TypeScript config, PostCSS config, Tailwind config, and deployment configuration. AlabJS requires none of them. One command creates a working app.
 
-**Unclear server/client boundaries.** Magic directives create invisible walls in your component tree. AlabJS uses file naming — `.server.ts` — enforced by the Rust compiler at build time.
+**Unclear server/client boundaries.** AlabJS uses file naming — `.server.ts` — enforced by the Rust compiler at build time rather than runtime directives you may forget to add.
 
-**Performance as an afterthought.** Most frameworks give you the tools to be fast. AlabJS makes fast the default: SSR on, code splitting on, image optimization on, security headers on. You opt out if you don't need it — not opt in.
+**Security as an afterthought.** Security headers, CSRF protection, and server-only secret handling are active on every project. There is nothing to configure and nothing to accidentally skip.
 
-**Deployment lock-in.** Building on a framework should not mean committing to a specific cloud provider. AlabJS runs on any Node.js host, Cloudflare Workers, or Deno Deploy — the server is a plain H3 HTTP handler you own entirely.
+**Deployment lock-in.** The server is a plain H3 HTTP handler. It runs on Node.js, Cloudflare Workers, and Deno Deploy without modification. Switching hosts does not require rewriting your application.
 
-**Slow builds at scale.** AlabJS uses an oxc-based Rust compiler — the same technology powering Vite 8's Rolldown. Compilation is 50–100× faster than Webpack-era tools.
+**Slow builds at scale.** AlabJS uses oxc — the same Rust-based parser and transformer powering Vite 8's Rolldown — for compilation. Build times are substantially faster than Webpack-era setups; the exact improvement depends on project size.
 
 ## Default Behaviors
 
-AlabJS makes the correct choice by default. You opt out of behaviors you don't need — not opt in to the ones you do.
+AlabJS ships with sensible defaults. Each can be changed; none require configuration to enable.
 
-| Default behavior | What it means |
+| Default | What it does |
 |---|---|
-| CSR by default, SSR opt-in | Pages render on the client unless you add `export const ssr = true`. Opt-in SSR keeps client pages fast for interactive apps. |
-| Security headers on every response | `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` — set automatically. |
-| CSRF protection | All non-GET server function calls require a valid token. Zero configuration. |
-| Tailwind CSS v4 included | Start writing utility classes. No PostCSS, no Tailwind config. |
-| Code splitting | Each route is its own JS chunk. Users only download what they need. |
-| Image optimization | `<Image>` converts to WebP, generates `srcset`, lazy-loads by default. |
-| Auto sitemap | `/sitemap.xml` is generated from the route manifest. No plugin needed. |
+| **CSR by default, SSR opt-in** | Pages render on the client unless you add `export const ssr = true`. This keeps client-only apps fast without a server round-trip. |
+| **Security headers** | `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` set on every response. |
+| **CSRF protection** | Non-GET server function calls require a valid token automatically. |
+| **Tailwind CSS v4** | Write utility classes from the start. No PostCSS or Tailwind config file needed. |
+| **Code splitting** | Each route is its own JS chunk. Users download only the code for the page they visit. |
+| **Image optimization** | `<Image>` converts to WebP, generates `srcset`, lazy-loads. Powered by the Rust binary. |
+| **Auto sitemap** | `/sitemap.xml` generated from the route manifest. No plugin or manual list. |
+| **Live components** | `*.live.tsx` files stream updated HTML over SSE. Server renders; browser patches the DOM. |
+| **Type-safe routes** | `AlabRoutes` union auto-generated at build time. Unknown paths fail the build. |
 
 ## When to Use AlabJS
 
-AlabJS is a great fit for:
+AlabJS is a good fit for:
 
-- **Full-stack React apps** that need server-rendered pages, API routes, and a database
-- **Content sites and blogs** that need SEO, fast loads, and a great Lighthouse score
-- **SPAs** that want a clean build pipeline without custom Vite config
-- **Apps with strict security requirements** that need headers, CSRF, and boundary enforcement
-- **Teams migrating from other frameworks** who want typed server functions without `"use client"` magic
+- **Full-stack React apps** that need API routes, server functions, and a database layer
+- **Content sites and blogs** where SSR and good Lighthouse scores matter
+- **SPAs** that want a clean build pipeline without a custom Vite config
+- **Apps with security requirements** — headers, CSRF, and server/client boundary enforcement are active by default
+- **Real-time dashboards** that need server-pushed updates without a WebSocket server or client polling loop
+- **Teams migrating from other frameworks** who want typed server functions without managing `"use client"` and `"use server"` directives by hand
+
+AlabJS is probably not the right choice if you need React Server Components (RSC), an Edge-optimised runtime (Vercel Edge, AWS Lambda@Edge), or a GraphQL API layer — these are on the [roadmap](/roadmap) but not available yet.
 
 ## TypeScript Only
 
-AlabJS does not support plain JavaScript. Every file in an AlabJS project is TypeScript.
+AlabJS does not support plain JavaScript.
 
-This is a deliberate design choice, not a limitation. Server function return types flow directly into client components through `import type`. The Rust compiler uses TypeScript's syntax to enforce server/client boundaries and perform dead-code elimination. Without TypeScript, neither works.
+This is a deliberate choice. Server function return types flow into client components through `import type`. The Rust compiler uses TypeScript's syntax to enforce server/client boundaries and strip dead code from the browser bundle. The `AlabRoutes` union type is generated from the route manifest. None of these work without TypeScript.
 
-If you are migrating an existing JavaScript project, rename your files to `.ts` and `.tsx`. The compiler handles the rest.
+If you are migrating a JavaScript project, rename your files to `.ts` and `.tsx`. The compiler handles the rest.
+
+Adding `.alabjs/routes.d.ts` to your `tsconfig.json` `include` array enables type checking on `<RouteLink to>`, `<Link href>`, and `navigate()` calls:
+
+```json
+{
+  "include": ["app", ".alabjs/routes.d.ts"]
+}
+```
 
 ## Tech Stack
 
 | Layer | Technology |
 |---|---|
-| Compiler | oxc (Rust, open source) via napi-rs |
-| Bundler | Vite 8 + Rolldown (Rust-native) |
-| HTTP server | H3 (Node.js, Cloudflare Workers, Deno) |
-| React | React 19 (streaming SSR, `use()`, concurrent mode) |
-| Styles | Tailwind CSS v4 (zero-config) |
-| Testing | Vitest (jsdom + node environments) |
-| Package manager | pnpm workspaces |
+| Compiler | oxc (Rust) via napi-rs |
+| Bundler | Vite 8 + Rolldown |
+| HTTP server | H3 |
+| React | React 19 |
+| Styles | Tailwind CSS v4 |
+| Testing | Vitest |
+| Package manager | pnpm |

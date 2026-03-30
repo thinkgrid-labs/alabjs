@@ -26,7 +26,7 @@ export default defineConfig({
     siteTitle: "🔥 AlabJS",
 
     nav: [
-      { text: "Guide", link: "/installation" },
+      { text: "Guide", link: "/introduction" },
       { text: "Reference", link: "/reference/cli" },
       { text: "GitHub", link: "https://github.com/thinkgrid-labs/alabjs" },
     ],
@@ -36,8 +36,10 @@ export default defineConfig({
         text: "Getting Started",
         items: [
           { text: "Introduction", link: "/introduction" },
+          { text: "Core Concepts", link: "/concepts" },
           { text: "Installation", link: "/installation" },
           { text: "Project Structure", link: "/project-structure" },
+          { text: "Roadmap", link: "/roadmap" },
         ],
       },
       {
@@ -46,6 +48,7 @@ export default defineConfig({
           { text: "Routing", link: "/routing" },
           { text: "Server Functions", link: "/server-functions" },
           { text: "SSR & CSR", link: "/ssr-csr" },
+          { text: "Live Components", link: "/live-components" },
           { text: "Data Fetching", link: "/data-fetching" },
           { text: "Mutations", link: "/mutations" },
           { text: "Environment Variables", link: "/env-variables" },

@@ -3,8 +3,8 @@ layout: home
 
 hero:
   name: "🔥 AlabJS"
-  text: "Type-safe React Framework, enforced by Rust."
-  tagline: Blazing builds. Explicit boundaries. Any host.
+  text: "Full-stack React, with a Rust core."
+  tagline: Sensible defaults. Explicit boundaries. Any host.
   actions:
     - theme: brand
       text: Get Started
@@ -15,35 +15,37 @@ hero:
 
 features:
   - title: Rust-powered compiler
-    details: oxc 0.119 compiles TypeScript and JSX 5–10× faster than esbuild. Server/client boundary violations caught at build time.
+    details: Built on oxc — the same parser powering Vite 8's Rolldown. TypeScript and JSX compilation is fast; server/client boundary violations are caught at build time, not at runtime.
   - title: Secure by default
-    details: Security headers, CSRF protection, and server/client code isolation — on every project, without writing a single line of config.
-  - title: Zero-config SSR + CSR
-    details: Pages render on the client by default. Add `export const ssr = true` to any page for full server-side rendering.
+    details: Security headers (X-Frame-Options, X-Content-Type-Options, Referrer-Policy) and CSRF protection are active on every project without any configuration.
+  - title: CSR by default, SSR opt-in
+    details: Pages render on the client unless you add `export const ssr = true`. Opt-in SSR keeps interactive apps light while giving content pages full server rendering.
   - title: File-system routing
-    details: Drop a `page.tsx` and get a route. Layouts, loading states, error boundaries, and API routes all follow the same convention.
+    details: Drop a `page.tsx` and get a route. Layouts, loading states, error boundaries, and API routes follow the same convention — no manual registration.
   - title: Server Functions
-    details: Define `defineServerFn` in `.server.ts` files. The Rust compiler strips them from the browser bundle and generates type-safe fetch stubs.
-  - title: Built-in image optimization
-    details: The `<Image>` component converts to WebP, generates responsive `srcset`, and lazy-loads by default — powered by the same Rust binary.
+    details: Define server-only logic in `.server.ts` files with `defineServerFn`. The Rust compiler strips them from the browser bundle and generates type-safe stubs automatically.
+  - title: Live Components
+    details: Name a file `*.live.tsx` and it streams updated HTML to the browser over SSE on a timer or on-demand. No client-side state, no polling, no WebSocket server needed.
+  - title: Type-safe routing
+    details: Every page route is reflected in a generated `AlabRoutes` union. Unknown paths in `<RouteLink to>`, `<Link href>`, and `navigate()` are caught at build time by the Rust route checker.
+  - title: Image optimization
+    details: The `<Image>` component converts to WebP, generates a responsive `srcset`, and lazy-loads by default. Blur-up placeholders are available via `generateBlurPlaceholder`.
   - title: Partial Prerendering (PPR)
-    details: Export `ppr = true` to serve a CDN-cached static shell instantly. `<Dynamic>` boundaries stream per-request content in behind it — no full page reload needed.
+    details: Export `ppr = true` to serve a CDN-cached static HTML shell. `<Dynamic>` boundaries stream per-request content behind it — no full-page reload, no client JS required for the shell.
   - title: CDN Cache Headers
-    details: Export `cdnCache` to emit `Cache-Control`, `CDN-Cache-Control`, and `Surrogate-Control` headers automatically. Works with Cloudflare, Fastly, or any standard CDN.
-  - title: Skew Protection
-    details: Build ID stamped at compile time (git SHA → Rust FNV-1a hash). Client detects stale JS bundles and hard-reloads automatically — zero stale-bundle errors in production.
-  - title: Built-in Analytics
-    details: Drop `<Analytics />` into your layout. Real user Core Web Vitals (LCP, CLS, INP, TTFB, FCP) aggregated per route — p75, no third-party scripts, no data leaving your server.
+    details: Export `cdnCache` to emit `Cache-Control`, `CDN-Cache-Control`, and `Surrogate-Control` headers. Tag-based purge via `revalidateTag`. Works with Cloudflare, Fastly, or any standard CDN.
+  - title: Skew protection
+    details: A build ID (git SHA → FNV-1a hash fallback) is stamped at compile time. The client detects a stale JS bundle after deploy and performs a hard reload automatically.
+  - title: Built-in analytics
+    details: Add `<Analytics />` to your root layout. Real-user Core Web Vitals (LCP, CLS, INP, TTFB, FCP) are collected per route, stored in-process, and served at `/_alabjs/analytics`. No third-party scripts.
   - title: Safe environment variables
-    details: Prefix with `ALAB_PUBLIC_` to expose a variable to the browser. Everything else is server-only — secrets can never be accidentally bundled into client code.
-  - title: Built-in dev tools
-    details: Floating toolbar in `alab dev` shows the current route, render mode, server/client boundary tree, active params, and layout chain. Zero footprint in production.
+    details: Variables prefixed with `ALAB_PUBLIC_` are inlined into the client bundle. Everything else is server-only. Secrets cannot be accidentally shipped to the browser.
   - title: Server-Sent Events
-    details: Stream live updates from any API route with `defineSSEHandler`. Subscribe on the client with the `useSSE` hook — reconnects automatically, no WebSocket needed.
-  - title: Offline-first mutations
-    details: Service worker queues failed server function calls in IndexedDB and replays them on reconnect. `useOfflineMutations` surfaces queue state and manual replay — zero config required.
+    details: Stream data from any API route with `defineSSEHandler`. Subscribe on the client with `useSSE` — automatic reconnection, named event types, and typed payloads included.
+  - title: Offline mutations
+    details: A service worker queues failed server function calls in IndexedDB and replays them when connectivity returns. `useOfflineMutations` exposes queue state and a manual replay trigger.
   - title: Microfrontend-ready
-    details: First-class federation via native ESM + import maps — no webpack runtime, no Module Federation. Expose components with `federation.exposes`, consume them with `useFederatedComponent`. React is automatically shared as a singleton across all remotes.
+    details: Native ESM + import maps federation — no webpack runtime required. Expose components with `federation.exposes`, consume them with `useFederatedComponent`. React is shared as a singleton. SSR of remote components is not yet supported (v0.x limitation).
   - title: Monorepo-native
-    details: The `--cwd` flag targets any app from the workspace root without changing directories. Works with pnpm workspaces and Turbo out of the box — shared component libraries, shared server functions, and per-app environment variables all work as expected.
+    details: The `--cwd` flag targets any app in a pnpm workspace without changing directories. Shared component libraries and shared server functions work out of the box.
 ---

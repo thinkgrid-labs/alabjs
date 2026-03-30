@@ -2,6 +2,7 @@ import type { Plugin } from "vite";
 import type { AlabNapi } from "./napi.js";
 import { parseErrorLocation, formatBoundaryError } from "./overlay.js";
 import { devToolbarScript } from "./devtools.js";
+import { generateLiveComponentStub, generateLiveClientRuntime, generateLiveServerWrapper } from "./live-stub.js";
 import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 import { dirname } from "node:path";
@@ -13,6 +14,7 @@ interface AlabPluginOptions {
 
 const VIRTUAL_CLIENT_ID = "/@alabjs/client";
 const VIRTUAL_REFRESH_ID = "/@react-refresh";
+const VIRTUAL_LIVE_CLIENT_ID = "/@alabjs/live-client";
 // In production builds the Rust compiler still emits jsxDEV calls (from
 // react/jsx-dev-runtime), but React's production bundle exports jsxDEV=void 0.
 // This virtual shim re-exports the production jsx/jsxs functions under the
@@ -103,11 +105,25 @@ export function alabPlugin(options: AlabPluginOptions = {}): Plugin[] {
     resolveId(id): string | null {
       if (id === VIRTUAL_CLIENT_ID) return VIRTUAL_CLIENT_ID;
       if (id === VIRTUAL_REFRESH_ID) return VIRTUAL_REFRESH_ID;
+      if (id === VIRTUAL_LIVE_CLIENT_ID) return VIRTUAL_LIVE_CLIENT_ID;
       if (id === VIRTUAL_JSX_DEV_SHIM_ID) return VIRTUAL_JSX_DEV_SHIM_ID;
+      // ?live-actual: used by the server-build live wrapper to import the real
+      // component without triggering another live transform (avoids infinite loop).
+      if (id.endsWith("?live-actual")) return id;
       return null;
     },
 
     async load(id): Promise<string | null> {
+      if (id === VIRTUAL_LIVE_CLIENT_ID) {
+        return generateLiveClientRuntime();
+      }
+      if (id.endsWith("?live-actual")) {
+        // Load the raw TypeScript source for the real live component.
+        // Vite's default transformer (esbuild) will compile it after this load hook.
+        const realPath = id.slice(0, -"?live-actual".length);
+        const { readFileSync } = await import("node:fs");
+        return readFileSync(realPath, "utf-8");
+      }
       if (id === VIRTUAL_REFRESH_ID) {
         // Re-export the react-refresh runtime so the preamble can import it.
         // Use bare specifier so Vite's dep optimizer (pre-bundler) handles the
@@ -414,9 +430,38 @@ if (import.meta.env.DEV) {
       if (!napi) return null;
       if (!/\.(ts|tsx)$/.test(id)) return null;
       if (id.includes("node_modules")) return null;
+      // ?live-actual IDs are loaded by generateLiveServerWrapper imports; let
+      // esbuild compile them normally without triggering another live transform.
+      if (id.includes("?live-actual")) return null;
 
       const isServerFile = /\.server\.(ts|tsx)$/.test(id);
       const isClientBuild = !(transformOptions as { ssr?: boolean } | undefined)?.ssr;
+
+      // ── Live component detection ─────────────────────────────────────────
+      // A file is a live component when it uses the *.live.tsx convention OR
+      // has a "use live" directive as its first statement.
+      const isLiveByConvention = /\.live\.(ts|tsx)$/.test(id);
+      let isLiveByDirective = false;
+      if (!isLiveByConvention && napi) {
+        const directiveJson = napi.detectDirective(code, id);
+        const directive = JSON.parse(directiveJson) as { kind: string };
+        isLiveByDirective = directive.kind === "use_live";
+      }
+      const isLiveFile = isLiveByConvention || isLiveByDirective;
+
+      if (isLiveFile) {
+        // Derive a stable 16-char ID from the module path (reuses existing FNV-1a hash).
+        const moduleId = napi ? napi.hashBuildId(id) : id.replace(/[^a-z0-9]/gi, "_");
+        if (isClientBuild) {
+          // Client build: replace with LiveMount stub — server code never ships to browser.
+          return { code: generateLiveComponentStub(moduleId, ["default"]), map: null };
+        } else {
+          // Server build: wrap default export in a data-live-id div so SSR pages emit
+          // the same DOM structure as LiveMount, enabling React hydration without errors.
+          // The ?live-actual import loads the real component without re-triggering this path.
+          return { code: generateLiveServerWrapper(moduleId, id + "?live-actual"), map: null };
+        }
+      }
 
       // Skip Rust compiler for SSR transforms — the Rust compiler injects React
       // Fast Refresh globals ($RefreshReg$) that don't exist in the SSR context.

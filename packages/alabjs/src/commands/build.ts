@@ -95,12 +95,13 @@ async function buildSpa(cwd: string): Promise<void> {
 export async function build({ cwd, skipTypecheck = false, mode = "ssr", analyze = false }: BuildOptions) {
   if (mode === "spa") {
     console.log("  alab  building SPA (client-only)...\n");
-    const tasks: Promise<unknown>[] = [buildSpa(cwd)];
+    await buildSpa(cwd);
+    // SPA has no route manifest, but still type-check after the build so any
+    // generated types from the Vite plugin are available to tsc.
     if (!skipTypecheck) {
       console.log("  alab  type-checking...");
-      tasks.push(runTypecheck(cwd));
+      await runTypecheck(cwd);
     }
-    await Promise.all(tasks);
     return;
   }
 
@@ -144,40 +145,44 @@ export async function build({ cwd, skipTypecheck = false, mode = "ssr", analyze 
     }
   }
 
-  const tasks: Promise<unknown>[] = [
-    viteBuild({
-      root: cwd,
-      plugins: [
-        (await import("alabjs-vite-plugin")).alabPlugin({ mode: "build" }),
-        ...(visualizerPlugin ? [visualizerPlugin] : []),
-      ],
-      build: {
-        // Output client assets to .alabjs/dist/client/ so the production server's
-        // static handler (which serves from distDir/client/) can find them.
-        outDir: resolve(cwd, ".alabjs/dist/client"),
-        manifest: true,
-        ssrManifest: true,
-        rolldownOptions: {
-          // In SSR mode, we don't use an index.html as the entry point.
-          // Instead, we bundle the virtual client module as the main browser asset.
-          input: "/@alabjs/client",
-        },
+  await viteBuild({
+    root: cwd,
+    plugins: [
+      (await import("alabjs-vite-plugin")).alabPlugin({ mode: "build" }),
+      ...(visualizerPlugin ? [visualizerPlugin] : []),
+    ],
+    build: {
+      // Output client assets to .alabjs/dist/client/ so the production server's
+      // static handler (which serves from distDir/client/) can find them.
+      outDir: resolve(cwd, ".alabjs/dist/client"),
+      manifest: true,
+      ssrManifest: true,
+      rolldownOptions: {
+        // In SSR mode, we don't use an index.html as the entry point.
+        // Instead, we bundle the virtual client module as the main browser asset.
+        input: "/@alabjs/client",
       },
-    }),
-  ];
-
-  if (!skipTypecheck) {
-    console.log("  alab  type-checking...");
-    tasks.push(runTypecheck(cwd));
-  }
-
-  await Promise.all(tasks);
+    },
+  });
 
   const distDir = resolve(cwd, ".alabjs/dist");
 
   // Scan the app/ directory with the Rust router, normalize paths, and write
   // route-manifest.json. Must run before writeBuildId (hash) and buildPPRShells.
+  // Also writes .alabjs/routes.d.ts — type-checking runs AFTER this so tsc can
+  // resolve the AlabRoutes union that routes.d.ts exports.
   const manifest = await buildRouteManifest(cwd, distDir);
+
+  // Type-check after route types are written so `AlabRoutes` is resolvable.
+  if (!skipTypecheck) {
+    console.log("  alab  type-checking...");
+    await runTypecheck(cwd);
+  }
+
+  // Validate all RouteLink/Link/navigate path references against the manifest.
+  // Runs after manifest generation but before the SSR bundle so type-safe route
+  // errors abort the build early with clear file + offset info.
+  await checkRouteReferences(cwd, manifest);
 
   // Compile all app pages, layouts, and server functions to .alabjs/dist/server/.
   // Must run after buildRouteManifest so we have the entry list, and before
@@ -470,6 +475,59 @@ async function buildFederationExposes(
 }
 
 /**
+ * Validate all `<RouteLink to>`, `<Link href>`, and `navigate()` path
+ * references in `app/` against the compiled route manifest.
+ *
+ * Fails the build with a formatted error list when unknown paths or literal
+ * bracket segments are found. Gracefully skips when the napi binary is absent.
+ */
+async function checkRouteReferences(cwd: string, manifest: RouteManifest): Promise<void> {
+  const appDir = resolve(cwd, "app");
+
+  type NapiChecker = { checkRouteRefs(appDir: string, manifestJson: string): string };
+  let napi: NapiChecker;
+  try {
+    const mod = await import("@alabjs/compiler") as unknown as { default?: NapiChecker } & NapiChecker;
+    napi = (mod.default ?? mod) as NapiChecker;
+    if (typeof napi.checkRouteRefs !== "function") return; // napi binary predates route checker
+  } catch {
+    return; // napi binary not available — skip silently
+  }
+
+  const manifestJson = JSON.stringify(manifest);
+  const violationsJson = napi.checkRouteRefs(appDir, manifestJson);
+  const violations = JSON.parse(violationsJson) as Array<{
+    file: string;
+    offset: number;
+    kind: "unknown_path" | "literal_segment";
+    path: string;
+    suggestion?: string;
+  }>;
+
+  if (violations.length === 0) return;
+
+  const lines: string[] = [
+    `\n  alab  ${violations.length} route violation${violations.length === 1 ? "" : "s"} found:\n`,
+  ];
+
+  for (const v of violations) {
+    const relFile = relative(cwd, v.file);
+    const kindLabel =
+      v.kind === "unknown_path"
+        ? "unknown path"
+        : "literal bracket — use params prop";
+    lines.push(`  ✗ ${relFile}  "${v.path}"  (${kindLabel})`);
+    if (v.suggestion) {
+      lines.push(`    → suggestion: ${v.suggestion}`);
+    }
+  }
+
+  lines.push("");
+  console.error(lines.join("\n"));
+  throw new Error(`[alabjs] Build failed: ${violations.length} route violation(s). Fix the paths above.`);
+}
+
+/**
  * Scan `app/` with the Rust router napi, normalize absolute file paths to
  * cwd-relative, and write `route-manifest.json` to `distDir`.
  *
@@ -508,7 +566,61 @@ async function buildRouteManifest(cwd: string, distDir: string): Promise<RouteMa
   const apis  = manifest.routes.filter((r) => r.kind === "api").length;
   console.log(`  alab  routes → ${pages} page(s), ${apis} api route(s)`);
 
+  // Emit auto-generated route types so <RouteLink to="..."> and navigate() are
+  // type-safe without any manual setup. Written to .alabjs/routes.d.ts.
+  writeRouteTypes(manifest, distDir);
+
   return manifest;
+}
+
+/**
+ * Write `.alabjs/routes.d.ts` containing the `AlabRoutes` union type and
+ * a typed `navigate` overload, auto-derived from the route manifest.
+ *
+ * Example output:
+ * ```ts
+ * export type AlabRoutes = "/" | "/about" | `/users/${string}`;
+ * ```
+ *
+ * Add `".alabjs/routes.d.ts"` to `tsconfig.json` `include` to enable
+ * type-checking on `<RouteLink to>`, `<Link href>`, and `navigate()`.
+ */
+function writeRouteTypes(manifest: RouteManifest, distDir: string): void {
+  const pageRoutes = manifest.routes.filter((r) => r.kind === "page");
+
+  // Convert alab `[param]` syntax → TypeScript template literal `${string}`.
+  const routeTypes = pageRoutes.map((r) => {
+    const tsPath = r.path.replace(/\[([^\]]+)\]/g, "${string}");
+    // Static path → plain string literal; dynamic path → template literal.
+    return tsPath.includes("${") ? `\`${tsPath}\`` : JSON.stringify(tsPath);
+  });
+
+  const unionType = routeTypes.length > 0 ? routeTypes.join(" | ") : "string";
+
+  const content = [
+    "// AUTO-GENERATED by `alab build` — do not edit manually.",
+    "// Add \".alabjs/routes.d.ts\" to your tsconfig.json `include` array to enable",
+    "// type-checking on <RouteLink to>, <Link href>, and navigate().",
+    "",
+    `export type AlabRoutes = ${unionType};`,
+    "",
+    "declare module \"alabjs/router\" {",
+    "  export function navigate(path: AlabRoutes, opts?: { replace?: boolean }): void;",
+    "}",
+    "",
+    "declare module \"alabjs/components\" {",
+    "  import type { ComponentProps } from \"react\";",
+    "  interface RouteLinkProps extends Omit<ComponentProps<\"a\">, \"href\"> {",
+    "    to: AlabRoutes;",
+    "    replace?: boolean;",
+    "  }",
+    "  export function RouteLink(props: RouteLinkProps): JSX.Element;",
+    "  export function Link(props: RouteLinkProps): JSX.Element;",
+    "}",
+    "",
+  ].join("\n");
+
+  writeFileSync(resolve(distDir, "routes.d.ts"), content, "utf8");
 }
 
 /**

@@ -1,0 +1,26 @@
+{
+  "name": "live-dashboard-example",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "alab dev",
+    "build": "alab build",
+    "start": "alab start"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0"
+  },
+  "dependencies": {
+    "alabjs": "workspace:*",
+    "alabjs-vite-plugin": "workspace:*",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tailwindcss": "^4.1.0",
+    "@tailwindcss/vite": "^4.1.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

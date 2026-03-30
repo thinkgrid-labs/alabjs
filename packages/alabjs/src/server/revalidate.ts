@@ -27,6 +27,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { revalidatePath, revalidatePathPrefix, revalidateTag } from "./cache.js";
 import { purgeCdnByTags } from "./cdn.js";
+import { invalidateLive } from "../live/broadcaster.js";
 
 export interface RevalidateBody {
   /** Purge a single cached page path. */
@@ -82,6 +83,8 @@ export function applyRevalidate(
     // Fire-and-forget: CDN purge is best-effort. In-process cache is already
     // cleared above, so a CDN miss will just hit the origin and re-warm the edge.
     void purgeCdnByTags(tags);
+    // Notify live SSE connections subscribed to any of these tags.
+    void invalidateLive({ tags });
   }
 
   return {
