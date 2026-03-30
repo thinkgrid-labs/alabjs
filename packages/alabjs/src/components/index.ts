@@ -1,7 +1,7 @@
 export { Image } from "./Image.js";
 export type { ImageProps } from "./Image.js";
-export { Link } from "./Link.js";
-export type { LinkProps } from "./Link.js";
+export { Link, RouteLink } from "./Link.js";
+export type { LinkProps, RouteLinkProps } from "./Link.js";
 export { ErrorBoundary } from "./ErrorBoundary.js";
 export { Script } from "./Script.js";
 export type { ScriptProps } from "./Script.js";

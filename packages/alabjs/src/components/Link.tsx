@@ -6,6 +6,15 @@ export interface LinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
   prefetch?: boolean;
 }
 
+export interface RouteLinkProps extends Omit<AnchorHTMLAttributes<HTMLAnchorElement>, "href"> {
+  /** The destination path. Narrows to AlabRoutes when routes.d.ts is included. */
+  to: string;
+  /** Replace the current history entry instead of pushing a new one. */
+  replace?: boolean;
+  /** Prefetch the target page on hover (default: true). */
+  prefetch?: boolean;
+}
+
 declare global {
   interface Window {
     __alabjs_navigate?: (href: string) => Promise<void>;
@@ -61,4 +70,15 @@ export function Link({ href, children, prefetch = true, onClick, ...rest }: Link
       {children}
     </a>
   );
+}
+
+/**
+ * Type-safe navigation link.
+ *
+ * Identical to `<Link>` but uses a `to` prop instead of `href`.
+ * When `.alabjs/routes.d.ts` is included in your tsconfig, the `to` prop
+ * is narrowed to the `AlabRoutes` union so typos become build errors.
+ */
+export function RouteLink({ to, replace: _replace, ...rest }: RouteLinkProps) {
+  return <Link href={to} {...rest} />;
 }
