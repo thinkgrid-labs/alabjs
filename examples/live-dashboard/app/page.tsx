@@ -16,7 +16,7 @@ export const ssr = true;
 
 export const metadata = {
   title: "Live Dashboard — Alab",
-  description: "Real-time stock tickers and alerts powered by alab "use live" components.",
+  description: 'Real-time stock tickers and alerts powered by alab "use live" components.',
 };
 
 const TICKERS = ["AAPL", "GOOG", "MSFT", "TSLA"] as const;

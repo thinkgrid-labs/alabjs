@@ -62,10 +62,24 @@ Real-time server-rendered components and compile-time route safety.
 
 ### v0.5 — Live Broadcast + DX Polish
 
+**Live**
+
 - **Redis broadcaster for live components** — currently live updates are in-process only; multi-instance deployments need a shared channel. An optional `@alabjs/broadcaster-redis` package will expose a `redisBroadcaster` adapter plugged in via `alabjs.config.ts`. [Tracked in `broadcaster.ts`.]
 - **Live component authentication** — forward session cookies / auth headers to the SSE renderer so live components can call `defineServerFn` with the current user's context
 - **Dev overlay for live connections** — the dev tools toolbar will show active SSE connections, last push time, and error state per live component
 - **`alab info` live manifest output** — extend the CLI command to list live components alongside pages and API routes
+
+**Rust-native toolchain (zero external tools required)**
+
+AlabJS already uses oxc for compilation. The oxc project ships a production-ready linter and has a formatter in active development — both hooked directly into the same napi binary, so no separate installs.
+
+- **Built-in linter (`oxlint`)** — `alab lint` command and `alab dev` inline warnings, powered by `oxlint` via the oxc napi binary. oxlint is production-ready today (~50–100× faster than ESLint). A default AlabJS rule set will be pre-configured: no `any`, no unused imports, no direct `.server.ts` imports from client files, no missing `key` props. ESLint remains optional for teams that need custom rules.
+- **Built-in formatter (`oxc_formatter`)** — `alab fmt` command for consistent code style, no Prettier required. oxc's formatter is in active development; it will be integrated once it reaches stable output for TypeScript and JSX. Until then, `alab fmt` delegates to Biome if installed, or skips gracefully.
+- **Format-on-save hook** — `alab dev` will emit a `/_alabjs/fmt` endpoint that editors can call via the existing dev toolbar protocol to format the current file in-process without spawning a separate process.
+
+> **What this means in practice**: a new AlabJS project will have linting and formatting that just works with zero config files — no `.eslintrc`, no `prettier.config.js`, no extra `devDependencies`. Teams that already use ESLint or Prettier can keep them; the built-in tools are additive, not forced.
+
+> **Honest status**: `oxlint` is ready now. `oxc_formatter` targets stable TypeScript/JSX output in mid-2026. The type checker replacement (removing `tsc --noEmit`) is a longer-term goal tracked separately in [Exploring](#-exploring).
 
 ---
 
@@ -102,6 +116,7 @@ These are ideas under active evaluation. They are not committed.
 - **Plugin API** — a stable `defineAlabPlugin` interface so the community can extend the framework (custom route kinds, new build steps, deployment adapters) without forking
 - **`alab generate`** — scaffolding CLI for pages, server functions, live components, and route handlers with AlabJS conventions pre-applied
 - **WebSocket support** — `defineWSHandler` alongside the existing `defineSSEHandler`; SSE covers most real-time read use cases but WebSockets are needed for bidirectional communication
+- **Rust-native type checker (replace `tsc --noEmit`)** — the oxc project is building a TypeScript-compatible type checker in Rust. If it reaches sufficient coverage, AlabJS will replace the `tsc --noEmit` step in `alab build` with the Rust checker, removing the last Node.js bottleneck in the build pipeline. This is genuinely uncertain: full TypeScript type compatibility is an enormous surface area, and the oxc type checker is in very early stages as of early 2026. We are watching it closely but will not ship it until it handles the full AlabJS test suite without false positives.
 
 ---
 
