@@ -13,7 +13,7 @@ This page tracks what has shipped, what is actively being worked on, and what is
 
 ## ✅ Shipped
 
-### v0.1 — Foundation
+### v0.1 t0 v0.3 — Foundation
 
 The core framework. Everything you need to build a production-grade full-stack React app.
 
@@ -40,7 +40,7 @@ The core framework. Everything you need to build a production-grade full-stack R
 - **Monorepo support** — `--cwd` / `-C` flag, pnpm workspaces, Turbo orchestration guide
 - **Deployment adapters** — Node.js, Bun, Cloudflare Workers, Deno Deploy, Fly.io, Railway
 
-### v0.2 — Live & Type-Safe Routing
+### v0.4 — Live & Type-Safe Routing
 
 Real-time server-rendered components and compile-time route safety.
 
@@ -60,7 +60,7 @@ Real-time server-rendered components and compile-time route safety.
 
 ## 🔨 In Progress
 
-### v0.3 — Live Broadcast + DX Polish
+### v0.5 — Live Broadcast + DX Polish
 
 - **Redis broadcaster for live components** — currently live updates are in-process only; multi-instance deployments need a shared channel. An optional `@alabjs/broadcaster-redis` package will expose a `redisBroadcaster` adapter plugged in via `alabjs.config.ts`. [Tracked in `broadcaster.ts`.]
 - **Live component authentication** — forward session cookies / auth headers to the SSE renderer so live components can call `defineServerFn` with the current user's context
@@ -71,21 +71,21 @@ Real-time server-rendered components and compile-time route safety.
 
 ## 📋 Planned
 
-### v0.4 — Database & Forms
+### v0.6 — Database & Forms
 
 - **First-class Drizzle ORM integration** — zero-config schema discovery, type-safe query helpers available in server functions
 - **Form actions** — `<form action={serverFn}>` progressive enhancement without JavaScript; pairs with `useMutation` for the enhanced path
 - **Server-side validation errors surfaced to forms** — structured error response from `defineServerFn` Zod schemas automatically maps to form field errors via `useFormErrors`
 - **`<FormStatus>` component** — pending/success/error state for the nearest parent `<form action>`
 
-### v0.5 — Observability & Testing
+### v0.7 — Observability & Testing
 
 - **Distributed tracing** — OpenTelemetry spans for SSR render time, server function duration, and live component push latency; exportable to Jaeger, Honeycomb, Datadog
 - **`renderLive` test utility** — test helper that renders a live component server-side, captures the HTML output, and asserts on it without a running SSE connection
 - **`mockInvalidateLive`** — test helper that intercepts `invalidateLive` calls and records which tags were pushed
 - **Storybook adapter** — render AlabJS components in Storybook without a running server
 
-### v0.6 — Edge & Platform
+### v0.8 — Edge & Platform
 
 - **Vercel adapter** — output Edge Functions + ISR via the Build Output API
 - **AWS Lambda adapter** — deploy to Lambda + CloudFront without a persistent server
